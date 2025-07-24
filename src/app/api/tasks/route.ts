@@ -1,9 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { TaskStatus, TaskPriority } from '@prisma/client'
+import { requireAuth, getDataFilter } from '@/lib/api-auth'
+import { PERMISSIONS, hasPermission } from '@/lib/permissions'
 
 export async function GET(request: NextRequest) {
   try {
+    const user = await requireAuth(request)
+    
+    // Check permissions
+    const canViewAll = hasPermission(user.role, PERMISSIONS.TASKS_VIEW_ALL)
+    const canViewAssigned = hasPermission(user.role, PERMISSIONS.TASKS_VIEW_ASSIGNED)
+    
+    if (!canViewAll && !canViewAssigned) {
+      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 })
+    }
+    
     const { searchParams } = new URL(request.url)
     const status = searchParams.get('status') as TaskStatus | null
     const priority = searchParams.get('priority') as TaskPriority | null
@@ -11,14 +23,24 @@ export async function GET(request: NextRequest) {
     const leadId = searchParams.get('leadId')
     const customerId = searchParams.get('customerId')
     
+    // Build where clause
+    let whereClause: any = {}
+    
+    // Add filters
+    if (status) whereClause.status = status
+    if (priority) whereClause.priority = priority
+    if (assignedToId) whereClause.assignedToId = assignedToId
+    if (leadId) whereClause.leadId = leadId
+    if (customerId) whereClause.customerId = customerId
+    
+    // Apply role-based data filtering if user can only view assigned
+    if (!canViewAll && canViewAssigned) {
+      const dataFilter = getDataFilter(user.role, user.id)
+      whereClause = { ...whereClause, ...dataFilter }
+    }
+    
     const tasks = await prisma.task.findMany({
-      where: {
-        ...(status && { status }),
-        ...(priority && { priority }),
-        ...(assignedToId && { assignedToId }),
-        ...(leadId && { leadId }),
-        ...(customerId && { customerId }),
-      },
+      where: whereClause,
       include: {
         assignedTo: {
           select: {
@@ -63,12 +85,26 @@ export async function GET(request: NextRequest) {
     
     return NextResponse.json(tasks)
   } catch (error) {
+    if (error instanceof Error) {
+      if (error.message === 'Authentication required') {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+      if (error.message === 'Insufficient permissions') {
+        return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 })
+      }
+    }
     return NextResponse.json({ error: 'Failed to fetch tasks' }, { status: 500 })
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
+    const user = await requireAuth(request)
+    
+    if (!hasPermission(user.role, PERMISSIONS.TASKS_CREATE)) {
+      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 })
+    }
+    
     const body = await request.json()
     const { 
       title, 

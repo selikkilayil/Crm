@@ -2,24 +2,53 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { loginDemo } from '@/lib/auth'
+import { login, loginDemo } from '@/lib/auth'
 
 export default function LoginPage() {
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const router = useRouter()
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoading(true)
+    setError('')
+    
+    try {
+      await login(email, password)
+      // Small delay to ensure localStorage is updated
+      setTimeout(() => {
+        router.push('/')
+      }, 100)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Login failed')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const handleDemoLogin = async () => {
     setLoading(true)
+    setError('')
     
-    // Simulate a brief loading state
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    
-    // Login with demo credentials
-    loginDemo()
-    
-    // Redirect to dashboard
-    router.push('/')
-    setLoading(false)
+    try {
+      // Simulate a brief loading state
+      await new Promise(resolve => setTimeout(resolve, 500))
+      
+      // Login with demo credentials
+      loginDemo()
+      
+      // Small delay to ensure localStorage is updated
+      setTimeout(() => {
+        router.push('/')
+      }, 100)
+    } catch (err) {
+      setError('Demo login failed')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -37,7 +66,13 @@ export default function LoginPage() {
           </p>
         </div>
         
-        <div className="mt-8 space-y-6">
+        <form className="mt-8 space-y-6" onSubmit={handleLogin}>
+          {error && (
+            <div className="rounded-md bg-red-50 p-4">
+              <div className="text-sm text-red-700">{error}</div>
+            </div>
+          )}
+          
           <div className="rounded-md shadow-sm space-y-4">
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700">
@@ -47,9 +82,11 @@ export default function LoginPage() {
                 id="email"
                 name="email"
                 type="email"
-                value="demo@crm.com"
-                disabled
-                className="mt-1 appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 bg-gray-50 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Enter your email"
+                className="mt-1 appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
               />
             </div>
             
@@ -61,16 +98,18 @@ export default function LoginPage() {
                 id="password"
                 name="password"
                 type="password"
-                value="••••••••"
-                disabled
-                className="mt-1 appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 bg-gray-50 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Enter your password"
+                className="mt-1 appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
               />
             </div>
           </div>
 
-          <div>
+          <div className="space-y-4">
             <button
-              onClick={handleDemoLogin}
+              type="submit"
               disabled={loading}
               className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
@@ -80,27 +119,36 @@ export default function LoginPage() {
                   Signing in...
                 </div>
               ) : (
-                'Sign in with Demo Account'
+                'Sign in'
               )}
             </button>
-          </div>
-
-          <div className="text-center">
-            <div className="text-sm text-gray-600">
-              Demo credentials are automatically filled.
-              <br />
-              Click the button above to login instantly.
+            
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-300" />
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-gray-50 text-gray-500">Or</span>
+              </div>
             </div>
+            
+            <button
+              type="button"
+              onClick={handleDemoLogin}
+              disabled={loading}
+              className="group relative w-full flex justify-center py-2 px-4 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Try Demo Account
+            </button>
           </div>
 
           <div className="border-t border-gray-200 pt-4">
             <div className="text-xs text-gray-500 space-y-1">
-              <p><strong>Demo User:</strong> Admin access</p>
-              <p><strong>Features:</strong> Full CRM access</p>
-              <p><strong>Data:</strong> Sample data included</p>
+              <p><strong>Demo Account:</strong> Full admin access with sample data</p>
+              <p><strong>Real Login:</strong> Use your registered email and password</p>
             </div>
           </div>
-        </div>
+        </form>
       </div>
     </div>
   )

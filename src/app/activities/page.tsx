@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { ActivityType } from '@prisma/client'
 import AuthGuard from '@/components/AuthGuard'
 import NavBar from '@/components/NavBar'
+import apiClient from '@/lib/api-client'
 
 interface Activity {
   id: string
@@ -50,10 +51,9 @@ export default function ActivitiesPage() {
 
   const fetchActivities = async () => {
     try {
-      const response = await fetch('/api/activities')
-      const data = await response.json()
+      const data = await apiClient.get('/api/activities')
       
-      if (response.ok && Array.isArray(data)) {
+      if (Array.isArray(data)) {
         setActivities(data)
       } else {
         console.error('API Error:', data)
@@ -69,16 +69,9 @@ export default function ActivitiesPage() {
 
   const addActivity = async (activityData: any) => {
     try {
-      const response = await fetch('/api/activities', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(activityData),
-      })
-
-      if (response.ok) {
-        fetchActivities()
-        setShowAddForm(false)
-      }
+      await apiClient.post('/api/activities', activityData)
+      fetchActivities()
+      setShowAddForm(false)
     } catch (error) {
       console.error('Failed to add activity:', error)
     }
@@ -86,17 +79,10 @@ export default function ActivitiesPage() {
 
   const markAsCompleted = async (activityId: string) => {
     try {
-      const response = await fetch(`/api/activities/${activityId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          completedAt: new Date().toISOString() 
-        }),
+      await apiClient.put(`/api/activities/${activityId}`, { 
+        completedAt: new Date().toISOString() 
       })
-
-      if (response.ok) {
-        fetchActivities()
-      }
+      fetchActivities()
     } catch (error) {
       console.error('Failed to update activity:', error)
     }
@@ -504,8 +490,8 @@ function AddActivityModal({ onAdd, onClose, activityTypes }: {
   useEffect(() => {
     // Fetch leads and customers for linking
     Promise.all([
-      fetch('/api/leads').then(r => r.json()),
-      fetch('/api/customers').then(r => r.json())
+      apiClient.get('/api/leads').catch(() => []),
+      apiClient.get('/api/customers').catch(() => [])
     ]).then(([leadsData, customersData]) => {
       setLeads(Array.isArray(leadsData) ? leadsData : [])
       setCustomers(Array.isArray(customersData) ? customersData : [])

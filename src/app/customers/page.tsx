@@ -6,6 +6,7 @@ import NavBar from '@/components/NavBar'
 import ActivityTimeline from '@/components/ActivityTimeline'
 import TaskSection from '@/components/TaskSection'
 import TagComponent from '@/components/TagComponent'
+import apiClient from '@/lib/api-client'
 
 interface Customer {
   id: string
@@ -70,10 +71,9 @@ export default function EnhancedCustomersPage() {
 
   const fetchCustomers = async () => {
     try {
-      const response = await fetch('/api/customers')
-      const data = await response.json()
+      const data = await apiClient.get('/api/customers')
       
-      if (response.ok && Array.isArray(data)) {
+      if (Array.isArray(data)) {
         setCustomers(data.filter((customer: Customer) => !customer.isArchived))
       } else {
         console.error('API Error:', data)
@@ -89,10 +89,9 @@ export default function EnhancedCustomersPage() {
 
   const fetchTags = async () => {
     try {
-      const response = await fetch('/api/tags')
-      const data = await response.json()
+      const data = await apiClient.get('/api/tags')
       
-      if (response.ok && Array.isArray(data)) {
+      if (Array.isArray(data)) {
         setAvailableTags(data)
       }
     } catch (error) {
@@ -102,19 +101,12 @@ export default function EnhancedCustomersPage() {
 
   const assignTag = async (customerId: string, tagId: string) => {
     try {
-      const response = await fetch('/api/tags/assign', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          tagId,
-          customerIds: [customerId],
-          action: 'assign'
-        }),
+      await apiClient.post('/api/tags/assign', {
+        tagId,
+        customerIds: [customerId],
+        action: 'assign'
       })
-
-      if (response.ok) {
-        fetchCustomers()
-      }
+      fetchCustomers()
     } catch (error) {
       console.error('Failed to assign tag:', error)
     }
@@ -122,19 +114,12 @@ export default function EnhancedCustomersPage() {
 
   const removeTag = async (customerId: string, tagId: string) => {
     try {
-      const response = await fetch('/api/tags/assign', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          tagId,
-          customerIds: [customerId],
-          action: 'remove'
-        }),
+      await apiClient.post('/api/tags/assign', {
+        tagId,
+        customerIds: [customerId],
+        action: 'remove'
       })
-
-      if (response.ok) {
-        fetchCustomers()
-      }
+      fetchCustomers()
     } catch (error) {
       console.error('Failed to remove tag:', error)
     }
@@ -142,16 +127,9 @@ export default function EnhancedCustomersPage() {
 
   const addCustomer = async (customerData: Partial<Customer>) => {
     try {
-      const response = await fetch('/api/customers', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(customerData),
-      })
-
-      if (response.ok) {
-        fetchCustomers()
-        setShowAddForm(false)
-      }
+      await apiClient.post('/api/customers', customerData)
+      fetchCustomers()
+      setShowAddForm(false)
     } catch (error) {
       console.error('Failed to add customer:', error)
     }
@@ -162,15 +140,12 @@ export default function EnhancedCustomersPage() {
       const customer = customers.find(c => c.id === customerId)
       if (!customer) return
 
-      const response = await fetch(`/api/customers/${customerId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...customer, isArchived: true }),
+      await apiClient.put(`/api/customers/${customerId}`, { 
+        ...customer, 
+        isArchived: true 
       })
-
-      if (response.ok) {
-        setCustomers(customers.filter(c => c.id !== customerId))
-      }
+      
+      setCustomers(customers.filter(c => c.id !== customerId))
     } catch (error) {
       console.error('Failed to archive customer:', error)
     }

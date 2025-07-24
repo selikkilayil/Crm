@@ -6,6 +6,7 @@ import AuthGuard from '@/components/AuthGuard'
 import NavBar from '@/components/NavBar'
 import TaskSection from '@/components/TaskSection'
 import TagComponent from '@/components/TagComponent'
+import apiClient from '@/lib/api-client'
 
 interface Lead {
   id: string
@@ -66,10 +67,9 @@ export default function EnhancedLeadsPage() {
 
   const fetchLeads = async () => {
     try {
-      const response = await fetch('/api/leads')
-      const data = await response.json()
+      const data = await apiClient.get('/api/leads')
       
-      if (response.ok && Array.isArray(data)) {
+      if (Array.isArray(data)) {
         setLeads(data.filter((lead: Lead) => !lead.isArchived))
       } else {
         console.error('API Error:', data)
@@ -85,10 +85,9 @@ export default function EnhancedLeadsPage() {
 
   const fetchTags = async () => {
     try {
-      const response = await fetch('/api/tags')
-      const data = await response.json()
+      const data = await apiClient.get('/api/tags')
       
-      if (response.ok && Array.isArray(data)) {
+      if (Array.isArray(data)) {
         setAvailableTags(data)
       }
     } catch (error) {
@@ -98,19 +97,12 @@ export default function EnhancedLeadsPage() {
 
   const assignTag = async (leadId: string, tagId: string) => {
     try {
-      const response = await fetch('/api/tags/assign', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          tagId,
-          leadIds: [leadId],
-          action: 'assign'
-        }),
+      await apiClient.post('/api/tags/assign', {
+        tagId,
+        leadIds: [leadId],
+        action: 'assign'
       })
-
-      if (response.ok) {
-        fetchLeads()
-      }
+      fetchLeads()
     } catch (error) {
       console.error('Failed to assign tag:', error)
     }
@@ -118,19 +110,12 @@ export default function EnhancedLeadsPage() {
 
   const removeTag = async (leadId: string, tagId: string) => {
     try {
-      const response = await fetch('/api/tags/assign', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          tagId,
-          leadIds: [leadId],
-          action: 'remove'
-        }),
+      await apiClient.post('/api/tags/assign', {
+        tagId,
+        leadIds: [leadId],
+        action: 'remove'
       })
-
-      if (response.ok) {
-        fetchLeads()
-      }
+      fetchLeads()
     } catch (error) {
       console.error('Failed to remove tag:', error)
     }
@@ -141,16 +126,11 @@ export default function EnhancedLeadsPage() {
       const lead = leads.find(l => l.id === leadId)
       if (!lead) return
 
-      const response = await fetch(`/api/leads/${leadId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...lead, status: newStatus }),
+      const updatedLead = await apiClient.put(`/api/leads/${leadId}`, { 
+        ...lead, 
+        status: newStatus 
       })
-
-      if (response.ok) {
-        const updatedLead = await response.json()
-        setLeads(leads.map(l => l.id === leadId ? updatedLead : l))
-      }
+      setLeads(leads.map(l => l.id === leadId ? updatedLead : l))
     } catch (error) {
       console.error('Failed to update lead:', error)
     }
@@ -162,24 +142,18 @@ export default function EnhancedLeadsPage() {
       if (!lead) return
 
       // Create customer from lead data
-      const customerResponse = await fetch('/api/customers', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: lead.name,
-          email: lead.email,
-          phone: lead.phone,
-          company: lead.company,
-          notes: lead.notes,
-          leadId: lead.id,
-        }),
+      await apiClient.post('/api/customers', {
+        name: lead.name,
+        email: lead.email,
+        phone: lead.phone,
+        company: lead.company,
+        notes: lead.notes,
+        leadId: lead.id,
       })
 
-      if (customerResponse.ok) {
-        // Update lead status to converted
-        await updateLeadStatus(leadId, 'CONVERTED')
-        alert('Lead successfully converted to customer!')
-      }
+      // Update lead status to converted
+      await updateLeadStatus(leadId, 'CONVERTED')
+      alert('Lead successfully converted to customer!')
     } catch (error) {
       console.error('Failed to convert lead:', error)
     }
@@ -190,15 +164,12 @@ export default function EnhancedLeadsPage() {
       const lead = leads.find(l => l.id === leadId)
       if (!lead) return
 
-      const response = await fetch(`/api/leads/${leadId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...lead, isArchived: true }),
+      await apiClient.put(`/api/leads/${leadId}`, { 
+        ...lead, 
+        isArchived: true 
       })
-
-      if (response.ok) {
-        setLeads(leads.filter(l => l.id !== leadId))
-      }
+      
+      setLeads(leads.filter(l => l.id !== leadId))
     } catch (error) {
       console.error('Failed to archive lead:', error)
     }
@@ -623,15 +594,8 @@ function AddLeadModal({ onAdd, onClose }: { onAdd: (data: any) => void, onClose:
     e.preventDefault()
     
     try {
-      const response = await fetch('/api/leads', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
-      })
-
-      if (response.ok) {
-        onAdd(await response.json())
-      }
+      const newLead = await apiClient.post('/api/leads', formData)
+      onAdd(newLead)
     } catch (error) {
       console.error('Failed to create lead:', error)
     }

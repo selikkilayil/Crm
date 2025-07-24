@@ -1,9 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { requireAuth, getDataFilter } from '@/lib/api-auth'
+import { PERMISSIONS, hasPermission } from '@/lib/permissions'
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const user = await requireAuth(request)
+    
+    // Check permissions
+    const canViewAll = hasPermission(user.role, PERMISSIONS.CUSTOMERS_VIEW_ALL)
+    const canViewAssigned = hasPermission(user.role, PERMISSIONS.CUSTOMERS_VIEW_ASSIGNED)
+    
+    if (!canViewAll && !canViewAssigned) {
+      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 })
+    }
+    
+    // Build where clause based on permissions
+    let whereClause: any = {}
+    
+    // Apply role-based data filtering if user can only view assigned
+    if (!canViewAll && canViewAssigned) {
+      const dataFilter = getDataFilter(user.role, user.id)
+      whereClause = { ...whereClause, ...dataFilter }
+    }
+    
     const customers = await prisma.customer.findMany({
+      where: whereClause,
       include: {
         activities: true,
         lead: true,
@@ -20,6 +42,14 @@ export async function GET() {
     
     return NextResponse.json(customers)
   } catch (error) {
+    if (error instanceof Error) {
+      if (error.message === 'Authentication required') {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+      if (error.message === 'Insufficient permissions') {
+        return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 })
+      }
+    }
     return NextResponse.json({ error: 'Failed to fetch customers' }, { status: 500 })
   }
 }

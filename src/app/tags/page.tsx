@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import AuthGuard from '@/components/AuthGuard'
 import NavBar from '@/components/NavBar'
+import apiClient from '@/lib/api-client'
 
 interface Tag {
   id: string
@@ -43,10 +44,9 @@ export default function TagsPage() {
 
   const fetchTags = async () => {
     try {
-      const response = await fetch('/api/tags')
-      const data = await response.json()
+      const data = await apiClient.get('/api/tags')
       
-      if (response.ok && Array.isArray(data)) {
+      if (Array.isArray(data)) {
         setTags(data)
       } else {
         console.error('API Error:', data)
@@ -62,16 +62,9 @@ export default function TagsPage() {
 
   const createTag = async (tagData: Partial<Tag>) => {
     try {
-      const response = await fetch('/api/tags', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(tagData),
-      })
-
-      if (response.ok) {
-        fetchTags()
-        setShowCreateForm(false)
-      }
+      await apiClient.post('/api/tags', tagData)
+      fetchTags()
+      setShowCreateForm(false)
     } catch (error) {
       console.error('Failed to create tag:', error)
     }
@@ -79,16 +72,9 @@ export default function TagsPage() {
 
   const updateTag = async (tagId: string, tagData: Partial<Tag>) => {
     try {
-      const response = await fetch(`/api/tags/${tagId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(tagData),
-      })
-
-      if (response.ok) {
-        fetchTags()
-        setSelectedTag(null)
-      }
+      await apiClient.put(`/api/tags/${tagId}`, tagData)
+      fetchTags()
+      setSelectedTag(null)
     } catch (error) {
       console.error('Failed to update tag:', error)
     }
@@ -100,13 +86,8 @@ export default function TagsPage() {
     }
 
     try {
-      const response = await fetch(`/api/tags/${tagId}`, {
-        method: 'DELETE',
-      })
-
-      if (response.ok) {
-        fetchTags()
-      }
+      await apiClient.delete(`/api/tags/${tagId}`)
+      fetchTags()
     } catch (error) {
       console.error('Failed to delete tag:', error)
     }

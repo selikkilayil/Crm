@@ -2,32 +2,23 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { isAuthenticated, getAuthToken, logout } from '@/lib/auth'
+import { useAuth } from '@/hooks/useAuth'
 
 interface AuthGuardProps {
   children: React.ReactNode
 }
 
 export default function AuthGuard({ children }: AuthGuardProps) {
-  const [isLoading, setIsLoading] = useState(true)
-  const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const { user, loading, isAuthenticated } = useAuth()
   const router = useRouter()
 
   useEffect(() => {
-    const checkAuth = () => {
-      const loggedIn = isAuthenticated()
-      setIsLoggedIn(loggedIn)
-      setIsLoading(false)
-      
-      if (!loggedIn) {
-        router.push('/login')
-      }
+    if (!loading && !isAuthenticated) {
+      router.push('/login')
     }
+  }, [loading, isAuthenticated, router])
 
-    checkAuth()
-  }, [router])
-
-  if (isLoading) {
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
@@ -38,26 +29,11 @@ export default function AuthGuard({ children }: AuthGuardProps) {
     )
   }
 
-  if (!isLoggedIn) {
+  if (!isAuthenticated) {
     return null // Will redirect to login
   }
 
   return <>{children}</>
 }
 
-export function useAuth() {
-  const [user, setUser] = useState(getAuthToken())
-
-  useEffect(() => {
-    setUser(getAuthToken())
-  }, [])
-
-  return {
-    user,
-    isAuthenticated: !!user,
-    logout: () => {
-      logout()
-      setUser(null)
-    }
-  }
-}
+// Remove the useAuth hook from here - use the one in hooks/useAuth.ts instead

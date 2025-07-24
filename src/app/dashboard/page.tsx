@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import AuthGuard from '@/components/AuthGuard'
 import NavBar from '@/components/NavBar'
+import apiClient from '@/lib/api-client'
 
 interface Stats {
   totalLeads: number
@@ -27,13 +28,10 @@ export default function DashboardPage() {
 
   const fetchStats = async () => {
     try {
-      const [leadsRes, customersRes] = await Promise.all([
-        fetch('/api/leads'),
-        fetch('/api/customers'),
+      const [leadsData, customersData] = await Promise.all([
+        apiClient.get('/api/leads').catch(() => []),
+        apiClient.get('/api/customers').catch(() => [])
       ])
-      
-      const leadsData = await leadsRes.json()
-      const customersData = await customersRes.json()
       
       const leads = Array.isArray(leadsData) ? leadsData : []
       const customers = Array.isArray(customersData) ? customersData : []

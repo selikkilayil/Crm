@@ -6,7 +6,7 @@ interface Task {
   id: string
   title: string
   description: string | null
-  status: 'TODO' | 'IN_PROGRESS' | 'COMPLETED'
+  status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED'
   priority: 'LOW' | 'MEDIUM' | 'HIGH'
   dueDate: string | null
   completedAt: string | null
@@ -110,7 +110,7 @@ export default function TaskSection({ leadId, customerId, maxItems = 10, compact
           ...taskData,
           leadId,
           customerId,
-          createdById: 'user-1' // TODO: Get from auth context
+          createdById: 'user-1' // Use the seeded demo user ID
         }),
       })
 
@@ -152,7 +152,7 @@ export default function TaskSection({ leadId, customerId, maxItems = 10, compact
   }
 
   const statusColors = {
-    TODO: 'text-gray-600 bg-gray-100',
+    PENDING: 'text-gray-600 bg-gray-100',
     IN_PROGRESS: 'text-blue-600 bg-blue-100',
     COMPLETED: 'text-green-600 bg-green-100'
   }
@@ -269,7 +269,7 @@ function TaskCard({ task, compact, onStatusChange }: {
   }
 
   const statusColors = {
-    TODO: 'text-gray-600 bg-gray-100',
+    PENDING: 'text-gray-600 bg-gray-100',
     IN_PROGRESS: 'text-blue-600 bg-blue-100',
     COMPLETED: 'text-green-600 bg-green-100'
   }
@@ -334,12 +334,12 @@ function TaskCard({ task, compact, onStatusChange }: {
               {task.status !== 'COMPLETED' && (
                 <button
                   onClick={() => {
-                    onStatusChange(task.id, task.status === 'TODO' ? 'IN_PROGRESS' : 'COMPLETED')
+                    onStatusChange(task.id, task.status === 'PENDING' ? 'IN_PROGRESS' : 'COMPLETED')
                     setShowMenu(false)
                   }}
                   className="block w-full text-left px-3 py-2 text-xs text-gray-700 hover:bg-gray-50"
                 >
-                  {task.status === 'TODO' ? 'Start Task' : 'Complete'}
+                  {task.status === 'PENDING' ? 'Start Task' : 'Complete'}
                 </button>
               )}
               
@@ -387,7 +387,7 @@ function CreateTaskForm({ users, onSubmit, onClose, compact }: {
     e.preventDefault()
     onSubmit({
       ...formData,
-      status: 'TODO' as Task['status'],
+      status: 'PENDING' as Task['status'],
       dueDate: formData.dueDate || null,
       assignedToId: formData.assignedToId || null,
     })
