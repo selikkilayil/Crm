@@ -14,6 +14,26 @@ async function main() {
     },
   })
 
+  const salesUser = await prisma.user.upsert({
+    where: { email: 'sales@crm.com' },
+    update: {},
+    create: {
+      email: 'sales@crm.com',
+      name: 'Sales User',
+      role: 'SALES',
+    },
+  })
+
+  const managerUser = await prisma.user.upsert({
+    where: { email: 'manager@crm.com' },
+    update: {},
+    create: {
+      email: 'manager@crm.com',
+      name: 'Manager User',
+      role: 'MANAGER',
+    },
+  })
+
   // Create sample leads
   const leads = await Promise.all([
     prisma.lead.upsert({
@@ -28,6 +48,7 @@ async function main() {
         status: 'NEW',
         source: 'Website',
         notes: 'Interested in premium package',
+        assignedToId: salesUser.id,
       },
     }),
     prisma.lead.upsert({
@@ -42,6 +63,7 @@ async function main() {
         status: 'CONTACTED',
         source: 'Referral',
         notes: 'Follow up next week',
+        assignedToId: salesUser.id,
       },
     }),
     prisma.lead.upsert({
@@ -56,6 +78,7 @@ async function main() {
         status: 'QUALIFIED',
         source: 'Cold Call',
         notes: 'Ready for proposal',
+        assignedToId: managerUser.id,
       },
     }),
   ])
@@ -115,6 +138,46 @@ async function main() {
         description: 'Product demonstration scheduled',
         leadId: 'lead-3',
         scheduledAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // Tomorrow
+      },
+    }),
+  ])
+
+  // Create sample tasks
+  await Promise.all([
+    prisma.task.create({
+      data: {
+        title: 'Follow up with John Smith',
+        description: 'Call to discuss pricing options',
+        status: 'PENDING',
+        priority: 'HIGH',
+        dueDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000), // 2 days from now
+        leadId: 'lead-1',
+        assignedToId: salesUser.id,
+        createdById: managerUser.id,
+      },
+    }),
+    prisma.task.create({
+      data: {
+        title: 'Prepare proposal for StartupXYZ',
+        description: 'Create detailed proposal with timeline',
+        status: 'IN_PROGRESS',
+        priority: 'MEDIUM',
+        dueDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000), // 3 days from now
+        leadId: 'lead-2',
+        assignedToId: salesUser.id,
+        createdById: user.id,
+      },
+    }),
+    prisma.task.create({
+      data: {
+        title: 'Schedule demo with Big Corp',
+        description: 'Coordinate demo meeting with stakeholders',
+        status: 'COMPLETED',
+        priority: 'HIGH',
+        completedAt: new Date(),
+        leadId: 'lead-3',
+        assignedToId: managerUser.id,
+        createdById: user.id,
       },
     }),
   ])

@@ -210,50 +210,57 @@ export default function EnhancedLeadsPage() {
       <div className="min-h-screen bg-gray-50">
         <NavBar currentPage="leads" />
 
-        <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-          <div className="px-4 py-6 sm:px-0">
-            {/* Header with controls */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 space-y-4 md:space-y-0">
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">Leads Management</h1>
-                <p className="text-gray-600">Total: {filteredLeads.length} leads</p>
+        <main className="max-w-7xl mx-auto py-4 sm:py-6 px-4 sm:px-6 lg:px-8">
+          <div className="py-4 sm:py-6">
+            {/* Mobile-first Header */}
+            <div className="flex flex-col space-y-4 mb-6">
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center space-y-3 sm:space-y-0">
+                <div>
+                  <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Leads Management</h1>
+                  <p className="text-sm sm:text-base text-gray-600">Total: {filteredLeads.length} leads</p>
+                </div>
               </div>
               
-              <div className="flex flex-wrap gap-3">
-                <button
-                  onClick={() => setShowFilters(!showFilters)}
-                  className="px-4 py-2 bg-white border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 flex items-center"
-                >
-                  <span className="mr-2">🔍</span>
-                  Filters
-                </button>
-                
-                <div className="flex bg-white border border-gray-300 rounded-md">
+              <div className="flex flex-col sm:flex-row gap-3">
+                <div className="flex flex-wrap gap-3">
                   <button
-                    onClick={() => setViewMode('kanban')}
-                    className={`px-4 py-2 text-sm font-medium rounded-l-md ${
-                      viewMode === 'kanban' 
-                        ? 'bg-blue-600 text-white' 
-                        : 'text-gray-700 hover:bg-gray-50'
-                    }`}
+                    onClick={() => setShowFilters(!showFilters)}
+                    className="px-4 py-2 bg-white border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 flex items-center min-h-[44px] transition-colors"
                   >
-                    Kanban
+                    <span className="mr-2">🔍</span>
+                    <span className="hidden sm:inline">Filters</span>
+                    <span className="sm:hidden">Filter</span>
                   </button>
-                  <button
-                    onClick={() => setViewMode('table')}
-                    className={`px-4 py-2 text-sm font-medium rounded-r-md border-l ${
-                      viewMode === 'table' 
-                        ? 'bg-blue-600 text-white' 
-                        : 'text-gray-700 hover:bg-gray-50 border-gray-300'
-                    }`}
-                  >
-                    Table
-                  </button>
+                  
+                  <div className="flex bg-white border border-gray-300 rounded-md">
+                    <button
+                      onClick={() => setViewMode('kanban')}
+                      className={`px-3 sm:px-4 py-2 text-sm font-medium rounded-l-md min-h-[44px] transition-colors ${
+                        viewMode === 'kanban' 
+                          ? 'bg-blue-600 text-white' 
+                          : 'text-gray-700 hover:bg-gray-50'
+                      }`}
+                    >
+                      <span className="hidden sm:inline">Kanban</span>
+                      <span className="sm:hidden">📋</span>
+                    </button>
+                    <button
+                      onClick={() => setViewMode('table')}
+                      className={`px-3 sm:px-4 py-2 text-sm font-medium rounded-r-md border-l min-h-[44px] transition-colors ${
+                        viewMode === 'table' 
+                          ? 'bg-blue-600 text-white' 
+                          : 'text-gray-700 hover:bg-gray-50 border-gray-300'
+                      }`}
+                    >
+                      <span className="hidden sm:inline">Table</span>
+                      <span className="sm:hidden">📊</span>
+                    </button>
+                  </div>
                 </div>
                 
                 <button
                   onClick={() => setShowAddForm(true)}
-                  className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center"
+                  className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center justify-center min-h-[44px] transition-colors"
                 >
                   <span className="mr-2">+</span>
                   Add New Lead
@@ -322,41 +329,161 @@ export default function EnhancedLeadsPage() {
 
             {/* Kanban View */}
             {viewMode === 'kanban' && (
-              <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
-                {statusColumns.map(column => (
-                  <div key={column.status} className={`${column.color} rounded-lg p-4 min-h-96 border-2`}>
-                    <h3 className={`font-semibold mb-4 ${column.textColor}`}>
-                      {column.title} ({getLeadsByStatus(column.status).length})
-                    </h3>
-                    
-                    <div className="space-y-3">
-                      {getLeadsByStatus(column.status).map(lead => (
-                        <LeadCard
-                          key={lead.id}
-                          lead={lead}
-                          onStatusChange={updateLeadStatus}
-                          onConvert={convertToCustomer}
-                          onArchive={archiveLead}
-                          onEdit={() => setSelectedLead(lead)}
-                        />
-                      ))}
+              <>
+                {/* Mobile: Stack columns vertically */}
+                <div className="block md:hidden space-y-6">
+                  {statusColumns.map(column => (
+                    <div key={column.status} className={`${column.color} rounded-lg p-4 border-2`}>
+                      <h3 className={`font-semibold mb-4 text-sm sm:text-base ${column.textColor}`}>
+                        {column.title} ({getLeadsByStatus(column.status).length})
+                      </h3>
+                      
+                      <div className="space-y-3">
+                        {getLeadsByStatus(column.status).map(lead => (
+                          <LeadCard
+                            key={lead.id}
+                            lead={lead}
+                            onStatusChange={updateLeadStatus}
+                            onConvert={convertToCustomer}
+                            onArchive={archiveLead}
+                            onEdit={() => setSelectedLead(lead)}
+                          />
+                        ))}
+                        {getLeadsByStatus(column.status).length === 0 && (
+                          <div className="text-center py-6 text-gray-500 text-sm">
+                            No {column.title.toLowerCase()} leads
+                          </div>
+                        )}
+                      </div>
                     </div>
+                  ))}
+                </div>
+                
+                {/* Desktop: Horizontal scroll for narrow screens, grid for large */}
+                <div className="hidden md:block">
+                  <div className="grid grid-cols-5 gap-4 lg:gap-6">
+                    {statusColumns.map(column => (
+                      <div key={column.status} className={`${column.color} rounded-lg p-3 lg:p-4 min-h-96 border-2`}>
+                        <h3 className={`font-semibold mb-4 text-sm lg:text-base ${column.textColor}`}>
+                          {column.title} ({getLeadsByStatus(column.status).length})
+                        </h3>
+                        
+                        <div className="space-y-3">
+                          {getLeadsByStatus(column.status).map(lead => (
+                            <LeadCard
+                              key={lead.id}
+                              lead={lead}
+                              onStatusChange={updateLeadStatus}
+                              onConvert={convertToCustomer}
+                              onArchive={archiveLead}
+                              onEdit={() => setSelectedLead(lead)}
+                            />
+                          ))}
+                          {getLeadsByStatus(column.status).length === 0 && (
+                            <div className="text-center py-6 text-gray-500 text-sm">
+                              No {column.title.toLowerCase()} leads
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
+                </div>
+              </>
             )}
 
             {/* Table View */}
             {viewMode === 'table' && (
-              <div className="bg-white shadow overflow-hidden sm:rounded-md border border-gray-200">
-                <LeadsTable 
-                  leads={filteredLeads}
-                  onStatusChange={updateLeadStatus}
-                  onConvert={convertToCustomer}
-                  onArchive={archiveLead}
-                  onEdit={(lead) => setSelectedLead(lead)}
-                />
-              </div>
+              <>
+                {/* Mobile: Card-based list view */}
+                <div className="block lg:hidden space-y-4">
+                  {filteredLeads.map(lead => (
+                    <div key={lead.id} className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-base font-medium text-gray-900 truncate">{lead.name}</h3>
+                          <p className="text-sm text-gray-500">{lead.company}</p>
+                        </div>
+                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                          lead.status === 'NEW' ? 'bg-blue-100 text-blue-800' :
+                          lead.status === 'CONTACTED' ? 'bg-yellow-100 text-yellow-800' :
+                          lead.status === 'QUALIFIED' ? 'bg-purple-100 text-purple-800' :
+                          lead.status === 'CONVERTED' ? 'bg-green-100 text-green-800' :
+                          'bg-red-100 text-red-800'
+                        }`}>
+                          {lead.status}
+                        </span>
+                      </div>
+                      
+                      <div className="space-y-2 text-sm text-gray-600">
+                        {lead.email && (
+                          <div className="flex items-center">
+                            <span className="mr-2">📧</span>
+                            <a href={`mailto:${lead.email}`} className="text-blue-600 hover:text-blue-800 truncate">
+                              {lead.email}
+                            </a>
+                          </div>
+                        )}
+                        {lead.phone && (
+                          <div className="flex items-center">
+                            <span className="mr-2">📱</span>
+                            <a href={`tel:${lead.phone}`} className="text-blue-600 hover:text-blue-800">
+                              {lead.phone}
+                            </a>
+                          </div>
+                        )}
+                        {lead.source && (
+                          <div className="flex items-center">
+                            <span className="mr-2">🎯</span>
+                            <span>{lead.source}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex flex-wrap gap-2 mt-4">
+                        <button
+                          onClick={() => setSelectedLead(lead)}
+                          className="px-3 py-1 text-xs font-medium text-blue-600 bg-blue-50 rounded-md hover:bg-blue-100 min-h-[36px] flex items-center"
+                        >
+                          ✏️ Edit
+                        </button>
+                        {lead.status !== 'CONVERTED' && (
+                          <button
+                            onClick={() => convertToCustomer(lead.id)}
+                            className="px-3 py-1 text-xs font-medium text-green-600 bg-green-50 rounded-md hover:bg-green-100 min-h-[36px] flex items-center"
+                          >
+                            🔄 Convert
+                          </button>
+                        )}
+                        <button
+                          onClick={() => archiveLead(lead.id)}
+                          className="px-3 py-1 text-xs font-medium text-red-600 bg-red-50 rounded-md hover:bg-red-100 min-h-[36px] flex items-center"
+                        >
+                          🗄️ Archive
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                  
+                  {filteredLeads.length === 0 && (
+                    <div className="text-center py-12 text-gray-500">
+                      <p className="text-lg mb-2">No leads found</p>
+                      <p className="text-sm">Try adjusting your filters or add a new lead</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Desktop: Traditional table view */}
+                <div className="hidden lg:block bg-white shadow overflow-hidden sm:rounded-md border border-gray-200">
+                  <LeadsTable 
+                    leads={filteredLeads}
+                    onStatusChange={updateLeadStatus}
+                    onConvert={convertToCustomer}
+                    onArchive={archiveLead}
+                    onEdit={(lead) => setSelectedLead(lead)}
+                  />
+                </div>
+              </>
             )}
           </div>
         </main>

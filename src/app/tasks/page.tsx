@@ -188,16 +188,16 @@ export default function TasksPage() {
         <main className="max-w-7xl mx-auto py-4 sm:py-6 px-4 sm:px-6 lg:px-8">
           {/* Mobile-first Header */}
           <div className="flex flex-col space-y-4 mb-6">
-            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center space-y-2 sm:space-y-0">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center space-y-3 sm:space-y-0">
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">Task Management</h1>
-                <p className="text-gray-600">Total: {filteredTasks.length} tasks</p>
+                <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Task Management</h1>
+                <p className="text-sm sm:text-base text-gray-600">Total: {filteredTasks.length} tasks</p>
               </div>
               
               <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                 <button
                   onClick={() => setShowFilters(!showFilters)}
-                  className="px-4 py-2 bg-white border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 flex items-center justify-center"
+                  className="px-4 py-2 bg-white border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 flex items-center justify-center min-h-[44px] transition-colors"
                 >
                   <span className="mr-2">🔍</span>
                   <span className="hidden sm:inline">Filters</span>
@@ -322,29 +322,69 @@ export default function TasksPage() {
 
           {/* Board View */}
           {viewMode === 'board' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {taskStatuses.map(statusColumn => (
-                <div key={statusColumn.value} className={`${statusColumn.color} bg-opacity-20 rounded-lg p-4 min-h-96 border-2`}>
-                  <h3 className={`font-semibold mb-4 text-gray-900`}>
-                    {statusColumn.icon} {statusColumn.label} ({getTasksByStatus(statusColumn.value as TaskStatus).length})
-                  </h3>
-                  
-                  <div className="space-y-3">
-                    {getTasksByStatus(statusColumn.value as TaskStatus).map(task => (
-                      <TaskCard
-                        key={task.id}
-                        task={task}
-                        onStatusChange={updateTaskStatus}
-                        onEdit={handleEditTask}
-                        getStatusInfo={getStatusInfo}
-                        getPriorityInfo={getPriorityInfo}
-                        isOverdue={isOverdue}
-                      />
-                    ))}
+            <>
+              {/* Mobile: Stack columns vertically */}
+              <div className="block md:hidden space-y-6">
+                {taskStatuses.map(statusColumn => (
+                  <div key={statusColumn.value} className={`${statusColumn.color} bg-opacity-20 rounded-lg p-4 border-2`}>
+                    <h3 className={`font-semibold mb-4 text-gray-900 text-sm sm:text-base`}>
+                      {statusColumn.icon} {statusColumn.label} ({getTasksByStatus(statusColumn.value as TaskStatus).length})
+                    </h3>
+                    
+                    <div className="space-y-3">
+                      {getTasksByStatus(statusColumn.value as TaskStatus).map(task => (
+                        <TaskCard
+                          key={task.id}
+                          task={task}
+                          onStatusChange={updateTaskStatus}
+                          onEdit={handleEditTask}
+                          getStatusInfo={getStatusInfo}
+                          getPriorityInfo={getPriorityInfo}
+                          isOverdue={isOverdue}
+                        />
+                      ))}
+                      {getTasksByStatus(statusColumn.value as TaskStatus).length === 0 && (
+                        <div className="text-center py-6 text-gray-500 text-sm">
+                          No {statusColumn.label.toLowerCase()} tasks
+                        </div>
+                      )}
+                    </div>
                   </div>
+                ))}
+              </div>
+              
+              {/* Desktop: Grid layout */}
+              <div className="hidden md:block">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+                  {taskStatuses.map(statusColumn => (
+                    <div key={statusColumn.value} className={`${statusColumn.color} bg-opacity-20 rounded-lg p-4 min-h-96 border-2`}>
+                      <h3 className={`font-semibold mb-4 text-gray-900`}>
+                        {statusColumn.icon} {statusColumn.label} ({getTasksByStatus(statusColumn.value as TaskStatus).length})
+                      </h3>
+                      
+                      <div className="space-y-3">
+                        {getTasksByStatus(statusColumn.value as TaskStatus).map(task => (
+                          <TaskCard
+                            key={task.id}
+                            task={task}
+                            onStatusChange={updateTaskStatus}
+                            onEdit={handleEditTask}
+                            getStatusInfo={getStatusInfo}
+                            getPriorityInfo={getPriorityInfo}
+                            isOverdue={isOverdue}
+                          />
+                        ))}
+                        {getTasksByStatus(statusColumn.value as TaskStatus).length === 0 && (
+                          <div className="text-center py-6 text-gray-500 text-sm">
+                            No {statusColumn.label.toLowerCase()} tasks
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
+              </div>
+            </>
           )}
 
           {/* List View */}
@@ -425,19 +465,19 @@ function TaskCard({ task, onStatusChange, onEdit, getStatusInfo, getPriorityInfo
   const overdue = isOverdue(task)
 
   return (
-    <div className={`bg-white p-3 rounded-md shadow-sm border-2 hover:shadow-md transition-shadow relative ${
+    <div className={`bg-white p-3 sm:p-4 rounded-md shadow-sm border-2 hover:shadow-md transition-shadow relative ${
       overdue ? 'border-red-300 bg-red-50' : 'border-gray-200'
     }`}>
       <div className="flex justify-between items-start mb-2">
-        <div className="flex-1 min-w-0">
-          <h4 className="font-medium text-gray-900 text-sm truncate">{task.title}</h4>
-          <div className="flex items-center space-x-2 mt-1">
+        <div className="flex-1 min-w-0 pr-2">
+          <h4 className="font-medium text-gray-900 text-sm sm:text-base leading-tight">{task.title}</h4>
+          <div className="flex flex-wrap items-center gap-1 sm:gap-2 mt-2">
             <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${priorityInfo.color}`}>
-              {priorityInfo.icon} {priorityInfo.label}
+              {priorityInfo.icon} <span className="ml-1">{priorityInfo.label}</span>
             </span>
             {overdue && (
               <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                🔥 Overdue
+                🔥 <span className="ml-1">Overdue</span>
               </span>
             )}
           </div>
@@ -445,41 +485,41 @@ function TaskCard({ task, onStatusChange, onEdit, getStatusInfo, getPriorityInfo
         
         <button
           onClick={() => setShowMenu(!showMenu)}
-          className="text-gray-400 hover:text-gray-600 p-1"
+          className="text-gray-400 hover:text-gray-600 p-2 -m-2 min-w-[44px] min-h-[44px] flex items-center justify-center"
         >
-          ⋮
+          <span className="text-lg">⋮</span>
         </button>
       </div>
       
       {task.description && (
-        <p className="text-xs text-gray-600 mb-2 line-clamp-2">{task.description}</p>
+        <p className="text-xs sm:text-sm text-gray-600 mb-3 line-clamp-2 leading-relaxed">{task.description}</p>
       )}
       
-      <div className="space-y-1 text-xs text-gray-500">
+      <div className="space-y-2 text-xs sm:text-sm text-gray-500">
         {task.assignedTo && (
           <div className="flex items-center">
-            <span className="mr-1">👤</span>
+            <span className="mr-2 text-sm">👤</span>
             <span className="truncate">{task.assignedTo.name}</span>
           </div>
         )}
         
         {task.lead && (
           <div className="flex items-center">
-            <span className="mr-1">🎯</span>
+            <span className="mr-2 text-sm">🎯</span>
             <span className="truncate">Lead: {task.lead.name}</span>
           </div>
         )}
         
         {task.customer && (
           <div className="flex items-center">
-            <span className="mr-1">🤝</span>
+            <span className="mr-2 text-sm">🤝</span>
             <span className="truncate">Customer: {task.customer.name}</span>
           </div>
         )}
         
         {task.dueDate && (
           <div className={`flex items-center ${overdue ? 'text-red-600 font-medium' : ''}`}>
-            <span className="mr-1">📅</span>
+            <span className="mr-2 text-sm">📅</span>
             <span>Due: {new Date(task.dueDate).toLocaleDateString()}</span>
           </div>
         )}
@@ -487,18 +527,19 @@ function TaskCard({ task, onStatusChange, onEdit, getStatusInfo, getPriorityInfo
 
       {/* Actions Menu */}
       {showMenu && (
-        <div className="absolute right-0 top-8 bg-white border border-gray-200 rounded-md shadow-lg z-10 min-w-32">
+        <div className="absolute right-0 top-12 bg-white border border-gray-200 rounded-md shadow-lg z-20 min-w-40 sm:min-w-44">
           <button
             onClick={() => {
               onEdit(task)
               setShowMenu(false)
             }}
-            className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 border-b border-gray-100"
+            className="block w-full text-left px-4 py-3 sm:py-2 text-sm text-gray-700 hover:bg-gray-50 border-b border-gray-100 min-h-[44px] flex items-center"
           >
-            ✏️ Edit Task
+            <span className="mr-2">✏️</span>
+            Edit Task
           </button>
           <div className="py-1">
-            <div className="px-3 py-1 text-xs font-medium text-gray-500 uppercase tracking-wide">
+            <div className="px-4 py-2 text-xs font-medium text-gray-500 uppercase tracking-wide">
               Change Status
             </div>
             {taskStatuses
@@ -510,9 +551,10 @@ function TaskCard({ task, onStatusChange, onEdit, getStatusInfo, getPriorityInfo
                     onStatusChange(task.id, status.value as TaskStatus)
                     setShowMenu(false)
                   }}
-                  className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                  className="block w-full text-left px-4 py-3 sm:py-2 text-sm text-gray-700 hover:bg-gray-50 min-h-[44px] flex items-center"
                 >
-                  {status.icon} {status.label}
+                  <span className="mr-2">{status.icon}</span>
+                  {status.label}
                 </button>
               ))}
           </div>
@@ -605,12 +647,12 @@ function TaskList({ tasks, onStatusChange, onEdit, getStatusInfo, getPriorityInf
 // Task Modal Components at the end of file
 
 function EditTaskModal({ task, onEdit, onClose, taskStatuses, taskPriorities, currentUser }: {
-  task: any
-  onEdit: (data: any) => void
+  task: Task
+  onEdit: (data: unknown) => void
   onClose: () => void
-  taskStatuses: any[]
-  taskPriorities: any[]
-  currentUser: any
+  taskStatuses: Array<{value: string, label: string, color: string, icon: string}>
+  taskPriorities: Array<{value: string, label: string, color: string, icon: string}>
+  currentUser: unknown
 }) {
   const [formData, setFormData] = useState({
     title: task.title || '',
@@ -656,29 +698,40 @@ function EditTaskModal({ task, onEdit, onClose, taskStatuses, taskPriorities, cu
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg w-full max-w-2xl max-h-screen overflow-y-auto">
+      <div className="bg-white rounded-lg w-full max-w-2xl max-h-[95vh] sm:max-h-screen overflow-y-auto">
         <div className="p-4 sm:p-6">
-          <h2 className="text-xl font-bold mb-4 text-gray-900">Edit Task</h2>
+          {/* Mobile-friendly header */}
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg sm:text-xl font-bold text-gray-900">Edit Task</h2>
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-gray-100 rounded-full min-w-[44px] min-h-[44px] flex items-center justify-center sm:hidden"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
           
-          <form onSubmit={handleEditSubmit} className="space-y-4">
+          <form onSubmit={handleEditSubmit} className="space-y-4 sm:space-y-5">
             <div>
-              <label className="block text-sm font-medium text-gray-700">Title *</label>
+              <label className="block text-sm sm:text-base font-medium text-gray-700 mb-2">Title *</label>
               <input
                 type="text"
                 required
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                className="block w-full rounded-md border-gray-300 shadow-sm border p-3 sm:p-2 text-base sm:text-sm text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 min-h-[44px]"
                 placeholder="Task title"
               />
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-700">Description</label>
+              <label className="block text-sm sm:text-base font-medium text-gray-700 mb-2">Description</label>
               <textarea
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                className="block w-full rounded-md border-gray-300 shadow-sm border p-3 sm:p-2 text-base sm:text-sm text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 min-h-[100px] resize-y"
                 rows={3}
                 placeholder="Task details and requirements"
               />
@@ -690,7 +743,7 @@ function EditTaskModal({ task, onEdit, onClose, taskStatuses, taskPriorities, cu
                 <select
                   value={formData.priority}
                   onChange={(e) => setFormData({ ...formData, priority: e.target.value as TaskPriority })}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  className="block w-full rounded-md border-gray-300 shadow-sm border p-3 sm:p-2 text-base sm:text-sm text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 min-h-[44px]"
                 >
                   {taskPriorities.map(priority => (
                     <option key={priority.value} value={priority.value}>
@@ -705,7 +758,7 @@ function EditTaskModal({ task, onEdit, onClose, taskStatuses, taskPriorities, cu
                 <select
                   value={formData.status}
                   onChange={(e) => setFormData({ ...formData, status: e.target.value as TaskStatus })}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  className="block w-full rounded-md border-gray-300 shadow-sm border p-3 sm:p-2 text-base sm:text-sm text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 min-h-[44px]"
                 >
                   {taskStatuses.map(status => (
                     <option key={status.value} value={status.value}>
@@ -721,7 +774,7 @@ function EditTaskModal({ task, onEdit, onClose, taskStatuses, taskPriorities, cu
                   type="datetime-local"
                   value={formData.dueDate}
                   onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  className="block w-full rounded-md border-gray-300 shadow-sm border p-3 sm:p-2 text-base sm:text-sm text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 min-h-[44px]"
                 />
               </div>
             </div>
@@ -732,10 +785,10 @@ function EditTaskModal({ task, onEdit, onClose, taskStatuses, taskPriorities, cu
                 <select
                   value={formData.assignedToId}
                   onChange={(e) => setFormData({ ...formData, assignedToId: e.target.value })}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  className="block w-full rounded-md border-gray-300 shadow-sm border p-3 sm:p-2 text-base sm:text-sm text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 min-h-[44px]"
                 >
                   <option value="">Select User</option>
-                  {users.map((user: any) => (
+                  {users.map((user: {id: string, name: string, role: string}) => (
                     <option key={user.id} value={user.id}>
                       {user.name} ({user.role})
                     </option>
@@ -748,10 +801,10 @@ function EditTaskModal({ task, onEdit, onClose, taskStatuses, taskPriorities, cu
                 <select
                   value={formData.leadId}
                   onChange={(e) => setFormData({ ...formData, leadId: e.target.value, customerId: e.target.value ? '' : formData.customerId })}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  className="block w-full rounded-md border-gray-300 shadow-sm border p-3 sm:p-2 text-base sm:text-sm text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 min-h-[44px]"
                 >
                   <option value="">Select Lead</option>
-                  {leads.map((lead: any) => (
+                  {leads.map((lead: {id: string, name: string, company?: string}) => (
                     <option key={lead.id} value={lead.id}>
                       {lead.name} {lead.company && `(${lead.company})`}
                     </option>
@@ -764,10 +817,10 @@ function EditTaskModal({ task, onEdit, onClose, taskStatuses, taskPriorities, cu
                 <select
                   value={formData.customerId}
                   onChange={(e) => setFormData({ ...formData, customerId: e.target.value, leadId: e.target.value ? '' : formData.leadId })}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  className="block w-full rounded-md border-gray-300 shadow-sm border p-3 sm:p-2 text-base sm:text-sm text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 min-h-[44px]"
                 >
                   <option value="">Select Customer</option>
-                  {customers.map((customer: any) => (
+                  {customers.map((customer: {id: string, name: string, company?: string}) => (
                     <option key={customer.id} value={customer.id}>
                       {customer.name} {customer.company && `(${customer.company})`}
                     </option>
@@ -776,17 +829,17 @@ function EditTaskModal({ task, onEdit, onClose, taskStatuses, taskPriorities, cu
               </div>
             </div>
             
-            <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-3 pt-4">
+            <div className="flex flex-col sm:flex-row justify-end space-y-3 sm:space-y-0 sm:space-x-3 pt-6">
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500"
+                className="w-full sm:w-auto px-6 py-3 sm:py-2 text-base sm:text-sm font-medium text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 min-h-[44px] transition-colors"
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                className="w-full sm:w-auto px-6 py-3 sm:py-2 text-base sm:text-sm font-medium bg-purple-600 text-white rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 min-h-[44px] transition-colors"
               >
                 Update Task
               </button>
@@ -796,33 +849,6 @@ function EditTaskModal({ task, onEdit, onClose, taskStatuses, taskPriorities, cu
       </div>
     </div>
   )
-
-  useEffect(() => {
-    // Fetch leads, customers, and users for assignment
-    Promise.all([
-      apiClient.get('/api/leads').catch(() => []),
-      apiClient.get('/api/customers').catch(() => []),
-      apiClient.get('/api/users').catch(() => [])
-    ]).then(([leadsData, customersData, usersData]) => {
-      setLeads(Array.isArray(leadsData) ? leadsData : [])
-      setCustomers(Array.isArray(customersData) ? customersData : [])
-      setUsers(Array.isArray(usersData) ? usersData : [])
-    })
-  }, [])
-
-  const handleAddSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    
-    const submitData = {
-      ...formData,
-      dueDate: formData.dueDate ? new Date(formData.dueDate).toISOString() : null,
-      assignedToId: formData.assignedToId || null,
-      leadId: formData.leadId || null,
-      customerId: formData.customerId || null,
-    }
-    
-    onAdd(submitData)
-  }
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -838,7 +864,7 @@ function EditTaskModal({ task, onEdit, onClose, taskStatuses, taskPriorities, cu
                 required
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                className="block w-full rounded-md border-gray-300 shadow-sm border p-3 sm:p-2 text-base sm:text-sm text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 min-h-[44px]"
                 placeholder="Task title"
               />
             </div>
@@ -848,7 +874,7 @@ function EditTaskModal({ task, onEdit, onClose, taskStatuses, taskPriorities, cu
               <textarea
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                className="block w-full rounded-md border-gray-300 shadow-sm border p-3 sm:p-2 text-base sm:text-sm text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 min-h-[44px]"
                 rows={3}
                 placeholder="Task details and requirements"
               />
@@ -860,7 +886,7 @@ function EditTaskModal({ task, onEdit, onClose, taskStatuses, taskPriorities, cu
                 <select
                   value={formData.priority}
                   onChange={(e) => setFormData({ ...formData, priority: e.target.value as TaskPriority })}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  className="block w-full rounded-md border-gray-300 shadow-sm border p-3 sm:p-2 text-base sm:text-sm text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 min-h-[44px]"
                 >
                   {taskPriorities.map(priority => (
                     <option key={priority.value} value={priority.value}>
@@ -875,7 +901,7 @@ function EditTaskModal({ task, onEdit, onClose, taskStatuses, taskPriorities, cu
                 <select
                   value={formData.status}
                   onChange={(e) => setFormData({ ...formData, status: e.target.value as TaskStatus })}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  className="block w-full rounded-md border-gray-300 shadow-sm border p-3 sm:p-2 text-base sm:text-sm text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 min-h-[44px]"
                 >
                   {taskStatuses.map(status => (
                     <option key={status.value} value={status.value}>
@@ -891,7 +917,7 @@ function EditTaskModal({ task, onEdit, onClose, taskStatuses, taskPriorities, cu
                   type="datetime-local"
                   value={formData.dueDate}
                   onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  className="block w-full rounded-md border-gray-300 shadow-sm border p-3 sm:p-2 text-base sm:text-sm text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 min-h-[44px]"
                 />
               </div>
             </div>
@@ -902,7 +928,7 @@ function EditTaskModal({ task, onEdit, onClose, taskStatuses, taskPriorities, cu
                 <select
                   value={formData.assignedToId}
                   onChange={(e) => setFormData({ ...formData, assignedToId: e.target.value })}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  className="block w-full rounded-md border-gray-300 shadow-sm border p-3 sm:p-2 text-base sm:text-sm text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 min-h-[44px]"
                 >
                   <option value="">Select User</option>
                   <option value="user-1">Me (Demo User)</option>
@@ -919,10 +945,10 @@ function EditTaskModal({ task, onEdit, onClose, taskStatuses, taskPriorities, cu
                 <select
                   value={formData.leadId}
                   onChange={(e) => setFormData({ ...formData, leadId: e.target.value, customerId: e.target.value ? '' : formData.customerId })}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  className="block w-full rounded-md border-gray-300 shadow-sm border p-3 sm:p-2 text-base sm:text-sm text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 min-h-[44px]"
                 >
                   <option value="">Select Lead</option>
-                  {leads.map((lead: any) => (
+                  {leads.map((lead: {id: string, name: string, company?: string}) => (
                     <option key={lead.id} value={lead.id}>
                       {lead.name} {lead.company && `(${lead.company})`}
                     </option>
@@ -935,10 +961,10 @@ function EditTaskModal({ task, onEdit, onClose, taskStatuses, taskPriorities, cu
                 <select
                   value={formData.customerId}
                   onChange={(e) => setFormData({ ...formData, customerId: e.target.value, leadId: e.target.value ? '' : formData.leadId })}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  className="block w-full rounded-md border-gray-300 shadow-sm border p-3 sm:p-2 text-base sm:text-sm text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 min-h-[44px]"
                 >
                   <option value="">Select Customer</option>
-                  {customers.map((customer: any) => (
+                  {customers.map((customer: {id: string, name: string, company?: string}) => (
                     <option key={customer.id} value={customer.id}>
                       {customer.name} {customer.company && `(${customer.company})`}
                     </option>
@@ -947,17 +973,17 @@ function EditTaskModal({ task, onEdit, onClose, taskStatuses, taskPriorities, cu
               </div>
             </div>
             
-            <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-3 pt-4">
+            <div className="flex flex-col sm:flex-row justify-end space-y-3 sm:space-y-0 sm:space-x-3 pt-6">
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500"
+                className="w-full sm:w-auto px-6 py-3 sm:py-2 text-base sm:text-sm font-medium text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 min-h-[44px] transition-colors"
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                className="w-full sm:w-auto px-6 py-3 sm:py-2 text-base sm:text-sm font-medium bg-purple-600 text-white rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 min-h-[44px] transition-colors"
               >
                 Update Task
               </button>
@@ -971,11 +997,11 @@ function EditTaskModal({ task, onEdit, onClose, taskStatuses, taskPriorities, cu
 
 // Add Task Modal
 function AddTaskModal({ onAdd, onClose, taskStatuses, taskPriorities, currentUser }: {
-  onAdd: (data: any) => void
+  onAdd: (data: unknown) => void
   onClose: () => void
-  taskStatuses: any[]
-  taskPriorities: any[]
-  currentUser: any
+  taskStatuses: Array<{value: string, label: string, color: string, icon: string}>
+  taskPriorities: Array<{value: string, label: string, color: string, icon: string}>
+  currentUser: unknown
 }) {
   const [formData, setFormData] = useState({
     title: '',
@@ -1033,7 +1059,7 @@ function AddTaskModal({ onAdd, onClose, taskStatuses, taskPriorities, currentUse
                 required
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                className="block w-full rounded-md border-gray-300 shadow-sm border p-3 sm:p-2 text-base sm:text-sm text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 min-h-[44px]"
                 placeholder="Task title"
               />
             </div>
@@ -1043,7 +1069,7 @@ function AddTaskModal({ onAdd, onClose, taskStatuses, taskPriorities, currentUse
               <textarea
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                className="block w-full rounded-md border-gray-300 shadow-sm border p-3 sm:p-2 text-base sm:text-sm text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 min-h-[44px]"
                 rows={3}
                 placeholder="Task details and requirements"
               />
@@ -1055,7 +1081,7 @@ function AddTaskModal({ onAdd, onClose, taskStatuses, taskPriorities, currentUse
                 <select
                   value={formData.priority}
                   onChange={(e) => setFormData({ ...formData, priority: e.target.value as TaskPriority })}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  className="block w-full rounded-md border-gray-300 shadow-sm border p-3 sm:p-2 text-base sm:text-sm text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 min-h-[44px]"
                 >
                   {taskPriorities.map(priority => (
                     <option key={priority.value} value={priority.value}>
@@ -1070,7 +1096,7 @@ function AddTaskModal({ onAdd, onClose, taskStatuses, taskPriorities, currentUse
                 <select
                   value={formData.status}
                   onChange={(e) => setFormData({ ...formData, status: e.target.value as TaskStatus })}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  className="block w-full rounded-md border-gray-300 shadow-sm border p-3 sm:p-2 text-base sm:text-sm text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 min-h-[44px]"
                 >
                   {taskStatuses.map(status => (
                     <option key={status.value} value={status.value}>
@@ -1086,7 +1112,7 @@ function AddTaskModal({ onAdd, onClose, taskStatuses, taskPriorities, currentUse
                   type="datetime-local"
                   value={formData.dueDate}
                   onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  className="block w-full rounded-md border-gray-300 shadow-sm border p-3 sm:p-2 text-base sm:text-sm text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 min-h-[44px]"
                 />
               </div>
             </div>
@@ -1097,10 +1123,10 @@ function AddTaskModal({ onAdd, onClose, taskStatuses, taskPriorities, currentUse
                 <select
                   value={formData.assignedToId}
                   onChange={(e) => setFormData({ ...formData, assignedToId: e.target.value })}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  className="block w-full rounded-md border-gray-300 shadow-sm border p-3 sm:p-2 text-base sm:text-sm text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 min-h-[44px]"
                 >
                   <option value="">Select User</option>
-                  {users.map((user: any) => (
+                  {users.map((user: {id: string, name: string, role: string}) => (
                     <option key={user.id} value={user.id}>
                       {user.name} ({user.role})
                     </option>
@@ -1113,10 +1139,10 @@ function AddTaskModal({ onAdd, onClose, taskStatuses, taskPriorities, currentUse
                 <select
                   value={formData.leadId}
                   onChange={(e) => setFormData({ ...formData, leadId: e.target.value, customerId: e.target.value ? '' : formData.customerId })}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  className="block w-full rounded-md border-gray-300 shadow-sm border p-3 sm:p-2 text-base sm:text-sm text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 min-h-[44px]"
                 >
                   <option value="">Select Lead</option>
-                  {leads.map((lead: any) => (
+                  {leads.map((lead: {id: string, name: string, company?: string}) => (
                     <option key={lead.id} value={lead.id}>
                       {lead.name} {lead.company && `(${lead.company})`}
                     </option>
@@ -1129,10 +1155,10 @@ function AddTaskModal({ onAdd, onClose, taskStatuses, taskPriorities, currentUse
                 <select
                   value={formData.customerId}
                   onChange={(e) => setFormData({ ...formData, customerId: e.target.value, leadId: e.target.value ? '' : formData.leadId })}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  className="block w-full rounded-md border-gray-300 shadow-sm border p-3 sm:p-2 text-base sm:text-sm text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 min-h-[44px]"
                 >
                   <option value="">Select Customer</option>
-                  {customers.map((customer: any) => (
+                  {customers.map((customer: {id: string, name: string, company?: string}) => (
                     <option key={customer.id} value={customer.id}>
                       {customer.name} {customer.company && `(${customer.company})`}
                     </option>
@@ -1141,17 +1167,17 @@ function AddTaskModal({ onAdd, onClose, taskStatuses, taskPriorities, currentUse
               </div>
             </div>
             
-            <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-3 pt-4">
+            <div className="flex flex-col sm:flex-row justify-end space-y-3 sm:space-y-0 sm:space-x-3 pt-6">
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500"
+                className="w-full sm:w-auto px-6 py-3 sm:py-2 text-base sm:text-sm font-medium text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 min-h-[44px] transition-colors"
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                className="w-full sm:w-auto px-6 py-3 sm:py-2 text-base sm:text-sm font-medium bg-purple-600 text-white rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 min-h-[44px] transition-colors"
               >
                 Create Task
               </button>
