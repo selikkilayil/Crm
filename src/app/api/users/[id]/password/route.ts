@@ -12,13 +12,20 @@ export async function PUT(
     const body = await request.json()
     const { currentPassword, newPassword } = body
     
-    // Users can only change their own password, or admins can change anyone's
-    if (user.id !== params.id && user.role !== 'ADMIN') {
+    // Users can only change their own password, or admins/superadmins can change anyone's
+    if (user.id !== params.id && user.role !== 'ADMIN' && user.role !== 'SUPERADMIN') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
     }
     
-    if (!currentPassword || !newPassword) {
-      return NextResponse.json({ error: 'Current password and new password are required' }, { status: 400 })
+    // For admin/superadmin changing other users' passwords, currentPassword is not required
+    const isAdminChangingOtherUser = (user.role === 'ADMIN' || user.role === 'SUPERADMIN') && user.id !== params.id
+    
+    if (!isAdminChangingOtherUser && !currentPassword) {
+      return NextResponse.json({ error: 'Current password is required' }, { status: 400 })
+    }
+    
+    if (!newPassword) {
+      return NextResponse.json({ error: 'New password is required' }, { status: 400 })
     }
     
     if (newPassword.length < 6) {
@@ -44,7 +51,7 @@ export async function PUT(
     }
     
     // Verify current password if user is changing their own password
-    if (user.id === params.id) {
+    if (user.id === params.id && currentPassword) {
       if (targetUser.password) {
         const isValidPassword = await bcrypt.compare(currentPassword, targetUser.password)
         if (!isValidPassword) {

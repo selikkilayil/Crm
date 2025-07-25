@@ -8,17 +8,68 @@ datasource db {
 }
 
 model User {
-  id            String   @id @default(cuid())
-  email         String   @unique
-  name          String
-  role          UserRole @default(SALES)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  assignedLeads Lead[]
-  assignedTasks Task[]   @relation("TaskAssignee")
-  createdTasks  Task[]   @relation("TaskCreator")
+  id              String      @id @default(cuid())
+  email           String      @unique
+  name            String
+  role            UserRole    @default(SALES)
+  customRoleId    String?     // New field for custom roles
+  password        String?
+  isActive        Boolean     @default(true)
+  lastLoginAt     DateTime?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  assignedLeads   Lead[]
+  assignedTasks   Task[]      @relation("TaskAssignee")
+  createdTasks    Task[]      @relation("TaskCreator")
+  createdQuotations Quotation[] @relation("QuotationCreator")
+  customRole      CustomRole? @relation(fields: [customRoleId], references: [id])
 
   @@map("users")
+}
+
+model CustomRole {
+  id          String @id @default(cuid())
+  name        String @unique
+  description String?
+  isActive    Boolean @default(true)
+  isSystem    Boolean @default(false) // For built-in roles that can't be deleted
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  users       User[]
+  permissions RolePermission[]
+  
+  @@map("custom_roles")
+}
+
+model Permission {
+  id           String @id @default(cuid())
+  resource     String // e.g., "leads", "customers", "users"
+  action       String // e.g., "view", "create", "edit", "delete"
+  description  String?
+  category     String? // e.g., "CRM", "Admin", "Reports"
+  createdAt    DateTime @default(now())
+  
+  // Relations
+  rolePermissions RolePermission[]
+  
+  @@unique([resource, action])
+  @@map("permissions")
+}
+
+model RolePermission {
+  id           String @id @default(cuid())
+  roleId       String
+  permissionId String
+  createdAt    DateTime @default(now())
+  
+  // Relations
+  role         CustomRole @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  
+  @@unique([roleId, permissionId])
+  @@map("role_permissions")
 }
 
 model Tag {
@@ -57,24 +108,25 @@ model Lead {
 }
 
 model Customer {
-  id              String     @id @default(cuid())
+  id              String      @id @default(cuid())
   name            String
-  email           String     @unique
+  email           String      @unique
   phone           String?
   company         String?
   billingAddress  String?
   gstin           String?
-  createdAt       DateTime   @default(now())
-  updatedAt       DateTime   @updatedAt
-  leadId          String?    @unique
-  isArchived      Boolean    @default(false)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  leadId          String?     @unique
+  isArchived      Boolean     @default(false)
   notes           String?
   shippingAddress String?
   activities      Activity[]
   contacts        Contact[]
-  lead            Lead?      @relation(fields: [leadId], references: [id])
+  lead            Lead?       @relation(fields: [leadId], references: [id])
   tasks           Task[]
-  tags            Tag[]      @relation("CustomerToTag")
+  tags            Tag[]       @relation("CustomerToTag")
+  quotations      Quotation[]
 
   @@map("customers")
 }
@@ -133,6 +185,54 @@ model Task {
   @@map("tasks")
 }
 
+model Quotation {
+  id               String            @id @default(cuid())
+  quotationNumber  String            @unique
+  date             DateTime          @default(now())
+  validUntil       DateTime?
+  status           QuotationStatus   @default(DRAFT)
+  paymentTerms     String?
+  deliveryTerms    String?
+  currency         String            @default("INR")
+  subtotal         Decimal           @default(0) @db.Decimal(10, 2)
+  totalTax         Decimal           @default(0) @db.Decimal(10, 2)
+  totalDiscount    Decimal           @default(0) @db.Decimal(10, 2)
+  roundOff         Decimal           @default(0) @db.Decimal(10, 2)
+  grandTotal       Decimal           @default(0) @db.Decimal(10, 2)
+  notes            String?
+  termsConditions  String?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  
+  customerId       String
+  customer         Customer          @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  
+  createdById      String
+  createdBy        User              @relation("QuotationCreator", fields: [createdById], references: [id])
+  
+  items            QuotationItem[]
+
+  @@map("quotations")
+}
+
+model QuotationItem {
+  id           String    @id @default(cuid())
+  productName  String
+  description  String?
+  quantity     Decimal   @db.Decimal(10, 3)
+  unitPrice    Decimal   @db.Decimal(10, 2)
+  discount     Decimal   @default(0) @db.Decimal(5, 2)
+  taxPercent   Decimal   @default(0) @db.Decimal(5, 2)
+  subtotal     Decimal   @db.Decimal(10, 2)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  
+  quotationId  String
+  quotation    Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+
+  @@map("quotation_items")
+}
+
 enum LeadStatus {
   NEW
   CONTACTED
@@ -150,6 +250,7 @@ enum ActivityType {
 }
 
 enum UserRole {
+  SUPERADMIN
   ADMIN
   MANAGER
   SALES
@@ -167,4 +268,12 @@ enum TaskPriority {
   MEDIUM
   HIGH
   URGENT
+}
+
+enum QuotationStatus {
+  DRAFT
+  SENT
+  ACCEPTED
+  REJECTED
+  EXPIRED
 }

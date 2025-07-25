@@ -5,7 +5,7 @@ import AuthGuard from '@/components/AuthGuard'
 import NavBar from '@/components/NavBar'
 import PermissionGuard from '@/components/PermissionGuard'
 import { useAuth } from '@/hooks/useAuth'
-import { canAccessResource } from '@/lib/permissions'
+import { canAccessResource } from '@/lib/client-permissions'
 
 export default function Home() {
   const { user } = useAuth()
@@ -26,6 +26,14 @@ export default function Home() {
       color: 'text-green-600',
       description: 'Manage existing customer relationships',
       resource: 'customers'
+    },
+    { 
+      href: '/quotations', 
+      label: 'Quotations', 
+      icon: '📄', 
+      color: 'text-amber-600',
+      description: 'Create and manage quotations',
+      resource: 'quotations'
     },
     { 
       href: '/activities', 

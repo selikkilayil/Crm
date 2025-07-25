@@ -3,10 +3,10 @@
 import Link from 'next/link'
 import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '@/hooks/useAuth'
-import { canAccessResource } from '@/lib/permissions'
+import { canAccessResource } from '@/lib/client-permissions'
 
 interface NavBarProps {
-  currentPage?: 'home' | 'leads' | 'customers' | 'activities' | 'tasks' | 'tags' | 'users' | 'dashboard' | 'profile'
+  currentPage?: 'home' | 'leads' | 'customers' | 'activities' | 'tasks' | 'tags' | 'users' | 'roles' | 'dashboard' | 'profile' | 'quotations'
 }
 
 export default function NavBar({ currentPage }: NavBarProps) {
@@ -45,14 +45,70 @@ export default function NavBar({ currentPage }: NavBarProps) {
   const navItems = [
     { href: '/leads', label: 'Leads', key: 'leads', resource: 'leads', icon: '🎯' },
     { href: '/customers', label: 'Customers', key: 'customers', resource: 'customers', icon: '🤝' },
+    { href: '/quotations', label: 'Quotations', key: 'quotations', resource: 'quotations', icon: '📄' },
     { href: '/activities', label: 'Activities', key: 'activities', resource: 'activities', icon: '📊' },
     { href: '/tasks', label: 'Tasks', key: 'tasks', resource: 'tasks', icon: '✅' },
     { href: '/tags', label: 'Tags', key: 'tags', resource: 'tags', icon: '🏷️' },
     { href: '/users', label: 'Users', key: 'users', resource: 'users', icon: '👥' },
+    { href: '/roles', label: 'Roles', key: 'roles', resource: 'roles', icon: '🛡️' },
     { href: '/dashboard', label: 'Dashboard', key: 'dashboard', resource: 'dashboard', icon: '📈' },
   ]
 
-  const filteredNavItems = navItems.filter((item) => user && canAccessResource(user.role, item.resource))
+  const filteredNavItems = navItems.filter((item) => user && user.role !== 'SUPERADMIN' && canAccessResource(user.role, item.resource))
+
+  // Hide entire navbar for superadmin users
+  if (user?.role === 'SUPERADMIN') {
+    return (
+      <nav className="bg-white shadow-sm border-b sticky top-0 z-40">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between h-16">
+            {/* Logo */}
+            <div className="flex items-center">
+              <div className="text-lg sm:text-xl font-semibold text-gray-900 truncate">
+                <span className="hidden sm:inline">Super Admin Panel</span>
+                <span className="sm:hidden">Admin</span>
+              </div>
+            </div>
+            
+            {/* Super Admin User Menu */}
+            <div className="flex items-center">
+              <div className="relative" ref={menuRef}>
+                <button
+                  onClick={() => setShowUserMenu(!showUserMenu)}
+                  className="flex items-center space-x-2 text-sm text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md hover:bg-gray-50 min-h-[44px] transition-colors"
+                >
+                  <div className="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center text-white text-sm font-medium">
+                    {user?.name?.charAt(0).toUpperCase()}
+                  </div>
+                  <span className="hidden xl:inline">{user?.name}</span>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+
+                {showUserMenu && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 border">
+                    <div className="px-4 py-2 text-xs text-gray-500 border-b">
+                      Super Administrator
+                    </div>
+                    <button
+                      onClick={() => {
+                        setShowUserMenu(false)
+                        logout()
+                      }}
+                      className="block w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 min-h-[44px] flex items-center"
+                    >
+                      🚪 Sign Out
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </nav>
+    )
+  }
 
   const handleMobileNavClick = () => {
     setShowMobileMenu(false)

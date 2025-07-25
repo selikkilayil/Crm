@@ -11,12 +11,42 @@ interface AuthGuardProps {
 export default function AuthGuard({ children }: AuthGuardProps) {
   const { user, loading, isAuthenticated } = useAuth()
   const router = useRouter()
+  const [hasRedirected, setHasRedirected] = useState(false)
 
   useEffect(() => {
-    if (!loading && !isAuthenticated) {
+    if (loading || hasRedirected) return
+
+    if (!isAuthenticated) {
+      setHasRedirected(true)
       router.push('/login')
+      return
     }
-  }, [loading, isAuthenticated, router])
+
+    if (user) {
+      const currentPath = window.location.pathname
+      
+      // Superadmin can only access /superadmin route
+      if (user.role === 'SUPERADMIN') {
+        if (currentPath !== '/superadmin') {
+          setHasRedirected(true)
+          router.push('/superadmin')
+        }
+      } else {
+        // Regular users cannot access /superadmin
+        if (currentPath === '/superadmin') {
+          setHasRedirected(true)
+          router.push('/')
+        }
+      }
+    }
+  }, [loading, isAuthenticated, user, router, hasRedirected])
+
+  // Reset redirect flag when path changes
+  useEffect(() => {
+    const handleRouteChange = () => setHasRedirected(false)
+    window.addEventListener('popstate', handleRouteChange)
+    return () => window.removeEventListener('popstate', handleRouteChange)
+  }, [])
 
   if (loading) {
     return (

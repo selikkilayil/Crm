@@ -17,12 +17,22 @@ export default function LoginPage() {
     setError('')
     
     try {
-      await login(email, password)
+      const user = await login(email, password)
+      console.log('Login successful, user role:', user.role)
+      
       // Small delay to ensure localStorage is updated
       setTimeout(() => {
-        router.push('/')
+        // Redirect based on user role
+        if (user.role === 'SUPERADMIN') {
+          console.log('Redirecting to /superadmin')
+          router.push('/superadmin')
+        } else {
+          console.log('Redirecting to /')
+          router.push('/')
+        }
       }, 100)
     } catch (err) {
+      console.error('Login error:', err)
       setError(err instanceof Error ? err.message : 'Login failed')
     } finally {
       setLoading(false)
@@ -59,7 +69,7 @@ export default function LoginPage() {
             <span className="text-2xl">🏢</span>
           </div>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            CRM + Production
+            RAW
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
             Sign in to your account

@@ -2,7 +2,7 @@ export interface User {
   id: string
   email: string
   name: string
-  role: 'ADMIN' | 'MANAGER' | 'SALES'
+  role: 'SUPERADMIN' | 'ADMIN' | 'MANAGER' | 'SALES'
 }
 
 const DEMO_USER: User = {

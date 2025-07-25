@@ -52,6 +52,15 @@ export const PERMISSIONS = {
   TAGS_EDIT: { resource: 'tags', action: 'edit' },
   TAGS_DELETE: { resource: 'tags', action: 'delete' },
   
+  // Quotation management
+  QUOTATIONS_VIEW_ALL: { resource: 'quotations', action: 'view_all' },
+  QUOTATIONS_VIEW_ASSIGNED: { resource: 'quotations', action: 'view_assigned' },
+  QUOTATIONS_CREATE: { resource: 'quotations', action: 'create' },
+  QUOTATIONS_EDIT_ALL: { resource: 'quotations', action: 'edit_all' },
+  QUOTATIONS_EDIT_ASSIGNED: { resource: 'quotations', action: 'edit_assigned' },
+  QUOTATIONS_DELETE: { resource: 'quotations', action: 'delete' },
+  QUOTATIONS_SEND: { resource: 'quotations', action: 'send' },
+  
   // Dashboard and analytics
   DASHBOARD_VIEW_ALL: { resource: 'dashboard', action: 'view_all' },
   DASHBOARD_VIEW_TEAM: { resource: 'dashboard', action: 'view_team' },
@@ -60,6 +69,14 @@ export const PERMISSIONS = {
 
 // Role-based permissions mapping
 export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
+  SUPERADMIN: [
+    // Only user management permissions for superadmin
+    PERMISSIONS.USERS_VIEW,
+    PERMISSIONS.USERS_CREATE,
+    PERMISSIONS.USERS_EDIT,
+    PERMISSIONS.USERS_DELETE,
+  ],
+  
   ADMIN: [
     // Full access to everything
     PERMISSIONS.USERS_VIEW,
@@ -94,6 +111,12 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     PERMISSIONS.TAGS_EDIT,
     PERMISSIONS.TAGS_DELETE,
     
+    PERMISSIONS.QUOTATIONS_VIEW_ALL,
+    PERMISSIONS.QUOTATIONS_CREATE,
+    PERMISSIONS.QUOTATIONS_EDIT_ALL,
+    PERMISSIONS.QUOTATIONS_DELETE,
+    PERMISSIONS.QUOTATIONS_SEND,
+    
     PERMISSIONS.DASHBOARD_VIEW_ALL,
   ],
   
@@ -124,6 +147,11 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     PERMISSIONS.TAGS_CREATE,
     PERMISSIONS.TAGS_EDIT,
     
+    PERMISSIONS.QUOTATIONS_VIEW_ALL,
+    PERMISSIONS.QUOTATIONS_CREATE,
+    PERMISSIONS.QUOTATIONS_EDIT_ALL,
+    PERMISSIONS.QUOTATIONS_SEND,
+    
     PERMISSIONS.DASHBOARD_VIEW_TEAM,
   ],
   
@@ -146,6 +174,11 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     PERMISSIONS.ACTIVITIES_EDIT_ASSIGNED,
     
     PERMISSIONS.TAGS_VIEW,
+    
+    PERMISSIONS.QUOTATIONS_VIEW_ASSIGNED,
+    PERMISSIONS.QUOTATIONS_CREATE,
+    PERMISSIONS.QUOTATIONS_EDIT_ASSIGNED,
+    PERMISSIONS.QUOTATIONS_SEND,
     
     PERMISSIONS.DASHBOARD_VIEW_PERSONAL,
   ],

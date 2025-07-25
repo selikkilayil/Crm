@@ -33,10 +33,21 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { name, email, role, password } = body
+    const { name, email, role, customRoleId, password } = body
     
     if (!name || !email || !role || !password) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
+    }
+    
+    // Validate custom role if provided
+    if (customRoleId) {
+      const customRole = await prisma.customRole.findUnique({
+        where: { id: customRoleId, isActive: true }
+      })
+      
+      if (!customRole) {
+        return NextResponse.json({ error: 'Invalid custom role' }, { status: 400 })
+      }
     }
     
     // Check if user already exists
@@ -56,6 +67,7 @@ export async function POST(request: NextRequest) {
         name,
         email,
         role,
+        customRoleId: customRoleId || null,
         password: hashedPassword,
         isActive: true,
       },

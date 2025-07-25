@@ -1,17 +1,15 @@
 import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { hasPermission, Permission } from '@/lib/permissions'
+import { 
+  getUserPermissions, 
+  hasPermission, 
+  Permission, 
+  UserWithPermissions,
+  getDataFilter 
+} from '@/lib/dynamic-permissions'
 import { UserRole } from '@prisma/client'
 
-export interface AuthenticatedUser {
-  id: string
-  email: string
-  name: string
-  role: UserRole
-  isActive: boolean
-}
-
-export async function getAuthenticatedUser(request: NextRequest): Promise<AuthenticatedUser | null> {
+export async function getAuthenticatedUser(request: NextRequest): Promise<UserWithPermissions | null> {
   try {
     // Try to get user from localStorage data (passed via headers by client)
     const authHeader = request.headers.get('x-auth-user')
@@ -40,6 +38,7 @@ export async function getAuthenticatedUser(request: NextRequest): Promise<Authen
         email: true,
         name: true,
         role: true,
+        customRoleId: true,
         isActive: true,
       },
     })
@@ -55,7 +54,7 @@ export async function getAuthenticatedUser(request: NextRequest): Promise<Authen
   }
 }
 
-export async function requireAuth(request: NextRequest): Promise<AuthenticatedUser> {
+export async function requireAuth(request: NextRequest): Promise<UserWithPermissions> {
   const user = await getAuthenticatedUser(request)
   if (!user) {
     throw new Error('Authentication required')
@@ -66,10 +65,11 @@ export async function requireAuth(request: NextRequest): Promise<AuthenticatedUs
 export async function requirePermission(
   request: NextRequest, 
   permission: Permission
-): Promise<AuthenticatedUser> {
+): Promise<UserWithPermissions> {
   const user = await requireAuth(request)
   
-  if (!hasPermission(user.role, permission)) {
+  const hasRequiredPermission = await hasPermission(user, permission)
+  if (!hasRequiredPermission) {
     throw new Error('Insufficient permissions')
   }
   
@@ -79,7 +79,7 @@ export async function requirePermission(
 export async function requireRole(
   request: NextRequest, 
   roles: UserRole[]
-): Promise<AuthenticatedUser> {
+): Promise<UserWithPermissions> {
   const user = await requireAuth(request)
   
   if (!roles.includes(user.role)) {
@@ -89,36 +89,5 @@ export async function requireRole(
   return user
 }
 
-export function getDataFilter(userRole: UserRole, userId: string) {
-  switch (userRole) {
-    case 'SUPERADMIN':
-      // Superadmin has no access to CRM data, only user management
-      return { id: 'no-access' } // This will return no results for CRM data
-      
-    case 'ADMIN':
-      // Admin can see everything
-      return {}
-      
-    case 'MANAGER':
-      // Manager can see everything (but with some restrictions in permissions)
-      return {}
-      
-    case 'SALES':
-      // Sales can only see assigned items
-      return {
-        OR: [
-          { assignedToId: userId },
-          { createdById: userId },
-        ],
-      }
-      
-    default:
-      // Default to most restrictive
-      return {
-        OR: [
-          { assignedToId: userId },
-          { createdById: userId },
-        ],
-      }
-  }
-}
+// Export the data filter function for backwards compatibility
+export { getDataFilter }
