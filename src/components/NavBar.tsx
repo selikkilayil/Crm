@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '@/hooks/useAuth'
-import { canAccessResource } from '@/lib/client-permissions'
+import { usePermissions } from '@/hooks/usePermissions'
 
 interface NavBarProps {
   currentPage?: 'home' | 'leads' | 'customers' | 'activities' | 'tasks' | 'tags' | 'users' | 'roles' | 'dashboard' | 'profile' | 'quotations'
@@ -11,6 +11,7 @@ interface NavBarProps {
 
 export default function NavBar({ currentPage }: NavBarProps) {
   const { user, logout } = useAuth()
+  const { canAccessResource, loading: permissionsLoading } = usePermissions()
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [showMobileMenu, setShowMobileMenu] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
@@ -54,7 +55,10 @@ export default function NavBar({ currentPage }: NavBarProps) {
     { href: '/dashboard', label: 'Dashboard', key: 'dashboard', resource: 'dashboard', icon: '📈' },
   ]
 
-  const filteredNavItems = navItems.filter((item) => user && user.role !== 'SUPERADMIN' && canAccessResource(user.role, item.resource))
+  const filteredNavItems = navItems.filter((item) => {
+    if (!user || user.role === 'SUPERADMIN' || permissionsLoading) return false
+    return canAccessResource(item.resource)
+  })
 
   // Hide entire navbar for superadmin users
   if (user?.role === 'SUPERADMIN') {
@@ -121,7 +125,7 @@ export default function NavBar({ currentPage }: NavBarProps) {
           {/* Logo */}
           <div className="flex items-center">
             <Link href="/" className="text-lg sm:text-xl font-semibold text-gray-900 truncate">
-              <span className="hidden sm:inline">CRM + Production</span>
+              <span className="hidden sm:inline">RAW </span>
               <span className="sm:hidden">CRM</span>
             </Link>
           </div>

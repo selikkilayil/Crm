@@ -5,10 +5,11 @@ import AuthGuard from '@/components/AuthGuard'
 import NavBar from '@/components/NavBar'
 import PermissionGuard from '@/components/PermissionGuard'
 import { useAuth } from '@/hooks/useAuth'
-import { canAccessResource } from '@/lib/client-permissions'
+import { usePermissions } from '@/hooks/usePermissions'
 
 export default function Home() {
   const { user } = useAuth()
+  const { canAccessResource, loading: permissionsLoading } = usePermissions()
 
   const dashboardItems = [
     { 
@@ -93,8 +94,8 @@ export default function Home() {
               </p>
               
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7 gap-6 max-w-7xl mx-auto">
-                {dashboardItems
-                  .filter(item => user && canAccessResource(user.role, item.resource))
+                {!permissionsLoading && dashboardItems
+                  .filter(item => user && canAccessResource(item.resource))
                   .map((item) => (
                     <Link 
                       key={item.resource}
