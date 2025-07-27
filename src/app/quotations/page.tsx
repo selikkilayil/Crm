@@ -51,13 +51,6 @@ interface Quotation {
   updatedAt: string
 }
 
-const statusColors = {
-  DRAFT: 'bg-gray-100 text-gray-800',
-  SENT: 'bg-blue-100 text-blue-800',
-  ACCEPTED: 'bg-green-100 text-green-800',
-  REJECTED: 'bg-red-100 text-red-800',
-  EXPIRED: 'bg-yellow-100 text-yellow-800',
-}
 
 export default function QuotationsPage() {
   const { user } = useAuth()
@@ -66,8 +59,6 @@ export default function QuotationsPage() {
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
-  const [showViewModal, setShowViewModal] = useState(false)
-  const [selectedQuotation, setSelectedQuotation] = useState<Quotation | null>(null)
 
   useEffect(() => {
     fetchQuotations()
@@ -96,8 +87,7 @@ export default function QuotationsPage() {
   }
 
   const handleViewQuotation = (quotation: Quotation) => {
-    setSelectedQuotation(quotation)
-    setShowViewModal(true)
+    router.push(`/quotations/view/${quotation.id}`)
   }
 
   const handleDuplicateQuotation = async (quotationId: string) => {
@@ -177,42 +167,45 @@ export default function QuotationsPage() {
       <div className="min-h-screen bg-gray-50">
         <NavBar currentPage="quotations" />
         <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
-        {/* Header with Stats */}
+        {/* 🎯 PROFESSIONAL HEADER - NOW UPDATED! */}
         <div className="mb-8">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">Quotations</h1>
-              <p className="text-lg text-gray-700">Manage and track your business quotations</p>
+          <div className="bg-gradient-to-r from-purple-600 to-blue-600 rounded-lg p-6 text-white mb-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h1 className="text-3xl font-bold mb-2 flex items-center">
+                  <span className="mr-3">📋</span>
+                  Professional Quotations
+                </h1>
+                <p className="text-lg text-purple-100">Manage and track your business quotations with style</p>
+              </div>
+              <button
+                onClick={handleCreateQuotation}
+                className="bg-white text-purple-600 hover:bg-purple-50 px-6 py-3 rounded-lg font-semibold mt-4 sm:mt-0 transition-colors shadow-lg flex items-center"
+              >
+                <span className="mr-2">✨</span>
+                Create New Quotation
+              </button>
             </div>
-            <button
-              onClick={handleCreateQuotation}
-              className="btn btn-primary mt-4 sm:mt-0"
-            >
-              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              Create Quotation
-            </button>
           </div>
 
-          {/* Quick Stats */}
+          {/* 📊 PROFESSIONAL STATS CARDS */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
             {[
-              { label: 'Total', value: quotations.length, color: 'bg-blue-500', icon: '📄' },
-              { label: 'Draft', value: quotations.filter(q => q.status === 'DRAFT').length, color: 'bg-gray-500', icon: '📝' },
-              { label: 'Sent', value: quotations.filter(q => q.status === 'SENT').length, color: 'bg-blue-500', icon: '📤' },
-              { label: 'Accepted', value: quotations.filter(q => q.status === 'ACCEPTED').length, color: 'bg-green-500', icon: '✅' },
-              { label: 'Rejected', value: quotations.filter(q => q.status === 'REJECTED').length, color: 'bg-red-500', icon: '❌' },
+              { label: 'Total', value: quotations.length, color: 'bg-gradient-to-br from-blue-500 to-blue-600', icon: '📄' },
+              { label: 'Draft', value: quotations.filter(q => q.status === 'DRAFT').length, color: 'bg-gradient-to-br from-gray-500 to-gray-600', icon: '📝' },
+              { label: 'Sent', value: quotations.filter(q => q.status === 'SENT').length, color: 'bg-gradient-to-br from-blue-500 to-indigo-600', icon: '📤' },
+              { label: 'Accepted', value: quotations.filter(q => q.status === 'ACCEPTED').length, color: 'bg-gradient-to-br from-green-500 to-green-600', icon: '✅' },
+              { label: 'Rejected', value: quotations.filter(q => q.status === 'REJECTED').length, color: 'bg-gradient-to-br from-red-500 to-red-600', icon: '❌' },
             ].map((stat, index) => (
-              <div key={index} className="card">
-                <div className="card-body">
+              <div key={index} className="bg-white rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-shadow">
+                <div className="p-4">
                   <div className="flex items-center">
-                    <div className={`w-10 h-10 ${stat.color} rounded-lg flex items-center justify-center text-white mr-3`}>
+                    <div className={`w-12 h-12 ${stat.color} rounded-xl flex items-center justify-center text-white mr-3 shadow-lg`}>
                       <span className="text-lg">{stat.icon}</span>
                     </div>
                     <div>
                       <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
-                      <p className="text-sm text-gray-700">{stat.label}</p>
+                      <p className="text-sm text-gray-600">{stat.label}</p>
                     </div>
                   </div>
                 </div>
@@ -221,9 +214,13 @@ export default function QuotationsPage() {
           </div>
         </div>
 
-        {/* Enhanced Filters */}
-        <div className="card mb-6">
-          <div className="card-body">
+        {/* 🔍 PROFESSIONAL FILTERS */}
+        <div className="bg-white rounded-xl shadow-lg border border-gray-100 mb-6">
+          <div className="p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+              <span className="mr-2">🔍</span>
+              Search & Filter Quotations
+            </h3>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
                 <label className="form-label">Search Quotations</label>
@@ -233,7 +230,7 @@ export default function QuotationsPage() {
                     placeholder="Search by quotation number, customer..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="form-input pl-10"
+                    className="w-full px-4 py-3 pl-10 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                   />
                   <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -245,7 +242,7 @@ export default function QuotationsPage() {
                 <select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
-                  className="form-select"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                 >
                   <option value="all">All Status</option>
                   <option value="DRAFT">Draft</option>
@@ -261,7 +258,7 @@ export default function QuotationsPage() {
                     setSearchTerm('')
                     setStatusFilter('all')
                   }}
-                  className="btn btn-secondary w-full"
+                  className="w-full px-4 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium"
                 >
                   Clear Filters
                 </button>
@@ -302,14 +299,14 @@ export default function QuotationsPage() {
             {quotations.map((quotation) => (
               <div
                 key={quotation.id}
-                className="card card-hover"
+                className="bg-white rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1"
               >
-                <div className="card-body">
+                <div className="p-6">
                   {/* Card Header */}
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex-1">
                       <div className="flex items-center space-x-2 mb-2">
-                        <h3 className="card-title text-lg">{quotation.quotationNumber}</h3>
+                        <h3 className="text-lg font-bold text-gray-900">{quotation.quotationNumber}</h3>
                         <span className={`badge ${
                           quotation.status === 'DRAFT' ? 'badge-gray' :
                           quotation.status === 'SENT' ? 'badge-primary' :
@@ -417,21 +414,6 @@ export default function QuotationsPage() {
           </div>
         )}
 
-        {/* View Quotation Modal */}
-        {showViewModal && selectedQuotation && (
-          <ViewQuotationModal
-            quotation={selectedQuotation}
-            onClose={() => {
-              setShowViewModal(false)
-              setSelectedQuotation(null)
-            }}
-            onStatusChange={(status) => {
-              handleStatusChange(selectedQuotation.id, status)
-              setShowViewModal(false)
-              setSelectedQuotation(null)
-            }}
-          />
-        )}
         </div>
       </div>
     </AuthGuard>
@@ -439,214 +421,3 @@ export default function QuotationsPage() {
 }
 
 
-// View Quotation Modal Component  
-function ViewQuotationModal({ quotation, onClose, onStatusChange }: {
-  quotation: Quotation
-  onClose: () => void
-  onStatusChange: (status: string) => void
-}) {
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-    }).format(amount)
-  }
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-IN')
-  }
-
-  return (
-    <div className="modal-overlay">
-      <div className="modal-container modal-xl">
-        <div className="modal-header">
-          <div>
-            <h2 className="modal-title">{quotation.quotationNumber}</h2>
-            <p className="text-gray-600">{quotation.customer.name}</p>
-          </div>
-          <div className="flex items-center space-x-4">
-            <span className={`px-3 py-1 text-sm font-medium rounded-full ${statusColors[quotation.status]}`}>
-              {quotation.status}
-            </span>
-            <button onClick={onClose} className="modal-close">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-        </div>
-
-        <div className="modal-body space-y-6">
-          {/* Quotation Details */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <h3 className="font-semibold mb-3">Quotation Information</h3>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Date:</span>
-                  <span>{formatDate(quotation.date)}</span>
-                </div>
-                {quotation.validUntil && (
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Valid Until:</span>
-                    <span>{formatDate(quotation.validUntil)}</span>
-                  </div>
-                )}
-                {quotation.paymentTerms && (
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Payment Terms:</span>
-                    <span>{quotation.paymentTerms}</span>
-                  </div>
-                )}
-                {quotation.deliveryTerms && (
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Delivery Terms:</span>
-                    <span>{quotation.deliveryTerms}</span>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div>
-              <h3 className="font-semibold mb-3">Customer Information</h3>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Name:</span>
-                  <span>{quotation.customer.name}</span>
-                </div>
-                {quotation.customer.company && (
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Company:</span>
-                    <span>{quotation.customer.company}</span>
-                  </div>
-                )}
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Email:</span>
-                  <span>{quotation.customer.email}</span>
-                </div>
-                {quotation.customer.phone && (
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Phone:</span>
-                    <span>{quotation.customer.phone}</span>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Line Items */}
-          <div>
-            <h3 className="font-semibold mb-3">Line Items</h3>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-4 py-2 text-left">Product/Service</th>
-                    <th className="px-4 py-2 text-right">Qty</th>
-                    <th className="px-4 py-2 text-right">Unit Price</th>
-                    <th className="px-4 py-2 text-right">Discount</th>
-                    <th className="px-4 py-2 text-right">Tax</th>
-                    <th className="px-4 py-2 text-right">Total</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {quotation.items.map((item, index) => (
-                    <tr key={index} className="border-b">
-                      <td className="px-4 py-2">
-                        <div>
-                          <div className="font-medium">{item.productName}</div>
-                          {item.description && (
-                            <div className="text-gray-600 text-xs">{item.description}</div>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-4 py-2 text-right">{item.quantity}</td>
-                      <td className="px-4 py-2 text-right">₹{item.unitPrice.toFixed(2)}</td>
-                      <td className="px-4 py-2 text-right">{item.discount}%</td>
-                      <td className="px-4 py-2 text-right">{item.taxPercent}%</td>
-                      <td className="px-4 py-2 text-right">₹{item.subtotal.toFixed(2)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {/* Totals */}
-          <div className="bg-gray-50 p-4 rounded-lg">
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span>Subtotal:</span>
-                <span>{formatCurrency(quotation.subtotal)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Total Discount:</span>
-                <span>{formatCurrency(quotation.totalDiscount)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Total Tax:</span>
-                <span>{formatCurrency(quotation.totalTax)}</span>
-              </div>
-              <div className="flex justify-between font-bold text-lg border-t pt-2">
-                <span>Grand Total:</span>
-                <span>{formatCurrency(quotation.grandTotal)}</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Notes and Terms */}
-          {(quotation.notes || quotation.termsConditions) && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {quotation.notes && (
-                <div>
-                  <h3 className="font-semibold mb-2">Notes</h3>
-                  <p className="text-sm text-gray-600 whitespace-pre-wrap">{quotation.notes}</p>
-                </div>
-              )}
-              {quotation.termsConditions && (
-                <div>
-                  <h3 className="font-semibold mb-2">Terms & Conditions</h3>
-                  <p className="text-sm text-gray-600 whitespace-pre-wrap">{quotation.termsConditions}</p>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Action Buttons */}
-          <div className="flex flex-wrap gap-2 pt-4 border-t">
-            {quotation.status === 'DRAFT' && (
-              <button
-                onClick={() => onStatusChange('SENT')}
-                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-              >
-                Mark as Sent
-              </button>
-            )}
-            {quotation.status === 'SENT' && (
-              <>
-                <button
-                  onClick={() => onStatusChange('ACCEPTED')}
-                  className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
-                >
-                  Mark as Accepted
-                </button>
-                <button
-                  onClick={() => onStatusChange('REJECTED')}
-                  className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
-                >
-                  Mark as Rejected
-                </button>
-              </>
-            )}
-            <button className="bg-gray-100 text-gray-700 px-4 py-2 rounded hover:bg-gray-200">
-              Download PDF
-            </button>
-            <button className="bg-gray-100 text-gray-700 px-4 py-2 rounded hover:bg-gray-200">
-              Send Email
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}

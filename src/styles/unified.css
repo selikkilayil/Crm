@@ -419,7 +419,7 @@
 }
 
 .empty-state-description {
-  @apply text-gray-500 mb-4;
+  @apply text-black mb-4;
 }
 
 /* ==========================================================================
