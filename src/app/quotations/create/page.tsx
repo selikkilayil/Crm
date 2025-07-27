@@ -13,6 +13,7 @@ interface Customer {
   email: string
   company?: string
   phone?: string
+  isArchived?: boolean
 }
 
 interface QuotationItem {
@@ -141,8 +142,11 @@ export default function CreateQuotationPage() {
       <AuthGuard>
         <div className="min-h-screen bg-gray-50">
           <NavBar currentPage="quotations" />
-          <div className="loading-overlay-full">
-            <div className="loading-spinner loading-spinner-lg"></div>
+          <div className="flex justify-center items-center min-h-96">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto"></div>
+              <p className="mt-2 text-gray-700">Loading customers...</p>
+            </div>
           </div>
         </div>
       </AuthGuard>
