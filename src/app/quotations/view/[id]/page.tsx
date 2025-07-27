@@ -136,6 +136,29 @@ export default function QuotationViewPage() {
     }
   }
 
+  const handleDownloadPDF = async () => {
+    try {
+      const response = await fetch(`/api/quotations/${quotationId}/pdf`)
+      
+      if (response.ok) {
+        const blob = await response.blob()
+        const url = window.URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `quotation-${quotation?.quotationNumber || quotationId}.pdf`
+        document.body.appendChild(a)
+        a.click()
+        window.URL.revokeObjectURL(url)
+        document.body.removeChild(a)
+      } else {
+        alert('Failed to generate PDF')
+      }
+    } catch (error) {
+      console.error('Error downloading PDF:', error)
+      alert('Failed to download PDF')
+    }
+  }
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-IN', {
       style: 'currency',
@@ -465,7 +488,10 @@ export default function QuotationViewPage() {
                   </button>
                 </>
               )}
-              <button className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors flex items-center">
+              <button 
+                onClick={handleDownloadPDF}
+                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors flex items-center"
+              >
                 <span className="mr-2">📄</span>
                 Download PDF
               </button>
