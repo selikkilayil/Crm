@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useAuth } from '@/hooks/useAuth'
 import AuthGuard from '@/components/AuthGuard'
 import NavBar from '@/components/NavBar'
+import apiClient from '@/lib/api-client'
 
 interface Customer {
   id: string
@@ -50,13 +51,20 @@ export default function CreateQuotationPage() {
 
   const fetchCustomers = async () => {
     try {
-      const response = await fetch('/api/customers')
-      if (response.ok) {
-        const data = await response.json()
-        setCustomers(data.filter((c: Customer) => !c.isArchived))
+      const data = await apiClient.get('/api/customers')
+      console.log('Fetched customers:', data) // Debug log
+      
+      if (Array.isArray(data)) {
+        const activeCustomers = data.filter((c: Customer) => !c.isArchived)
+        console.log('Active customers:', activeCustomers) // Debug log
+        setCustomers(activeCustomers)
+      } else {
+        console.error('Customers data is not an array:', data)
+        setCustomers([])
       }
     } catch (error) {
       console.error('Error fetching customers:', error)
+      setCustomers([])
     } finally {
       setLoading(false)
     }
@@ -111,21 +119,13 @@ export default function CreateQuotationPage() {
     setSubmitting(true)
 
     try {
-      const response = await fetch('/api/quotations', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...formData,
-          items,
-          createdById: user?.id,
-        }),
+      await apiClient.post('/api/quotations', {
+        ...formData,
+        items,
+        createdById: user?.id,
       })
-
-      if (response.ok) {
-        router.push('/quotations')
-      } else {
-        throw new Error('Failed to create quotation')
-      }
+      
+      router.push('/quotations')
     } catch (error) {
       console.error('Error creating quotation:', error)
       alert('Failed to create quotation. Please try again.')
@@ -211,13 +211,19 @@ export default function CreateQuotationPage() {
                       required
                       className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                     >
-                      <option value="">Select Customer</option>
+                      <option value="">
+                        {loading ? 'Loading customers...' : customers.length === 0 ? 'No customers available' : 'Select Customer'}
+                      </option>
                       {customers.map(customer => (
                         <option key={customer.id} value={customer.id}>
                           {customer.name} {customer.company && `(${customer.company})`}
                         </option>
                       ))}
                     </select>
+                    {/* Debug info */}
+                    <p className="mt-1 text-xs text-gray-500">
+                      {loading ? 'Loading...' : `${customers.length} customers found`}
+                    </p>
                   </div>
 
                   <div>
