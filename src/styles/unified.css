@@ -154,7 +154,7 @@
   @apply w-full px-3 py-2 border border-gray-300 rounded-lg text-sm transition-colors duration-200;
   @apply focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500;
   @apply disabled:bg-gray-50 disabled:cursor-not-allowed;
-  color: var(--text-color-primary);
+  @apply bg-white text-gray-900;
   min-height: 44px; /* Touch-friendly */
 }
 
@@ -173,13 +173,12 @@
 
 /* Select Fields */
 .form-select {
-  @apply form-input appearance-none bg-white;
+  @apply form-input appearance-none bg-white text-gray-900;
   background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%234b5563' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
   background-position: right 0.5rem center;
   background-repeat: no-repeat;
   background-size: 1.5em 1.5em;
   padding-right: 2.5rem;
-  color: var(--text-color-primary);
 }
 
 /* Textarea */
@@ -419,7 +418,8 @@
 }
 
 .empty-state-description {
-  @apply text-black mb-4;
+  @apply mb-4;
+  color: var(--text-color-secondary);
 }
 
 /* ==========================================================================
@@ -485,16 +485,6 @@ h1, h2, h3, h4, h5, h6 {
   color: var(--text-color-primary) !important;
 }
 
-/* Default text color for paragraphs and spans */
-p, span, div {
-  color: var(--text-color-primary) !important;
-}
-
-/* Table text colors */
-td, th {
-  color: var(--text-color-primary);
-}
-
 /* Link styles */
 a {
   color: var(--color-primary);
@@ -533,21 +523,6 @@ textarea:-ms-input-placeholder {
   opacity: 1 !important;
 }
 
-/* Strong text color overrides for better readability */
-.text-readable {
-  color: var(--text-color-primary) !important;
-}
-
-/* Ensure all text is readable */
-* {
-  color: var(--text-color-primary);
-}
-
-/* Exception for elements that should maintain their colors */
-button, input, select, textarea {
-  color: var(--text-color-primary);
-}
-
 /* Ensure white text stays white on colored backgrounds */
 .text-white, 
 .bg-blue-600 *, 
@@ -555,8 +530,57 @@ button, input, select, textarea {
 .bg-red-600 *, 
 .bg-yellow-600 *, 
 .bg-purple-600 *, 
-.bg-gray-600 * {
+.bg-gray-600 *,
+.bg-purple-500 *,
+.bg-gray-800 *,
+.bg-gray-900 * {
   color: white !important;
+}
+
+/* Ensure dark text on light backgrounds */
+.bg-white,
+.bg-gray-50,
+.bg-gray-100,
+.bg-blue-50,
+.bg-green-50,
+.bg-yellow-50,
+.bg-red-50,
+.bg-purple-50,
+.bg-indigo-50 {
+  color: #111827 !important;
+}
+
+.bg-white *,
+.bg-gray-50 *,
+.bg-gray-100 *,
+.bg-blue-50 *,
+.bg-green-50 *,
+.bg-yellow-50 *,
+.bg-red-50 *,
+.bg-purple-50 *,
+.bg-indigo-50 * {
+  color: #111827 !important;
+}
+
+/* Override problematic text classes */
+.text-gray-900 {
+  color: #111827 !important;
+}
+
+.text-gray-800 {
+  color: #1f2937 !important;
+}
+
+.text-gray-700 {
+  color: #374151 !important;
+}
+
+.text-gray-600 {
+  color: #4b5563 !important;
+}
+
+.text-gray-500 {
+  color: #6b7280 !important;
 }
 
 /* Mobile-first responsive utilities */
@@ -611,16 +635,7 @@ button, input, select, textarea {
    DARK MODE SUPPORT (Future Enhancement)
    ========================================================================== */
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --text-color-primary: #ffffff;
-    --text-color-secondary: #f3f4f6;
-    --text-color-muted: #d1d5db;
-    --text-color-light: #9ca3af;
-  }
-  
-  /* Dark mode styles can be added here in the future */
-}
+/* Dark mode is disabled for now to prevent text visibility issues */
 
 /* ==========================================================================
    PRINT STYLES
