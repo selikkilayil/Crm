@@ -6,7 +6,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { usePermissions } from '@/hooks/usePermissions'
 
 interface NavBarProps {
-  currentPage?: 'home' | 'leads' | 'customers' | 'activities' | 'tasks' | 'tags' | 'users' | 'roles' | 'dashboard' | 'profile' | 'quotations'
+  currentPage?: 'home' | 'leads' | 'customers' | 'activities' | 'tasks' | 'tags' | 'users' | 'roles' | 'profile' | 'quotations' | 'settings' | 'functions'
 }
 
 export default function NavBar({ currentPage }: NavBarProps) {
@@ -14,8 +14,12 @@ export default function NavBar({ currentPage }: NavBarProps) {
   const { canAccessResource, loading: permissionsLoading } = usePermissions()
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [showMobileMenu, setShowMobileMenu] = useState(false)
+  const [showSettingsMenu, setShowSettingsMenu] = useState(false)
+  const [showFunctionsMenu, setShowFunctionsMenu] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
   const mobileMenuRef = useRef<HTMLDivElement>(null)
+  const settingsMenuRef = useRef<HTMLDivElement>(null)
+  const functionsMenuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -24,6 +28,12 @@ export default function NavBar({ currentPage }: NavBarProps) {
       }
       if (mobileMenuRef.current && !mobileMenuRef.current.contains(event.target as Node)) {
         setShowMobileMenu(false)
+      }
+      if (settingsMenuRef.current && !settingsMenuRef.current.contains(event.target as Node)) {
+        setShowSettingsMenu(false)
+      }
+      if (functionsMenuRef.current && !functionsMenuRef.current.contains(event.target as Node)) {
+        setShowFunctionsMenu(false)
       }
     }
 
@@ -47,13 +57,32 @@ export default function NavBar({ currentPage }: NavBarProps) {
     { href: '/leads', label: 'Leads', key: 'leads', resource: 'leads', icon: '🎯' },
     { href: '/customers', label: 'Customers', key: 'customers', resource: 'customers', icon: '🤝' },
     { href: '/quotations', label: 'Quotations', key: 'quotations', resource: 'quotations', icon: '📄' },
+  ]
+
+  const functionsItems = [
     { href: '/activities', label: 'Activities', key: 'activities', resource: 'activities', icon: '📊' },
     { href: '/tasks', label: 'Tasks', key: 'tasks', resource: 'tasks', icon: '✅' },
     { href: '/tags', label: 'Tags', key: 'tags', resource: 'tags', icon: '🏷️' },
+  ]
+
+  const settingsItems = [
     { href: '/users', label: 'Users', key: 'users', resource: 'users', icon: '👥' },
     { href: '/roles', label: 'Roles', key: 'roles', resource: 'roles', icon: '🛡️' },
-    { href: '/dashboard', label: 'Dashboard', key: 'dashboard', resource: 'dashboard', icon: '📈' },
   ]
+
+  const filteredFunctionsItems = functionsItems.filter((item) => {
+    if (!user || user.role === 'SUPERADMIN' || permissionsLoading) return false
+    return canAccessResource(item.resource)
+  })
+
+  const filteredSettingsItems = settingsItems.filter((item) => {
+    if (!user || user.role === 'SUPERADMIN' || permissionsLoading) return false
+    return canAccessResource(item.resource)
+  })
+
+  // Check if user has access to any functions or settings items
+  const hasFunctionsAccess = filteredFunctionsItems.length > 0
+  const hasSettingsAccess = filteredSettingsItems.length > 0
 
   const filteredNavItems = navItems.filter((item) => {
     if (!user || user.role === 'SUPERADMIN' || permissionsLoading) return false
@@ -116,6 +145,8 @@ export default function NavBar({ currentPage }: NavBarProps) {
 
   const handleMobileNavClick = () => {
     setShowMobileMenu(false)
+    setShowSettingsMenu(false)
+    setShowFunctionsMenu(false)
   }
 
   return (
@@ -146,6 +177,86 @@ export default function NavBar({ currentPage }: NavBarProps) {
                 <span className={`${item.icon ? 'lg:ml-2' : ''}`}>{item.label}</span>
               </Link>
             ))}
+
+            {/* Functions Dropdown */}
+            {hasFunctionsAccess && (
+              <div className="relative" ref={functionsMenuRef}>
+                <button
+                  onClick={() => setShowFunctionsMenu(!showFunctionsMenu)}
+                  className={`min-h-[44px] flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                    currentPage === 'activities' || currentPage === 'tasks' || currentPage === 'tags' || currentPage === 'functions'
+                      ? 'text-blue-600 bg-blue-50'
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                  }`}
+                >
+                  <span className="hidden lg:inline">🔧</span>
+                  <span className="lg:ml-2">Functions</span>
+                  <svg className="ml-1 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+
+                {showFunctionsMenu && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 border">
+                    {filteredFunctionsItems.map((item) => (
+                      <Link
+                        key={item.key}
+                        href={item.href}
+                        onClick={() => setShowFunctionsMenu(false)}
+                        className={`flex items-center px-4 py-3 text-sm hover:bg-gray-100 min-h-[44px] transition-colors ${
+                          currentPage === item.key
+                            ? 'text-blue-600 bg-blue-50'
+                            : 'text-gray-700'
+                        }`}
+                      >
+                        <span className="mr-3">{item.icon}</span>
+                        {item.label}
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Settings Dropdown */}
+            {hasSettingsAccess && (
+              <div className="relative" ref={settingsMenuRef}>
+                <button
+                  onClick={() => setShowSettingsMenu(!showSettingsMenu)}
+                  className={`min-h-[44px] flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                    currentPage === 'users' || currentPage === 'roles' || currentPage === 'settings'
+                      ? 'text-blue-600 bg-blue-50'
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                  }`}
+                >
+                  <span className="hidden lg:inline">⚙️</span>
+                  <span className="lg:ml-2">Settings</span>
+                  <svg className="ml-1 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+
+                {showSettingsMenu && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 border">
+                    {filteredSettingsItems.map((item) => (
+                      <Link
+                        key={item.key}
+                        href={item.href}
+                        onClick={() => setShowSettingsMenu(false)}
+                        className={`flex items-center px-4 py-3 text-sm hover:bg-gray-100 min-h-[44px] transition-colors ${
+                          currentPage === item.key
+                            ? 'text-blue-600 bg-blue-50'
+                            : 'text-gray-700'
+                        }`}
+                      >
+                        <span className="mr-3">{item.icon}</span>
+                        {item.label}
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
             
             {/* Desktop User Menu */}
             <div className="relative" ref={menuRef}>
@@ -271,6 +382,54 @@ export default function NavBar({ currentPage }: NavBarProps) {
                     {item.label}
                   </Link>
                 ))}
+
+                {/* Functions Section */}
+                {hasFunctionsAccess && (
+                  <>
+                    <div className="px-4 py-2 border-t mt-2">
+                      <div className="text-xs font-medium text-gray-500 uppercase tracking-wide">Functions</div>
+                    </div>
+                    {filteredFunctionsItems.map((item) => (
+                      <Link
+                        key={item.key}
+                        href={item.href}
+                        onClick={handleMobileNavClick}
+                        className={`flex items-center px-4 py-3 text-base font-medium min-h-[48px] transition-colors ${
+                          currentPage === item.key
+                            ? 'text-blue-600 bg-blue-50 border-r-2 border-blue-600'
+                            : 'text-gray-700 hover:text-gray-900 hover:bg-gray-50'
+                        }`}
+                      >
+                        <span className="text-lg mr-3">{item.icon}</span>
+                        {item.label}
+                      </Link>
+                    ))}
+                  </>
+                )}
+
+                {/* Settings Section */}
+                {hasSettingsAccess && (
+                  <>
+                    <div className="px-4 py-2 border-t mt-2">
+                      <div className="text-xs font-medium text-gray-500 uppercase tracking-wide">Settings</div>
+                    </div>
+                    {filteredSettingsItems.map((item) => (
+                      <Link
+                        key={item.key}
+                        href={item.href}
+                        onClick={handleMobileNavClick}
+                        className={`flex items-center px-4 py-3 text-base font-medium min-h-[48px] transition-colors ${
+                          currentPage === item.key
+                            ? 'text-blue-600 bg-blue-50 border-r-2 border-blue-600'
+                            : 'text-gray-700 hover:text-gray-900 hover:bg-gray-50'
+                        }`}
+                      >
+                        <span className="text-lg mr-3">{item.icon}</span>
+                        {item.label}
+                      </Link>
+                    ))}
+                  </>
+                )}
               </div>
 
               {/* User Actions */}

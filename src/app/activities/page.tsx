@@ -40,6 +40,8 @@ export default function ActivitiesPage() {
   const [loading, setLoading] = useState(true)
   const [viewMode, setViewMode] = useState<'timeline' | 'list'>('timeline')
   const [showAddForm, setShowAddForm] = useState(false)
+  const [showEditForm, setShowEditForm] = useState(false)
+  const [editingActivity, setEditingActivity] = useState<Activity | null>(null)
   const [showFilters, setShowFilters] = useState(false)
   const [filterType, setFilterType] = useState<ActivityType | 'ALL'>('ALL')
   const [filterStatus, setFilterStatus] = useState<'ALL' | 'COMPLETED' | 'PENDING'>('ALL')
@@ -85,6 +87,39 @@ export default function ActivitiesPage() {
       fetchActivities()
     } catch (error) {
       console.error('Failed to update activity:', error)
+    }
+  }
+
+  const handleEditActivity = (activity: Activity) => {
+    setEditingActivity(activity)
+    setShowEditForm(true)
+  }
+
+  const updateActivity = async (activityData: any) => {
+    try {
+      if (!editingActivity) return
+      
+      await apiClient.put(`/api/activities/${editingActivity.id}`, activityData)
+      
+      fetchActivities()
+      setShowEditForm(false)
+      setEditingActivity(null)
+    } catch (error) {
+      console.error('Failed to update activity:', error)
+    }
+  }
+
+  const deleteActivity = async (activityId: string) => {
+    if (!confirm('Are you sure you want to delete this activity? This action cannot be undone.')) {
+      return
+    }
+
+    try {
+      await apiClient.delete(`/api/activities/${activityId}`)
+      fetchActivities()
+    } catch (error) {
+      console.error('Failed to delete activity:', error)
+      alert('Failed to delete activity. Please try again.')
     }
   }
 
@@ -245,6 +280,8 @@ export default function ActivitiesPage() {
             <ActivityTimeline 
               activities={filteredActivities}
               onMarkCompleted={markAsCompleted}
+              onEdit={handleEditActivity}
+              onDelete={deleteActivity}
               getActivityTypeInfo={getActivityTypeInfo}
             />
           )}
@@ -254,6 +291,8 @@ export default function ActivitiesPage() {
             <ActivityList 
               activities={filteredActivities}
               onMarkCompleted={markAsCompleted}
+              onEdit={handleEditActivity}
+              onDelete={deleteActivity}
               getActivityTypeInfo={getActivityTypeInfo}
             />
           )}
@@ -288,15 +327,30 @@ export default function ActivitiesPage() {
             activityTypes={activityTypes}
           />
         )}
+
+        {/* Edit Activity Modal */}
+        {showEditForm && editingActivity && (
+          <EditActivityModal 
+            activity={editingActivity}
+            onEdit={updateActivity} 
+            onClose={() => {
+              setShowEditForm(false)
+              setEditingActivity(null)
+            }}
+            activityTypes={activityTypes}
+          />
+        )}
       </div>
     </AuthGuard>
   )
 }
 
 // Timeline Component
-function ActivityTimeline({ activities, onMarkCompleted, getActivityTypeInfo }: {
+function ActivityTimeline({ activities, onMarkCompleted, onEdit, onDelete, getActivityTypeInfo }: {
   activities: Activity[]
   onMarkCompleted: (id: string) => void
+  onEdit: (activity: Activity) => void
+  onDelete: (id: string) => void
   getActivityTypeInfo: (type: ActivityType) => any
 }) {
   // Group activities by date
@@ -364,14 +418,28 @@ function ActivityTimeline({ activities, onMarkCompleted, getActivityTypeInfo }: 
                           </div>
                         </div>
                         
-                        {!isCompleted && (
+                        <div className="flex gap-2">
+                          {!isCompleted && (
+                            <button
+                              onClick={() => onMarkCompleted(activity.id)}
+                              className="text-xs text-blue-600 hover:text-blue-800 border border-blue-600 rounded px-2 py-1"
+                            >
+                              Mark Done
+                            </button>
+                          )}
                           <button
-                            onClick={() => onMarkCompleted(activity.id)}
-                            className="ml-2 text-xs text-blue-600 hover:text-blue-800 border border-blue-600 rounded px-2 py-1"
+                            onClick={() => onEdit(activity)}
+                            className="text-xs text-gray-600 hover:text-gray-800 border border-gray-300 rounded px-2 py-1"
                           >
-                            Mark Done
+                            Edit
                           </button>
-                        )}
+                          <button
+                            onClick={() => onDelete(activity.id)}
+                            className="text-xs text-red-600 hover:text-red-800 border border-red-300 rounded px-2 py-1"
+                          >
+                            Delete
+                          </button>
+                        </div>
                       </div>
                       
                       {activity.description && (
@@ -407,9 +475,11 @@ function ActivityTimeline({ activities, onMarkCompleted, getActivityTypeInfo }: 
 }
 
 // List View Component
-function ActivityList({ activities, onMarkCompleted, getActivityTypeInfo }: {
+function ActivityList({ activities, onMarkCompleted, onEdit, onDelete, getActivityTypeInfo }: {
   activities: Activity[]
   onMarkCompleted: (id: string) => void
+  onEdit: (activity: Activity) => void
+  onDelete: (id: string) => void
   getActivityTypeInfo: (type: ActivityType) => any
 }) {
   return (
@@ -452,14 +522,28 @@ function ActivityList({ activities, onMarkCompleted, getActivityTypeInfo }: {
                   </div>
                 </div>
                 
-                {!isCompleted && (
+                <div className="ml-4 flex gap-2 flex-shrink-0">
+                  {!isCompleted && (
+                    <button
+                      onClick={() => onMarkCompleted(activity.id)}
+                      className="text-xs text-blue-600 hover:text-blue-800 border border-blue-600 rounded px-2 py-1"
+                    >
+                      Mark Done
+                    </button>
+                  )}
                   <button
-                    onClick={() => onMarkCompleted(activity.id)}
-                    className="ml-4 text-xs text-blue-600 hover:text-blue-800 border border-blue-600 rounded px-3 py-1 flex-shrink-0"
+                    onClick={() => onEdit(activity)}
+                    className="text-xs text-gray-600 hover:text-gray-800 border border-gray-300 rounded px-2 py-1"
                   >
-                    Mark Done
+                    Edit
                   </button>
-                )}
+                  <button
+                    onClick={() => onDelete(activity.id)}
+                    className="text-xs text-red-600 hover:text-red-800 border border-red-300 rounded px-2 py-1"
+                  >
+                    Delete
+                  </button>
+                </div>
               </div>
             </li>
           )
@@ -614,6 +698,161 @@ function AddActivityModal({ onAdd, onClose, activityTypes }: {
                 className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 Add Activity
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// Edit Activity Modal
+function EditActivityModal({ activity, onEdit, onClose, activityTypes }: {
+  activity: Activity
+  onEdit: (data: any) => void
+  onClose: () => void
+  activityTypes: any[]
+}) {
+  const [formData, setFormData] = useState({
+    type: activity.type,
+    title: activity.title || '',
+    description: activity.description || '',
+    scheduledAt: activity.scheduledAt ? new Date(activity.scheduledAt).toISOString().slice(0, 16) : '',
+    leadId: activity.lead?.id || '',
+    customerId: activity.customer?.id || '',
+  })
+
+  const [leads, setLeads] = useState([])
+  const [customers, setCustomers] = useState([])
+
+  useEffect(() => {
+    // Fetch leads and customers for linking
+    Promise.all([
+      apiClient.get('/api/leads').catch(() => []),
+      apiClient.get('/api/customers').catch(() => [])
+    ]).then(([leadsData, customersData]) => {
+      setLeads(Array.isArray(leadsData) ? leadsData : [])
+      setCustomers(Array.isArray(customersData) ? customersData : [])
+    })
+  }, [])
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    const submitData = {
+      ...formData,
+      scheduledAt: formData.scheduledAt ? new Date(formData.scheduledAt).toISOString() : null,
+      leadId: formData.leadId || null,
+      customerId: formData.customerId || null,
+    }
+    
+    onEdit(submitData)
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg w-full max-w-lg max-h-screen overflow-y-auto">
+        <div className="p-4 sm:p-6">
+          <h2 className="text-xl font-bold mb-4 text-gray-900">Edit Activity</h2>
+          
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Type *</label>
+              <select
+                required
+                value={formData.type}
+                onChange={(e) => setFormData({ ...formData, type: e.target.value as ActivityType })}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                {activityTypes.map(type => (
+                  <option key={type.value} value={type.value}>
+                    {type.icon} {type.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Title *</label>
+              <input
+                type="text"
+                required
+                value={formData.title}
+                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Brief description of the activity"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Description</label>
+              <textarea
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                rows={3}
+                placeholder="Detailed notes about the activity"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Scheduled Date/Time</label>
+              <input
+                type="datetime-local"
+                value={formData.scheduledAt}
+                onChange={(e) => setFormData({ ...formData, scheduledAt: e.target.value })}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Link to Lead</label>
+                <select
+                  value={formData.leadId}
+                  onChange={(e) => setFormData({ ...formData, leadId: e.target.value, customerId: e.target.value ? '' : formData.customerId })}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="">Select Lead</option>
+                  {leads.map((lead: any) => (
+                    <option key={lead.id} value={lead.id}>
+                      {lead.name} {lead.company && `(${lead.company})`}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Link to Customer</label>
+                <select
+                  value={formData.customerId}
+                  onChange={(e) => setFormData({ ...formData, customerId: e.target.value, leadId: e.target.value ? '' : formData.leadId })}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="">Select Customer</option>
+                  {customers.map((customer: any) => (
+                    <option key={customer.id} value={customer.id}>
+                      {customer.name} {customer.company && `(${customer.company})`}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            
+            <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-3 pt-4">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                Update Activity
               </button>
             </div>
           </form>

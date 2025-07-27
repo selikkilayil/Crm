@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { name, email, phone, company, billingAddress, gstin, leadId } = body
+    const { name, email, phone, company, billingAddress, shippingAddress, gstin, notes, leadId } = body
     
     const customer = await prisma.customer.create({
       data: {
@@ -66,7 +66,9 @@ export async function POST(request: NextRequest) {
         phone,
         company,
         billingAddress,
+        shippingAddress,
         gstin,
+        notes,
         leadId,
       },
       include: {

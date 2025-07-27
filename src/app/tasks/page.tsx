@@ -17,6 +17,9 @@ interface Task {
   completedAt: string | null
   createdAt: string
   updatedAt: string
+  assignedToId?: string | null
+  leadId?: string | null
+  customerId?: string | null
   assignedTo?: {
     id: string
     name: string
@@ -69,8 +72,10 @@ export default function TasksPage() {
   const { user } = useAuth()
 
   useEffect(() => {
-    fetchTasks()
-  }, [])
+    if (user) {
+      fetchTasks()
+    }
+  }, [user])
 
   const fetchTasks = async () => {
     try {
@@ -79,7 +84,11 @@ export default function TasksPage() {
       if (Array.isArray(data)) {
         setTasks(data)
       } else {
-        console.error('API Error:', data)
+        console.error('API returned non-array data:', data)
+        // If it's an error object, log it more specifically
+        if (data && typeof data === 'object' && 'error' in data) {
+          console.error('API Error:', (data as any).error)
+        }
         setTasks([])
       }
     } catch (error) {
@@ -94,7 +103,7 @@ export default function TasksPage() {
     try {
       await apiClient.post('/api/tasks', {
         ...taskData,
-        createdById: 'user-1', // Use the seeded demo user ID
+        createdById: user?.id || 'user-1',
       })
 
       fetchTasks()
@@ -134,6 +143,20 @@ export default function TasksPage() {
   const handleEditTask = (task: Task) => {
     setEditingTask(task)
     setShowEditForm(true)
+  }
+
+  const deleteTask = async (taskId: string) => {
+    if (!confirm('Are you sure you want to delete this task? This action cannot be undone.')) {
+      return
+    }
+
+    try {
+      await apiClient.delete(`/api/tasks/${taskId}`)
+      fetchTasks()
+    } catch (error) {
+      console.error('Failed to delete task:', error)
+      alert('Failed to delete task. Please try again.')
+    }
   }
 
   const filteredTasks = tasks.filter(task => {
@@ -338,6 +361,7 @@ export default function TasksPage() {
                           task={task}
                           onStatusChange={updateTaskStatus}
                           onEdit={handleEditTask}
+                          onDelete={deleteTask}
                           getStatusInfo={getStatusInfo}
                           getPriorityInfo={getPriorityInfo}
                           isOverdue={isOverdue}
@@ -369,6 +393,7 @@ export default function TasksPage() {
                             task={task}
                             onStatusChange={updateTaskStatus}
                             onEdit={handleEditTask}
+                            onDelete={deleteTask}
                             getStatusInfo={getStatusInfo}
                             getPriorityInfo={getPriorityInfo}
                             isOverdue={isOverdue}
@@ -393,6 +418,7 @@ export default function TasksPage() {
               tasks={filteredTasks}
               onStatusChange={updateTaskStatus}
               onEdit={handleEditTask}
+              onDelete={deleteTask}
               getStatusInfo={getStatusInfo}
               getPriorityInfo={getPriorityInfo}
               isOverdue={isOverdue}
@@ -451,10 +477,11 @@ export default function TasksPage() {
 }
 
 // Task Card Component
-function TaskCard({ task, onStatusChange, onEdit, getStatusInfo, getPriorityInfo, isOverdue }: {
+function TaskCard({ task, onStatusChange, onEdit, onDelete, getStatusInfo, getPriorityInfo, isOverdue }: {
   task: Task
   onStatusChange: (id: string, status: TaskStatus) => void
   onEdit: (task: Task) => void
+  onDelete: (id: string) => void
   getStatusInfo: (status: TaskStatus) => any
   getPriorityInfo: (priority: TaskPriority) => any
   isOverdue: (task: Task) => boolean
@@ -538,6 +565,16 @@ function TaskCard({ task, onStatusChange, onEdit, getStatusInfo, getPriorityInfo
             <span className="mr-2">✏️</span>
             Edit Task
           </button>
+          <button
+            onClick={() => {
+              onDelete(task.id)
+              setShowMenu(false)
+            }}
+            className="block w-full text-left px-4 py-3 sm:py-2 text-sm text-red-600 hover:bg-red-50 border-b border-gray-100 min-h-[44px] flex items-center"
+          >
+            <span className="mr-2">🗑️</span>
+            Delete Task
+          </button>
           <div className="py-1">
             <div className="px-4 py-2 text-xs font-medium text-gray-500 uppercase tracking-wide">
               Change Status
@@ -565,10 +602,11 @@ function TaskCard({ task, onStatusChange, onEdit, getStatusInfo, getPriorityInfo
 }
 
 // List View Component
-function TaskList({ tasks, onStatusChange, onEdit, getStatusInfo, getPriorityInfo, isOverdue }: {
+function TaskList({ tasks, onStatusChange, onEdit, onDelete, getStatusInfo, getPriorityInfo, isOverdue }: {
   tasks: Task[]
   onStatusChange: (id: string, status: TaskStatus) => void
   onEdit: (task: Task) => void
+  onDelete: (id: string) => void
   getStatusInfo: (status: TaskStatus) => any
   getPriorityInfo: (priority: TaskPriority) => any
   isOverdue: (task: Task) => boolean
@@ -622,7 +660,7 @@ function TaskList({ tasks, onStatusChange, onEdit, getStatusInfo, getPriorityInf
                   </div>
                 </div>
                 
-                <div className="ml-4 flex-shrink-0">
+                <div className="ml-4 flex items-center space-x-2 flex-shrink-0">
                   <select
                     value={task.status}
                     onChange={(e) => onStatusChange(task.id, e.target.value as TaskStatus)}
@@ -634,6 +672,18 @@ function TaskList({ tasks, onStatusChange, onEdit, getStatusInfo, getPriorityInf
                       </option>
                     ))}
                   </select>
+                  <button
+                    onClick={() => onEdit(task)}
+                    className="text-xs text-gray-600 hover:text-gray-800 border border-gray-300 rounded px-2 py-1"
+                  >
+                    ✏️
+                  </button>
+                  <button
+                    onClick={() => onDelete(task.id)}
+                    className="text-xs text-red-600 hover:text-red-800 border border-red-300 rounded px-2 py-1"
+                  >
+                    🗑️
+                  </button>
                 </div>
               </div>
             </li>

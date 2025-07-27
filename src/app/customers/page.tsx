@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import AuthGuard from '@/components/AuthGuard'
 import NavBar from '@/components/NavBar'
 import ActivityTimeline from '@/components/ActivityTimeline'
@@ -53,13 +54,13 @@ interface Tag {
 }
 
 export default function EnhancedCustomersPage() {
+  const router = useRouter()
   const [customers, setCustomers] = useState<Customer[]>([])
   const [availableTags, setAvailableTags] = useState<Tag[]>([])
   const [loading, setLoading] = useState(true)
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid')
   const [showAddForm, setShowAddForm] = useState(false)
   const [showFilters, setShowFilters] = useState(false)
-  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [sortBy, setSortBy] = useState<'name' | 'company' | 'created'>('name')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc')
@@ -133,6 +134,10 @@ export default function EnhancedCustomersPage() {
     } catch (error) {
       console.error('Failed to add customer:', error)
     }
+  }
+
+  const handleEditCustomer = (customer: Customer) => {
+    router.push(`/customers/edit/${customer.id}`)
   }
 
   const archiveCustomer = async (customerId: string) => {
@@ -326,9 +331,9 @@ export default function EnhancedCustomersPage() {
                 <CustomerCard
                   key={customer.id}
                   customer={customer}
-                  onEdit={() => setSelectedCustomer(customer)}
+                  onEdit={() => handleEditCustomer(customer)}
                   onArchive={archiveCustomer}
-                  onViewProfile={() => setSelectedCustomer(customer)}
+                  onViewProfile={() => router.push(`/customers/view/${customer.id}`)}
                 />
               ))}
             </div>
@@ -339,9 +344,9 @@ export default function EnhancedCustomersPage() {
             <div className="bg-white shadow overflow-hidden sm:rounded-md border border-gray-200">
               <CustomersTable 
                 customers={filteredAndSortedCustomers}
-                onEdit={(customer) => setSelectedCustomer(customer)}
+                onEdit={(customer) => handleEditCustomer(customer)}
                 onArchive={archiveCustomer}
-                onViewProfile={(customer) => setSelectedCustomer(customer)}
+                onViewProfile={(customer) => router.push(`/customers/view/${customer.id}`)}
               />
             </div>
           )}
@@ -374,22 +379,7 @@ export default function EnhancedCustomersPage() {
           />
         )}
 
-        {selectedCustomer && (
-          <CustomerProfileModal
-            customer={selectedCustomer}
-            onClose={() => setSelectedCustomer(null)}
-            onEdit={() => {
-              // Edit functionality
-            }}
-            onSave={() => {
-              fetchCustomers()
-              setSelectedCustomer(null)
-            }}
-            availableTags={availableTags}
-            onTagAdd={(customerId, tagId) => assignTag(customerId, tagId)}
-            onTagRemove={(customerId, tagId) => removeTag(customerId, tagId)}
-          />
-        )}
+
       </div>
     </AuthGuard>
   )
@@ -738,136 +728,4 @@ function AddCustomerModal({ onAdd, onClose }: { onAdd: (data: any) => void, onCl
   )
 }
 
-// Customer Profile Modal (placeholder)
-function CustomerProfileModal({ customer, onClose, onEdit, onSave, availableTags, onTagAdd, onTagRemove }: {
-  customer: Customer
-  onClose: () => void
-  onEdit: () => void
-  onSave: () => void
-  availableTags: Tag[]
-  onTagAdd: (customerId: string, tagId: string) => void
-  onTagRemove: (customerId: string, tagId: string) => void
-}) {
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg w-full max-w-4xl max-h-screen overflow-y-auto">
-        <div className="p-4 sm:p-6">
-          <div className="flex justify-between items-start mb-4">
-            <h2 className="text-xl font-bold text-gray-900">Customer Profile: {customer.name}</h2>
-            <button
-              onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 text-2xl leading-none"
-            >
-              ×
-            </button>
-          </div>
-          
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="space-y-6">
-              <div>
-                <h3 className="text-lg font-medium text-gray-900">Contact Information</h3>
-                <div className="bg-gray-50 p-4 rounded-lg space-y-3 mt-2">
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">Name</label>
-                    <p className="text-gray-900">{customer.name}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">Email</label>
-                    <p className="text-gray-900">{customer.email}</p>
-                  </div>
-                  {customer.phone && (
-                    <div>
-                      <label className="text-sm font-medium text-gray-500">Phone</label>
-                      <p className="text-gray-900">{customer.phone}</p>
-                    </div>
-                  )}
-                  {customer.company && (
-                    <div>
-                      <label className="text-sm font-medium text-gray-500">Company</label>
-                      <p className="text-gray-900">{customer.company}</p>
-                    </div>
-                  )}
-                  {customer.gstin && (
-                    <div>
-                      <label className="text-sm font-medium text-gray-500">GSTIN</label>
-                      <p className="text-gray-900">{customer.gstin}</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-              
-              <div>
-                <h3 className="text-lg font-medium text-gray-900">Address Information</h3>
-                <div className="bg-gray-50 p-4 rounded-lg space-y-3 mt-2">
-                  {customer.billingAddress && (
-                    <div>
-                      <label className="text-sm font-medium text-gray-500">Billing Address</label>
-                      <p className="text-gray-900 whitespace-pre-line">{customer.billingAddress}</p>
-                    </div>
-                  )}
-                  {customer.shippingAddress && (
-                    <div>
-                      <label className="text-sm font-medium text-gray-500">Shipping Address</label>
-                      <p className="text-gray-900 whitespace-pre-line">{customer.shippingAddress}</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-              
-              <div>
-                <h3 className="text-lg font-medium text-gray-900">Tags</h3>
-                <div className="mt-2">
-                  <TagComponent 
-                    tags={customer.tags || []}
-                    availableTags={availableTags}
-                    editable={true}
-                    onTagAdd={(tagId) => onTagAdd(customer.id, tagId)}
-                    onTagRemove={(tagId) => onTagRemove(customer.id, tagId)}
-                  />
-                </div>
-              </div>
-            </div>
-            
-            <div className="space-y-6">
-              <ActivityTimeline 
-                customerId={customer.id}
-                maxItems={5}
-                compact={true}
-              />
-              
-              <TaskSection 
-                customerId={customer.id}
-                maxItems={5}
-                compact={true}
-              />
-            </div>
-          </div>
-          
-          {customer.notes && (
-            <div className="mt-6">
-              <h3 className="text-lg font-medium text-gray-900 mb-2">Notes</h3>
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <p className="text-gray-900 whitespace-pre-line">{customer.notes}</p>
-              </div>
-            </div>
-          )}
-          
-          <div className="mt-6 flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-3">
-            <button
-              onClick={onEdit}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-            >
-              Edit Customer
-            </button>
-            <button
-              onClick={onClose}
-              className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700"
-            >
-              Close
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
+

@@ -31,6 +31,8 @@ export default function RolesPage() {
   const router = useRouter()
   const [roles, setRoles] = useState<Role[]>([])
   const [loading, setLoading] = useState(true)
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [editingRole, setEditingRole] = useState<Role | null>(null)
 
   useEffect(() => {
     if (user) {
@@ -84,6 +86,40 @@ export default function RolesPage() {
     }
   }
 
+  const handleEditRole = (role: Role) => {
+    setEditingRole(role)
+    setShowEditModal(true)
+  }
+
+  const handleUpdateRole = async (roleData: any) => {
+    if (!editingRole) return
+
+    try {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+      if (user) {
+        headers['x-auth-user'] = JSON.stringify(user)
+      }
+
+      const response = await fetch(`/api/roles/${editingRole.id}`, {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify(roleData),
+      })
+
+      if (response.ok) {
+        fetchRoles()
+        setShowEditModal(false)
+        setEditingRole(null)
+      } else {
+        const error = await response.json()
+        alert(error.error || 'Failed to update role')
+      }
+    } catch (error) {
+      console.error('Error updating role:', error)
+      alert('Failed to update role')
+    }
+  }
+
   const handleToggleRole = async (roleId: string, isActive: boolean) => {
     try {
       const headers: Record<string, string> = { 'Content-Type': 'application/json' }
@@ -129,14 +165,8 @@ export default function RolesPage() {
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">Role Management</h1>
-                <p className="text-gray-600">Create and manage user roles and permissions</p>
+                <p className="text-gray-600">Manage user roles and permissions</p>
               </div>
-              <button
-                onClick={() => router.push('/roles/create')}
-                className="mt-4 sm:mt-0 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
-              >
-                Create Role
-              </button>
             </div>
           </div>
 
@@ -207,6 +237,14 @@ export default function RolesPage() {
                     >
                       {role.isActive ? 'Disable' : 'Enable'}
                     </button>
+                    {!role.isSystem && (
+                      <button
+                        onClick={() => handleEditRole(role)}
+                        className="px-3 py-2 bg-blue-50 text-blue-700 border border-blue-200 rounded text-sm hover:bg-blue-100 font-medium"
+                      >
+                        Edit
+                      </button>
+                    )}
                     {!role.isSystem && role.userCount === 0 && (
                       <button
                         onClick={() => handleDeleteRole(role.id)}
@@ -222,7 +260,219 @@ export default function RolesPage() {
           </div>
 
         </div>
+
+        {/* Edit Role Modal */}
+        {showEditModal && editingRole && (
+          <EditRoleModal
+            role={editingRole}
+            onSave={handleUpdateRole}
+            onClose={() => {
+              setShowEditModal(false)
+              setEditingRole(null)
+            }}
+          />
+        )}
       </div>
     </AuthGuard>
+  )
+}
+
+// Edit Role Modal Component
+function EditRoleModal({ role, onSave, onClose }: {
+  role: Role
+  onSave: (data: any) => void
+  onClose: () => void
+}) {
+  const { user } = useAuth()
+  const [formData, setFormData] = useState({
+    name: role.name,
+    description: role.description || '',
+  })
+  const [permissions, setPermissions] = useState<Permission[]>([])
+  const [groupedPermissions, setGroupedPermissions] = useState<Record<string, Permission[]>>({})
+  const [selectedPermissions, setSelectedPermissions] = useState<string[]>(
+    role.permissions.map(p => p.id)
+  )
+  const [loading, setLoading] = useState(true)
+  const [submitting, setSubmitting] = useState(false)
+
+  useEffect(() => {
+    fetchPermissions()
+  }, [])
+
+  const fetchPermissions = async () => {
+    try {
+      const headers: Record<string, string> = {}
+      if (user) {
+        headers['x-auth-user'] = JSON.stringify(user)
+      }
+      
+      const response = await fetch('/api/permissions', { headers })
+      if (response.ok) {
+        const data = await response.json()
+        setPermissions(data.permissions)
+        setGroupedPermissions(data.groupedPermissions)
+      }
+    } catch (error) {
+      console.error('Error fetching permissions:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handlePermissionToggle = (permissionId: string) => {
+    setSelectedPermissions(prev => 
+      prev.includes(permissionId)
+        ? prev.filter(id => id !== permissionId)
+        : [...prev, permissionId]
+    )
+  }
+
+  const handleCategoryToggle = (category: string) => {
+    const categoryPermissions = groupedPermissions[category]?.map(p => p.id) || []
+    const allSelected = categoryPermissions.every(id => selectedPermissions.includes(id))
+    
+    if (allSelected) {
+      setSelectedPermissions(prev => prev.filter(id => !categoryPermissions.includes(id)))
+    } else {
+      setSelectedPermissions(prev => [...new Set([...prev, ...categoryPermissions])])
+    }
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setSubmitting(true)
+
+    const roleData = {
+      ...formData,
+      permissionIds: selectedPermissions,
+    }
+
+    onSave(roleData)
+  }
+
+  return (
+    <div className="modal-overlay">
+      <div className="modal-container modal-xl">
+        <div className="modal-header">
+          <h2 className="modal-title">Edit Role</h2>
+          <button onClick={onClose} className="modal-close">
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="modal-body space-y-6">
+          {/* Basic Information */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="form-group">
+              <label className="form-label form-label-required">Role Name</label>
+              <input
+                type="text"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                required
+                className="form-input"
+                placeholder="Enter role name"
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Description</label>
+              <input
+                type="text"
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                className="form-input"
+                placeholder="Enter role description"
+              />
+            </div>
+          </div>
+
+          {/* Permissions */}
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Permissions</h3>
+            
+            {loading ? (
+              <div className="flex justify-center py-8">
+                <div className="loading-spinner loading-spinner-md"></div>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {Object.entries(groupedPermissions).map(([category, categoryPermissions]) => (
+                  <div key={category} className="border border-gray-200 rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="text-md font-medium text-gray-900 capitalize">
+                        {category}
+                      </h4>
+                      <button
+                        type="button"
+                        onClick={() => handleCategoryToggle(category)}
+                        className="text-sm text-blue-600 hover:text-blue-800"
+                      >
+                        {categoryPermissions.every(p => selectedPermissions.includes(p.id))
+                          ? 'Deselect All'
+                          : 'Select All'
+                        }
+                      </button>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {categoryPermissions.map((permission) => (
+                        <label
+                          key={permission.id}
+                          className="flex items-center space-x-2 cursor-pointer"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selectedPermissions.includes(permission.id)}
+                            onChange={() => handlePermissionToggle(permission.id)}
+                            className="form-checkbox"
+                          />
+                          <div>
+                            <span className="text-sm font-medium text-gray-900">
+                              {permission.action}
+                            </span>
+                            {permission.description && (
+                              <p className="text-xs text-gray-500">{permission.description}</p>
+                            )}
+                          </div>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="modal-footer">
+            <button
+              type="button"
+              onClick={onClose}
+              className="btn btn-secondary"
+              disabled={submitting}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={submitting || loading}
+              className="btn btn-primary"
+            >
+              {submitting ? (
+                <>
+                  <div className="loading-spinner loading-spinner-sm mr-2"></div>
+                  Updating...
+                </>
+              ) : (
+                'Update Role'
+              )}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   )
 }

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { LeadStatus } from '@prisma/client'
 import AuthGuard from '@/components/AuthGuard'
 import NavBar from '@/components/NavBar'
@@ -49,13 +50,13 @@ const statusColumns = [
 ]
 
 export default function EnhancedLeadsPage() {
+  const router = useRouter()
   const [leads, setLeads] = useState<Lead[]>([])
   const [availableTags, setAvailableTags] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [viewMode, setViewMode] = useState<'kanban' | 'table'>('kanban')
   const [showAddForm, setShowAddForm] = useState(false)
   const [showFilters, setShowFilters] = useState(false)
-  const [selectedLead, setSelectedLead] = useState<Lead | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<LeadStatus | 'ALL'>('ALL')
   const [sourceFilter, setSourceFilter] = useState<string>('ALL')
@@ -346,7 +347,7 @@ export default function EnhancedLeadsPage() {
                             onStatusChange={updateLeadStatus}
                             onConvert={convertToCustomer}
                             onArchive={archiveLead}
-                            onEdit={() => setSelectedLead(lead)}
+                            onEdit={() => router.push(`/leads/edit/${lead.id}`)}
                           />
                         ))}
                         {getLeadsByStatus(column.status).length === 0 && (
@@ -376,7 +377,7 @@ export default function EnhancedLeadsPage() {
                               onStatusChange={updateLeadStatus}
                               onConvert={convertToCustomer}
                               onArchive={archiveLead}
-                              onEdit={() => setSelectedLead(lead)}
+                              onEdit={() => router.push(`/leads/edit/${lead.id}`)}
                             />
                           ))}
                           {getLeadsByStatus(column.status).length === 0 && (
@@ -442,7 +443,7 @@ export default function EnhancedLeadsPage() {
 
                       <div className="flex flex-wrap gap-2 mt-4">
                         <button
-                          onClick={() => setSelectedLead(lead)}
+                          onClick={() => router.push(`/leads/edit/${lead.id}`)}
                           className="px-3 py-1 text-xs font-medium text-blue-600 bg-blue-50 rounded-md hover:bg-blue-100 min-h-[36px] flex items-center"
                         >
                           ✏️ Edit
@@ -480,7 +481,7 @@ export default function EnhancedLeadsPage() {
                     onStatusChange={updateLeadStatus}
                     onConvert={convertToCustomer}
                     onArchive={archiveLead}
-                    onEdit={(lead) => setSelectedLead(lead)}
+                    onEdit={(lead) => router.push(`/leads/edit/${lead.id}`)}
                   />
                 </div>
               </>
@@ -496,20 +497,6 @@ export default function EnhancedLeadsPage() {
               setShowAddForm(false)
             }} 
             onClose={() => setShowAddForm(false)} 
-          />
-        )}
-
-        {selectedLead && (
-          <EditLeadModal
-            lead={selectedLead}
-            onSave={(data) => {
-              fetchLeads()
-              setSelectedLead(null)
-            }}
-            onClose={() => setSelectedLead(null)}
-            availableTags={availableTags}
-            onTagAdd={(leadId, tagId) => assignTag(leadId, tagId)}
-            onTagRemove={(leadId, tagId) => removeTag(leadId, tagId)}
           />
         )}
       </div>
@@ -824,146 +811,3 @@ function AddLeadModal({ onAdd, onClose }: { onAdd: (data: any) => void, onClose:
   )
 }
 
-// Lead Profile Modal
-function EditLeadModal({ lead, onSave, onClose, availableTags, onTagAdd, onTagRemove }: { 
-  lead: Lead
-  onSave: (data: any) => void
-  onClose: () => void
-  availableTags: any[]
-  onTagAdd: (leadId: string, tagId: string) => void
-  onTagRemove: (leadId: string, tagId: string) => void
-}) {
-  const statusColors = {
-    NEW: 'text-blue-600 bg-blue-100',
-    CONTACTED: 'text-yellow-600 bg-yellow-100',
-    QUALIFIED: 'text-purple-600 bg-purple-100',
-    CONVERTED: 'text-green-600 bg-green-100',
-    LOST: 'text-red-600 bg-red-100'
-  }
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg w-full max-w-4xl max-h-screen overflow-y-auto">
-        <div className="p-4 sm:p-6">
-          <div className="flex justify-between items-start mb-4">
-            <div>
-              <h2 className="text-xl font-bold text-gray-900">{lead.name}</h2>
-              <div className="flex items-center space-x-2 mt-1">
-                <span className={`px-2 py-1 text-xs font-medium rounded-full ${statusColors[lead.status]}`}>
-                  {lead.status}
-                </span>
-                {lead.company && (
-                  <span className="text-sm text-gray-600">{lead.company}</span>
-                )}
-              </div>
-            </div>
-            <button
-              onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 text-2xl leading-none"
-            >
-              ×
-            </button>
-          </div>
-          
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="space-y-6">
-              <div>
-                <h3 className="text-lg font-medium text-gray-900">Lead Information</h3>
-                <div className="bg-gray-50 p-4 rounded-lg space-y-3 mt-2">
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">Name</label>
-                    <p className="text-gray-900">{lead.name}</p>
-                  </div>
-                  
-                  {lead.email && (
-                    <div>
-                      <label className="text-sm font-medium text-gray-500">Email</label>
-                      <p className="text-gray-900">{lead.email}</p>
-                    </div>
-                  )}
-                  
-                  {lead.phone && (
-                    <div>
-                      <label className="text-sm font-medium text-gray-500">Phone</label>
-                      <p className="text-gray-900">{lead.phone}</p>
-                    </div>
-                  )}
-                  
-                  {lead.company && (
-                    <div>
-                      <label className="text-sm font-medium text-gray-500">Company</label>
-                      <p className="text-gray-900">{lead.company}</p>
-                    </div>
-                  )}
-                  
-                  {lead.source && (
-                    <div>
-                      <label className="text-sm font-medium text-gray-500">Source</label>
-                      <p className="text-gray-900">{lead.source}</p>
-                    </div>
-                  )}
-                  
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">Status</label>
-                    <p className="text-gray-900">{lead.status}</p>
-                  </div>
-                  
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">Created</label>
-                    <p className="text-gray-900">{new Date(lead.createdAt).toLocaleDateString()}</p>
-                  </div>
-                  
-                  {lead.convertedAt && (
-                    <div>
-                      <label className="text-sm font-medium text-gray-500">Converted</label>
-                      <p className="text-gray-900">{new Date(lead.convertedAt).toLocaleDateString()}</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-              
-              {lead.notes && (
-                <div>
-                  <h3 className="text-lg font-medium text-gray-900">Notes</h3>
-                  <div className="bg-gray-50 p-4 rounded-lg mt-2">
-                    <p className="text-gray-900 whitespace-pre-line">{lead.notes}</p>
-                  </div>
-                </div>
-              )}
-              
-              <div>
-                <h3 className="text-lg font-medium text-gray-900">Tags</h3>
-                <div className="mt-2">
-                  <TagComponent 
-                    tags={lead.tags || []}
-                    availableTags={availableTags}
-                    editable={true}
-                    onTagAdd={(tagId) => onTagAdd(lead.id, tagId)}
-                    onTagRemove={(tagId) => onTagRemove(lead.id, tagId)}
-                  />
-                </div>
-              </div>
-            </div>
-            
-            <div className="space-y-6">
-              <TaskSection 
-                leadId={lead.id}
-                maxItems={5}
-                compact={true}
-              />
-            </div>
-          </div>
-          
-          <div className="mt-6 flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-3">
-            <button
-              onClick={onClose}
-              className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700"
-            >
-              Close
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}

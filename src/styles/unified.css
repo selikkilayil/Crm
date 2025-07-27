@@ -1,0 +1,729 @@
+/* ==========================================================================
+   CRM Application - Unified Stylesheet
+   ========================================================================== */
+
+/* ==========================================================================
+   DESIGN TOKENS
+   ========================================================================== */
+
+:root {
+  /* Colors */
+  --color-primary: #2563eb;
+  --color-primary-hover: #1d4ed8;
+  --color-primary-light: #dbeafe;
+  --color-primary-dark: #1e40af;
+  
+  --color-success: #059669;
+  --color-success-hover: #047857;
+  --color-success-light: #d1fae5;
+  
+  --color-warning: #d97706;
+  --color-warning-hover: #b45309;
+  --color-warning-light: #fef3c7;
+  
+  --color-danger: #dc2626;
+  --color-danger-hover: #b91c1c;
+  --color-danger-light: #fecaca;
+  
+  --color-gray-50: #f9fafb;
+  --color-gray-100: #f3f4f6;
+  --color-gray-200: #e5e7eb;
+  --color-gray-300: #d1d5db;
+  --color-gray-400: #9ca3af;
+  --color-gray-500: #6b7280;
+  --color-gray-600: #4b5563;
+  --color-gray-700: #374151;
+  --color-gray-800: #1f2937;
+  --color-gray-900: #111827;
+  
+  /* Typography */
+  --text-color-primary: #111827;
+  --text-color-secondary: #374151;
+  --text-color-muted: #6b7280;
+  --text-color-light: #9ca3af;
+  
+  /* Spacing */
+  --spacing-xs: 0.25rem;
+  --spacing-sm: 0.5rem;
+  --spacing-md: 1rem;
+  --spacing-lg: 1.5rem;
+  --spacing-xl: 2rem;
+  --spacing-2xl: 3rem;
+  
+  /* Border Radius */
+  --radius-sm: 0.25rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  
+  /* Shadows */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+}
+
+/* ==========================================================================
+   BUTTON STYLES
+   ========================================================================== */
+
+/* Base Button */
+.btn {
+  @apply inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-lg border transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed;
+  min-height: 44px; /* Touch-friendly minimum */
+}
+
+/* Button Variants */
+.btn-primary {
+  @apply bg-blue-600 text-white border-blue-600 hover:bg-blue-700 hover:border-blue-700 focus:ring-blue-500;
+}
+
+.btn-secondary {
+  @apply bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200 hover:border-gray-400 focus:ring-gray-500;
+}
+
+.btn-success {
+  @apply bg-green-600 text-white border-green-600 hover:bg-green-700 hover:border-green-700 focus:ring-green-500;
+}
+
+.btn-warning {
+  @apply bg-yellow-600 text-white border-yellow-600 hover:bg-yellow-700 hover:border-yellow-700 focus:ring-yellow-500;
+}
+
+.btn-danger {
+  @apply bg-red-600 text-white border-red-600 hover:bg-red-700 hover:border-red-700 focus:ring-red-500;
+}
+
+.btn-outline {
+  @apply bg-transparent text-blue-600 border-blue-600 hover:bg-blue-50 focus:ring-blue-500;
+}
+
+.btn-ghost {
+  @apply bg-transparent text-gray-700 border-transparent hover:bg-gray-100 focus:ring-gray-500;
+}
+
+/* Button Sizes */
+.btn-sm {
+  @apply px-3 py-1 text-xs;
+  min-height: 36px;
+}
+
+.btn-lg {
+  @apply px-6 py-3 text-base;
+  min-height: 48px;
+}
+
+.btn-xl {
+  @apply px-8 py-4 text-lg;
+  min-height: 52px;
+}
+
+/* Icon Buttons */
+.btn-icon {
+  @apply p-2 rounded-lg;
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* ==========================================================================
+   FORM STYLES
+   ========================================================================== */
+
+/* Form Groups */
+.form-group {
+  @apply space-y-1;
+}
+
+.form-group + .form-group {
+  @apply mt-4;
+}
+
+/* Labels */
+.form-label {
+  @apply block text-sm font-medium mb-1;
+  color: var(--text-color-primary);
+}
+
+.form-label-required::after {
+  content: ' *';
+  @apply text-red-500;
+}
+
+/* Input Fields */
+.form-input {
+  @apply w-full px-3 py-2 border border-gray-300 rounded-lg text-sm transition-colors duration-200;
+  @apply focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500;
+  @apply disabled:bg-gray-50 disabled:cursor-not-allowed;
+  color: var(--text-color-primary);
+  min-height: 44px; /* Touch-friendly */
+}
+
+.form-input::placeholder {
+  color: var(--text-color-muted);
+  opacity: 1;
+}
+
+.form-input:disabled {
+  color: var(--text-color-light);
+}
+
+.form-input-error {
+  @apply border-red-300 focus:ring-red-500 focus:border-red-500;
+}
+
+/* Select Fields */
+.form-select {
+  @apply form-input appearance-none bg-white;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%234b5563' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 0.5rem center;
+  background-repeat: no-repeat;
+  background-size: 1.5em 1.5em;
+  padding-right: 2.5rem;
+  color: var(--text-color-primary);
+}
+
+/* Textarea */
+.form-textarea {
+  @apply form-input resize-vertical;
+  min-height: 100px;
+}
+
+/* Checkbox & Radio */
+.form-checkbox,
+.form-radio {
+  @apply w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 focus:ring-2;
+}
+
+.form-radio {
+  @apply rounded-full;
+}
+
+/* Form Error Messages */
+.form-error {
+  @apply text-sm text-red-600 mt-1;
+}
+
+/* Form Help Text */
+.form-help {
+  @apply text-sm text-gray-500 mt-1;
+}
+
+/* ==========================================================================
+   CARD STYLES
+   ========================================================================== */
+
+.card {
+  @apply bg-white rounded-lg border border-gray-200 shadow-sm;
+}
+
+.card-hover {
+  @apply card hover:shadow-md transition-shadow duration-200;
+}
+
+.card-interactive {
+  @apply card-hover cursor-pointer;
+}
+
+.card-header {
+  @apply p-6 border-b border-gray-200;
+}
+
+.card-body {
+  @apply p-6;
+}
+
+.card-footer {
+  @apply p-6 border-t border-gray-200 bg-gray-50 rounded-b-lg;
+}
+
+.card-title {
+  @apply text-lg font-semibold mt-1;
+  color: var(--text-color-primary);
+}
+
+.card-subtitle {
+  @apply text-sm mt-1;
+  color: var(--text-color-secondary);
+}
+
+/* ==========================================================================
+   MODAL STYLES
+   ========================================================================== */
+
+.modal-overlay {
+  @apply fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50;
+}
+
+.modal-container {
+  @apply bg-white rounded-lg w-full max-h-[90vh] overflow-y-auto shadow-xl;
+}
+
+.modal-header {
+  @apply p-6 border-b border-gray-200 flex items-center justify-between;
+}
+
+.modal-title {
+  @apply text-xl font-semibold;
+  color: var(--text-color-primary);
+}
+
+.modal-close {
+  @apply text-gray-400 hover:text-gray-600 transition-colors;
+}
+
+.modal-body {
+  @apply p-6;
+}
+
+.modal-footer {
+  @apply p-6 border-t border-gray-200 flex justify-end space-x-4;
+}
+
+/* Modal Sizes */
+.modal-sm {
+  @apply max-w-md;
+}
+
+.modal-md {
+  @apply max-w-lg;
+}
+
+.modal-lg {
+  @apply max-w-2xl;
+}
+
+.modal-xl {
+  @apply max-w-4xl;
+}
+
+.modal-full {
+  @apply max-w-6xl;
+}
+
+/* ==========================================================================
+   TABLE STYLES
+   ========================================================================== */
+
+.table-container {
+  @apply overflow-x-auto;
+}
+
+.table {
+  @apply w-full text-sm text-left;
+  color: var(--text-color-primary);
+}
+
+.table-header {
+  @apply bg-gray-50 border-b border-gray-200;
+}
+
+.table-header-cell {
+  @apply px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider;
+}
+
+.table-row {
+  @apply border-b border-gray-200 hover:bg-gray-50 transition-colors;
+}
+
+.table-cell {
+  @apply px-4 py-3;
+}
+
+.table-striped .table-row:nth-child(even) {
+  @apply bg-gray-25;
+}
+
+/* ==========================================================================
+   STATUS BADGES
+   ========================================================================== */
+
+.badge {
+  @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+}
+
+.badge-primary {
+  @apply bg-blue-100 text-blue-800;
+}
+
+.badge-success {
+  @apply bg-green-100 text-green-800;
+}
+
+.badge-warning {
+  @apply bg-yellow-100 text-yellow-800;
+}
+
+.badge-danger {
+  @apply bg-red-100 text-red-800;
+}
+
+.badge-gray {
+  @apply bg-gray-100 text-gray-800;
+}
+
+.badge-purple {
+  @apply bg-purple-100 text-purple-800;
+}
+
+.badge-indigo {
+  @apply bg-indigo-100 text-indigo-800;
+}
+
+.badge-pink {
+  @apply bg-pink-100 text-pink-800;
+}
+
+/* ==========================================================================
+   LOADING STATES
+   ========================================================================== */
+
+.loading-spinner {
+  @apply animate-spin rounded-full border-b-2 border-blue-600;
+}
+
+.loading-spinner-sm {
+  @apply w-4 h-4;
+}
+
+.loading-spinner-md {
+  @apply w-8 h-8;
+}
+
+.loading-spinner-lg {
+  @apply w-12 h-12;
+}
+
+.loading-overlay {
+  @apply flex justify-center items-center;
+}
+
+.loading-overlay-full {
+  @apply loading-overlay min-h-screen;
+}
+
+/* ==========================================================================
+   EMPTY STATES
+   ========================================================================== */
+
+.empty-state {
+  @apply text-center py-12;
+}
+
+.empty-state-icon {
+  @apply w-24 h-24 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center;
+}
+
+.empty-state-title {
+  @apply text-lg font-medium mb-2;
+  color: var(--text-color-primary);
+}
+
+.empty-state-description {
+  @apply text-gray-500 mb-4;
+}
+
+/* ==========================================================================
+   NAVIGATION STYLES
+   ========================================================================== */
+
+.nav-link {
+  @apply flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors;
+}
+
+.nav-link-active {
+  @apply bg-blue-100 text-blue-700;
+}
+
+.nav-link-inactive {
+  @apply hover:bg-gray-100;
+  color: var(--text-color-secondary);
+}
+
+/* ==========================================================================
+   UTILITY CLASSES
+   ========================================================================== */
+
+/* Text Colors with proper contrast */
+.text-primary {
+  color: var(--text-color-primary) !important;
+}
+
+.text-secondary {
+  color: var(--text-color-secondary) !important;
+}
+
+.text-muted {
+  color: var(--text-color-muted) !important;
+}
+
+.text-light {
+  color: var(--text-color-light) !important;
+}
+
+/* Override common gray text classes with our design tokens */
+.text-gray-900,
+.text-gray-800,
+.text-gray-700 {
+  color: var(--text-color-primary) !important;
+}
+
+.text-gray-600,
+.text-gray-500 {
+  color: var(--text-color-secondary) !important;
+}
+
+.text-gray-400 {
+  color: var(--text-color-muted) !important;
+}
+
+.text-gray-300 {
+  color: var(--text-color-light) !important;
+}
+
+/* Heading styles with proper black text */
+h1, h2, h3, h4, h5, h6 {
+  color: var(--text-color-primary) !important;
+}
+
+/* Default text color for paragraphs and spans */
+p, span, div {
+  color: var(--text-color-primary) !important;
+}
+
+/* Table text colors */
+td, th {
+  color: var(--text-color-primary);
+}
+
+/* Link styles */
+a {
+  color: var(--color-primary);
+}
+
+a:hover {
+  color: var(--color-primary-hover);
+}
+
+/* Input placeholder override for all browsers */
+input::placeholder,
+textarea::placeholder,
+select::placeholder {
+  color: var(--text-color-muted) !important;
+  opacity: 1 !important;
+}
+
+/* Firefox placeholder opacity fix */
+input::-moz-placeholder,
+textarea::-moz-placeholder {
+  color: var(--text-color-muted) !important;
+  opacity: 1 !important;
+}
+
+/* Webkit placeholder */
+input::-webkit-input-placeholder,
+textarea::-webkit-input-placeholder {
+  color: var(--text-color-muted) !important;
+  opacity: 1 !important;
+}
+
+/* MS Edge placeholder */
+input:-ms-input-placeholder,
+textarea:-ms-input-placeholder {
+  color: var(--text-color-muted) !important;
+  opacity: 1 !important;
+}
+
+/* Strong text color overrides for better readability */
+.text-readable {
+  color: var(--text-color-primary) !important;
+}
+
+/* Ensure all text is readable */
+* {
+  color: var(--text-color-primary);
+}
+
+/* Exception for elements that should maintain their colors */
+button, input, select, textarea {
+  color: var(--text-color-primary);
+}
+
+/* Ensure white text stays white on colored backgrounds */
+.text-white, 
+.bg-blue-600 *, 
+.bg-green-600 *, 
+.bg-red-600 *, 
+.bg-yellow-600 *, 
+.bg-purple-600 *, 
+.bg-gray-600 * {
+  color: white !important;
+}
+
+/* Mobile-first responsive utilities */
+.mobile-hidden {
+  @apply hidden sm:block;
+}
+
+.mobile-only {
+  @apply block sm:hidden;
+}
+
+.touch-target {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* Focus utilities for accessibility */
+.focus-visible-only {
+  @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2;
+}
+
+/* Container utilities */
+.container-sm {
+  @apply max-w-2xl mx-auto;
+}
+
+.container-md {
+  @apply max-w-4xl mx-auto;
+}
+
+.container-lg {
+  @apply max-w-6xl mx-auto;
+}
+
+/* ==========================================================================
+   RESPONSIVE GRID UTILITIES
+   ========================================================================== */
+
+.grid-responsive {
+  @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6;
+}
+
+.grid-responsive-2 {
+  @apply grid grid-cols-1 lg:grid-cols-2 gap-6;
+}
+
+.grid-responsive-4 {
+  @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6;
+}
+
+/* ==========================================================================
+   DARK MODE SUPPORT (Future Enhancement)
+   ========================================================================== */
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --text-color-primary: #ffffff;
+    --text-color-secondary: #f3f4f6;
+    --text-color-muted: #d1d5db;
+    --text-color-light: #9ca3af;
+  }
+  
+  /* Dark mode styles can be added here in the future */
+}
+
+/* ==========================================================================
+   PRINT STYLES
+   ========================================================================== */
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  
+  .print-only {
+    display: block !important;
+  }
+  
+  .card {
+    @apply shadow-none border border-gray-300;
+  }
+  
+  .modal-overlay {
+    position: static !important;
+    background: white !important;
+  }
+  
+  .modal-container {
+    box-shadow: none !important;
+    max-height: none !important;
+  }
+}
+
+/* ==========================================================================
+   ANIMATIONS
+   ========================================================================== */
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+.slide-in {
+  animation: slideIn 0.3s ease-out;
+}
+
+/* ==========================================================================
+   ACCESSIBILITY ENHANCEMENTS
+   ========================================================================== */
+
+/* Screen reader only content */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Skip links */
+.skip-link {
+  @apply sr-only focus:not-sr-only focus:absolute focus:top-0 focus:left-0 focus:z-50 focus:p-4 focus:bg-blue-600 focus:text-white focus:rounded-br-lg;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .btn {
+    border-width: 2px;
+  }
+  
+  .form-input {
+    border-width: 2px;
+  }
+  
+  .card {
+    border-width: 2px;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

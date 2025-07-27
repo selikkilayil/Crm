@@ -1,7 +1,10 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { useAuth } from '@/hooks/useAuth'
+import AuthGuard from '@/components/AuthGuard'
+import NavBar from '@/components/NavBar'
 
 interface Customer {
   id: string
@@ -58,18 +61,16 @@ const statusColors = {
 
 export default function QuotationsPage() {
   const { user } = useAuth()
+  const router = useRouter()
   const [quotations, setQuotations] = useState<Quotation[]>([])
-  const [customers, setCustomers] = useState<Customer[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
-  const [showCreateModal, setShowCreateModal] = useState(false)
   const [showViewModal, setShowViewModal] = useState(false)
   const [selectedQuotation, setSelectedQuotation] = useState<Quotation | null>(null)
 
   useEffect(() => {
     fetchQuotations()
-    fetchCustomers()
   }, [statusFilter, searchTerm])
 
   const fetchQuotations = async () => {
@@ -90,20 +91,8 @@ export default function QuotationsPage() {
     }
   }
 
-  const fetchCustomers = async () => {
-    try {
-      const response = await fetch('/api/customers')
-      if (response.ok) {
-        const data = await response.json()
-        setCustomers(data.filter((c: Customer) => !c.isArchived))
-      }
-    } catch (error) {
-      console.error('Error fetching customers:', error)
-    }
-  }
-
   const handleCreateQuotation = () => {
-    setShowCreateModal(true)
+    router.push('/quotations/create')
   }
 
   const handleViewQuotation = (quotation: Quotation) => {
@@ -143,6 +132,27 @@ export default function QuotationsPage() {
     }
   }
 
+  const handleDeleteQuotation = async (quotationId: string) => {
+    if (!confirm('Are you sure you want to delete this quotation? This action cannot be undone.')) {
+      return
+    }
+
+    try {
+      const response = await fetch(`/api/quotations/${quotationId}`, {
+        method: 'DELETE',
+      })
+
+      if (response.ok) {
+        fetchQuotations()
+      } else {
+        throw new Error('Failed to delete quotation')
+      }
+    } catch (error) {
+      console.error('Error deleting quotation:', error)
+      alert('Failed to delete quotation. Please try again.')
+    }
+  }
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-IN', {
       style: 'currency',
@@ -156,500 +166,278 @@ export default function QuotationsPage() {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      <div className="loading-overlay-full">
+        <div className="loading-spinner loading-spinner-lg"></div>
       </div>
     )
   }
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8">
-      {/* Header */}
-      <div className="mb-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Quotations</h1>
-            <p className="text-gray-600">Manage and track your quotations</p>
-          </div>
-          <button
-            onClick={handleCreateQuotation}
-            className="mt-4 sm:mt-0 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
-          >
-            Create Quotation
-          </button>
-        </div>
-      </div>
-
-      {/* Filters */}
-      <div className="mb-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div>
-          <input
-            type="text"
-            placeholder="Search quotations..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
-        <div>
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="all">All Status</option>
-            <option value="DRAFT">Draft</option>
-            <option value="SENT">Sent</option>
-            <option value="ACCEPTED">Accepted</option>
-            <option value="REJECTED">Rejected</option>
-            <option value="EXPIRED">Expired</option>
-          </select>
-        </div>
-      </div>
-
-      {/* Quotations Grid */}
-      {quotations.length === 0 ? (
-        <div className="text-center py-12">
-          <div className="w-24 h-24 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
-            <svg className="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-          </div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No quotations found</h3>
-          <p className="text-gray-500 mb-4">Create your first quotation to get started</p>
-          <button
-            onClick={handleCreateQuotation}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
-          >
-            Create Quotation
-          </button>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {quotations.map((quotation) => (
-            <div
-              key={quotation.id}
-              className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow"
+    <AuthGuard>
+      <div className="min-h-screen bg-gray-50">
+        <NavBar currentPage="quotations" />
+        <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
+        {/* Header with Stats */}
+        <div className="mb-8">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">Quotations</h1>
+              <p className="text-lg text-gray-700">Manage and track your business quotations</p>
+            </div>
+            <button
+              onClick={handleCreateQuotation}
+              className="btn btn-primary mt-4 sm:mt-0"
             >
-              <div className="p-6">
-                <div className="flex items-start justify-between mb-4">
-                  <div>
-                    <h3 className="font-semibold text-gray-900">{quotation.quotationNumber}</h3>
-                    <p className="text-sm text-gray-600">{quotation.customer.name}</p>
-                    {quotation.customer.company && (
-                      <p className="text-sm text-gray-500">{quotation.customer.company}</p>
-                    )}
-                  </div>
-                  <span className={`px-2 py-1 text-xs font-medium rounded-full ${statusColors[quotation.status]}`}>
-                    {quotation.status}
-                  </span>
-                </div>
+              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              Create Quotation
+            </button>
+          </div>
 
-                <div className="space-y-2 mb-4">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Date:</span>
-                    <span>{formatDate(quotation.date)}</span>
-                  </div>
-                  {quotation.validUntil && (
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Valid Until:</span>
-                      <span>{formatDate(quotation.validUntil)}</span>
+          {/* Quick Stats */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+            {[
+              { label: 'Total', value: quotations.length, color: 'bg-blue-500', icon: '📄' },
+              { label: 'Draft', value: quotations.filter(q => q.status === 'DRAFT').length, color: 'bg-gray-500', icon: '📝' },
+              { label: 'Sent', value: quotations.filter(q => q.status === 'SENT').length, color: 'bg-blue-500', icon: '📤' },
+              { label: 'Accepted', value: quotations.filter(q => q.status === 'ACCEPTED').length, color: 'bg-green-500', icon: '✅' },
+              { label: 'Rejected', value: quotations.filter(q => q.status === 'REJECTED').length, color: 'bg-red-500', icon: '❌' },
+            ].map((stat, index) => (
+              <div key={index} className="card">
+                <div className="card-body">
+                  <div className="flex items-center">
+                    <div className={`w-10 h-10 ${stat.color} rounded-lg flex items-center justify-center text-white mr-3`}>
+                      <span className="text-lg">{stat.icon}</span>
                     </div>
-                  )}
-                  <div className="flex justify-between text-sm font-medium">
-                    <span className="text-gray-600">Total:</span>
-                    <span>{formatCurrency(quotation.grandTotal)}</span>
+                    <div>
+                      <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
+                      <p className="text-sm text-gray-700">{stat.label}</p>
+                    </div>
                   </div>
-                </div>
-
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    onClick={() => handleViewQuotation(quotation)}
-                    className="flex-1 bg-gray-100 text-gray-700 px-3 py-2 rounded text-sm hover:bg-gray-200"
-                  >
-                    View
-                  </button>
-                  <button
-                    onClick={() => handleDuplicateQuotation(quotation.id)}
-                    className="flex-1 bg-blue-100 text-blue-700 px-3 py-2 rounded text-sm hover:bg-blue-200"
-                  >
-                    Duplicate
-                  </button>
-                  {quotation.status === 'DRAFT' && (
-                    <button
-                      onClick={() => handleStatusChange(quotation.id, 'SENT')}
-                      className="flex-1 bg-green-100 text-green-700 px-3 py-2 rounded text-sm hover:bg-green-200"
-                    >
-                      Send
-                    </button>
-                  )}
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Create Quotation Modal */}
-      {showCreateModal && (
-        <CreateQuotationModal
-          customers={customers}
-          user={user}
-          onClose={() => setShowCreateModal(false)}
-          onSuccess={() => {
-            setShowCreateModal(false)
-            fetchQuotations()
-          }}
-        />
-      )}
-
-      {/* View Quotation Modal */}
-      {showViewModal && selectedQuotation && (
-        <ViewQuotationModal
-          quotation={selectedQuotation}
-          onClose={() => {
-            setShowViewModal(false)
-            setSelectedQuotation(null)
-          }}
-          onStatusChange={(status) => {
-            handleStatusChange(selectedQuotation.id, status)
-            setShowViewModal(false)
-            setSelectedQuotation(null)
-          }}
-        />
-      )}
-    </div>
-  )
-}
-
-// Create Quotation Modal Component
-function CreateQuotationModal({ customers, user, onClose, onSuccess }: {
-  customers: Customer[]
-  user: any
-  onClose: () => void
-  onSuccess: () => void
-}) {
-  const [formData, setFormData] = useState({
-    customerId: '',
-    validUntil: '',
-    paymentTerms: '',
-    deliveryTerms: '',
-    currency: 'INR',
-    notes: '',
-    termsConditions: '',
-  })
-  const [items, setItems] = useState<Omit<QuotationItem, 'id' | 'subtotal'>[]>([
-    { productName: '', description: '', quantity: 1, unitPrice: 0, discount: 0, taxPercent: 0 }
-  ])
-  const [submitting, setSubmitting] = useState(false)
-
-  const addItem = () => {
-    setItems([...items, { productName: '', description: '', quantity: 1, unitPrice: 0, discount: 0, taxPercent: 0 }])
-  }
-
-  const removeItem = (index: number) => {
-    setItems(items.filter((_, i) => i !== index))
-  }
-
-  const updateItem = (index: number, field: string, value: any) => {
-    const updatedItems = [...items]
-    updatedItems[index] = { ...updatedItems[index], [field]: value }
-    setItems(updatedItems)
-  }
-
-  const calculateItemTotal = (item: Omit<QuotationItem, 'id' | 'subtotal'>) => {
-    const lineSubtotal = item.quantity * item.unitPrice
-    const discountAmount = (lineSubtotal * item.discount) / 100
-    const taxableAmount = lineSubtotal - discountAmount
-    const taxAmount = (taxableAmount * item.taxPercent) / 100
-    return taxableAmount + taxAmount
-  }
-
-  const calculateTotals = () => {
-    let subtotal = 0
-    let totalTax = 0
-    let totalDiscount = 0
-
-    items.forEach(item => {
-      const lineSubtotal = item.quantity * item.unitPrice
-      const discountAmount = (lineSubtotal * item.discount) / 100
-      const taxAmount = ((lineSubtotal - discountAmount) * item.taxPercent) / 100
-      
-      subtotal += lineSubtotal
-      totalDiscount += discountAmount
-      totalTax += taxAmount
-    })
-
-    const grandTotal = subtotal - totalDiscount + totalTax
-
-    return { subtotal, totalTax, totalDiscount, grandTotal }
-  }
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setSubmitting(true)
-
-    try {
-      const response = await fetch('/api/quotations', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...formData,
-          items,
-          createdById: user?.id,
-        }),
-      })
-
-      if (response.ok) {
-        onSuccess()
-      }
-    } catch (error) {
-      console.error('Error creating quotation:', error)
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
-  const totals = calculateTotals()
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white text-black rounded-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-        <div className="p-6 border-b">
-          <h2 className="text-xl font-semibold">Create New Quotation</h2>
+            ))}
+          </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
-          {/* Customer and Basic Info */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-black mb-1">Customer *</label>
-              <select
-                value={formData.customerId}
-                onChange={(e) => setFormData({ ...formData, customerId: e.target.value })}
-                required
-                className="w-full px-3 py-2 border border-black-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">Select Customer</option>
-                {customers.map(customer => (
-                  <option key={customer.id} value={customer.id}>
-                    {customer.name} {customer.company && `(${customer.company})`}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Valid Until</label>
-              <input
-                type="date"
-                value={formData.validUntil}
-                onChange={(e) => setFormData({ ...formData, validUntil: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Payment Terms</label>
-              <input
-                type="text"
-                value={formData.paymentTerms}
-                onChange={(e) => setFormData({ ...formData, paymentTerms: e.target.value })}
-                placeholder="e.g., 50% advance, 50% on delivery"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Delivery Terms</label>
-              <input
-                type="text"
-                value={formData.deliveryTerms}
-                onChange={(e) => setFormData({ ...formData, deliveryTerms: e.target.value })}
-                placeholder="e.g., 7-10 working days"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+        {/* Enhanced Filters */}
+        <div className="card mb-6">
+          <div className="card-body">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div>
+                <label className="form-label">Search Quotations</label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="Search by quotation number, customer..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="form-input pl-10"
+                  />
+                  <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                </div>
+              </div>
+              <div>
+                <label className="form-label">Filter by Status</label>
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="form-select"
+                >
+                  <option value="all">All Status</option>
+                  <option value="DRAFT">Draft</option>
+                  <option value="SENT">Sent</option>
+                  <option value="ACCEPTED">Accepted</option>
+                  <option value="REJECTED">Rejected</option>
+                  <option value="EXPIRED">Expired</option>
+                </select>
+              </div>
+              <div className="flex items-end">
+                <button
+                  onClick={() => {
+                    setSearchTerm('')
+                    setStatusFilter('all')
+                  }}
+                  className="btn btn-secondary w-full"
+                >
+                  Clear Filters
+                </button>
+              </div>
             </div>
           </div>
+        </div>
 
-          {/* Line Items */}
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-medium">Line Items</h3>
-              <button
-                type="button"
-                onClick={addItem}
-                className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700"
-              >
-                Add Item
-              </button>
+        {/* Quotations Content */}
+        {quotations.length === 0 ? (
+          <div className="empty-state">
+            <div className="empty-state-icon">
+              <svg className="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
             </div>
-
-            <div className="space-y-4">
-              {items.map((item, index) => (
-                <div key={index} className="p-4 border border-gray-200 rounded-lg">
-                  <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
-                    <div className="md:col-span-2">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Product/Service *</label>
-                      <input
-                        type="text"
-                        value={item.productName}
-                        onChange={(e) => updateItem(index, 'productName', e.target.value)}
-                        required
-                        className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Quantity *</label>
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={item.quantity}
-                        onChange={(e) => updateItem(index, 'quantity', parseFloat(e.target.value) || 0)}
-                        required
-                        className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Unit Price *</label>
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={item.unitPrice}
-                        onChange={(e) => updateItem(index, 'unitPrice', parseFloat(e.target.value) || 0)}
-                        required
-                        className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Discount %</label>
-                      <input
-                        type="number"
-                        min="0"
-                        max="100"
-                        step="0.01"
-                        value={item.discount}
-                        onChange={(e) => updateItem(index, 'discount', parseFloat(e.target.value) || 0)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Tax %</label>
-                      <input
-                        type="number"
-                        min="0"
-                        max="100"
-                        step="0.01"
-                        value={item.taxPercent}
-                        onChange={(e) => updateItem(index, 'taxPercent', parseFloat(e.target.value) || 0)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
+            <h3 className="empty-state-title">No quotations found</h3>
+            <p className="empty-state-description">
+              {searchTerm || statusFilter !== 'all' 
+                ? 'No quotations match your current filters. Try adjusting your search criteria.'
+                : 'Get started by creating your first quotation for your customers.'
+              }
+            </p>
+            {(!searchTerm && statusFilter === 'all') && (
+              <button
+                onClick={handleCreateQuotation}
+                className="btn btn-primary"
+              >
+                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                Create Your First Quotation
+              </button>
+            )}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+            {quotations.map((quotation) => (
+              <div
+                key={quotation.id}
+                className="card card-hover"
+              >
+                <div className="card-body">
+                  {/* Card Header */}
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-2 mb-2">
+                        <h3 className="card-title text-lg">{quotation.quotationNumber}</h3>
+                        <span className={`badge ${
+                          quotation.status === 'DRAFT' ? 'badge-gray' :
+                          quotation.status === 'SENT' ? 'badge-primary' :
+                          quotation.status === 'ACCEPTED' ? 'badge-success' :
+                          quotation.status === 'REJECTED' ? 'badge-danger' :
+                          'badge-warning'
+                        }`}>
+                          {quotation.status}
+                        </span>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-sm font-medium text-gray-900">{quotation.customer.name}</p>
+                        {quotation.customer.company && (
+                          <p className="text-sm text-gray-700">{quotation.customer.company}</p>
+                        )}
+                      </div>
                     </div>
                   </div>
 
-                  <div className="mt-3 flex items-center justify-between">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                      <input
-                        type="text"
-                        value={item.description}
-                        onChange={(e) => updateItem(index, 'description', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
-                    <div className="ml-4 flex items-center space-x-4">
-                      <span className="text-sm font-medium">
-                        Total: ₹{calculateItemTotal(item).toFixed(2)}
-                      </span>
-                      {items.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => removeItem(index)}
-                          className="text-red-600 hover:text-red-800"
-                        >
-                          Remove
-                        </button>
+                  {/* Card Content */}
+                  <div className="space-y-3 mb-4">
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <span className="text-gray-600">Date:</span>
+                        <p className="font-medium text-gray-900">{formatDate(quotation.date)}</p>
+                      </div>
+                      {quotation.validUntil && (
+                        <div>
+                          <span className="text-gray-600">Valid Until:</span>
+                          <p className="font-medium text-gray-900">{formatDate(quotation.validUntil)}</p>
+                        </div>
                       )}
                     </div>
+                    
+                    <div className="bg-gray-50 rounded-lg p-3">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-gray-600">Total Amount:</span>
+                        <span className="text-lg font-bold text-gray-900">{formatCurrency(quotation.grandTotal)}</span>
+                      </div>
+                      <div className="flex justify-between items-center text-xs text-gray-600 mt-1">
+                        <span>{quotation.items.length} item{quotation.items.length !== 1 ? 's' : ''}</span>
+                        <span>Created by {quotation.createdBy.name}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Card Actions */}
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      onClick={() => handleViewQuotation(quotation)}
+                      className="btn btn-secondary btn-sm flex-1"
+                    >
+                      <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                      </svg>
+                      View
+                    </button>
+                    {quotation.status === 'DRAFT' && (
+                      <button
+                        onClick={() => router.push(`/quotations/edit/${quotation.id}`)}
+                        className="btn btn-outline btn-sm flex-1"
+                      >
+                        <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                        Edit
+                      </button>
+                    )}
+                    <button
+                      onClick={() => handleDuplicateQuotation(quotation.id)}
+                      className="btn btn-outline btn-sm flex-1"
+                    >
+                      <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                      </svg>
+                      Copy
+                    </button>
+                    {quotation.status === 'DRAFT' && (
+                      <button
+                        onClick={() => handleDeleteQuotation(quotation.id)}
+                        className="btn btn-danger btn-sm flex-1"
+                      >
+                        <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                        Delete
+                      </button>
+                    )}
+                    {quotation.status === 'DRAFT' && (
+                      <button
+                        onClick={() => handleStatusChange(quotation.id, 'SENT')}
+                        className="btn btn-success btn-sm flex-1"
+                      >
+                        <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                        </svg>
+                        Send
+                      </button>
+                    )}
                   </div>
                 </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Totals */}
-          <div className="bg-gray-50 p-4 rounded-lg">
-            <div className="space-y-2">
-              <div className="flex justify-between">
-                <span>Subtotal:</span>
-                <span>₹{totals.subtotal.toFixed(2)}</span>
               </div>
-              <div className="flex justify-between">
-                <span>Total Discount:</span>
-                <span>₹{totals.totalDiscount.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Total Tax:</span>
-                <span>₹{totals.totalTax.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between font-bold text-lg border-t pt-2">
-                <span>Grand Total:</span>
-                <span>₹{totals.grandTotal.toFixed(2)}</span>
-              </div>
-            </div>
+            ))}
           </div>
+        )}
 
-          {/* Notes and Terms */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
-              <textarea
-                value={formData.notes}
-                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Terms & Conditions</label>
-              <textarea
-                value={formData.termsConditions}
-                onChange={(e) => setFormData({ ...formData, termsConditions: e.target.value })}
-                rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-          </div>
-
-          {/* Form Actions */}
-          <div className="flex justify-end space-x-4 pt-4 border-t">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={submitting}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
-            >
-              {submitting ? 'Creating...' : 'Create Quotation'}
-            </button>
-          </div>
-        </form>
+        {/* View Quotation Modal */}
+        {showViewModal && selectedQuotation && (
+          <ViewQuotationModal
+            quotation={selectedQuotation}
+            onClose={() => {
+              setShowViewModal(false)
+              setSelectedQuotation(null)
+            }}
+            onStatusChange={(status) => {
+              handleStatusChange(selectedQuotation.id, status)
+              setShowViewModal(false)
+              setSelectedQuotation(null)
+            }}
+          />
+        )}
+        </div>
       </div>
-    </div>
+    </AuthGuard>
   )
 }
+
 
 // View Quotation Modal Component  
 function ViewQuotationModal({ quotation, onClose, onStatusChange }: {
@@ -669,18 +457,18 @@ function ViewQuotationModal({ quotation, onClose, onStatusChange }: {
   }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-        <div className="p-6 border-b flex items-center justify-between">
+    <div className="modal-overlay">
+      <div className="modal-container modal-xl">
+        <div className="modal-header">
           <div>
-            <h2 className="text-xl font-semibold">{quotation.quotationNumber}</h2>
+            <h2 className="modal-title">{quotation.quotationNumber}</h2>
             <p className="text-gray-600">{quotation.customer.name}</p>
           </div>
           <div className="flex items-center space-x-4">
             <span className={`px-3 py-1 text-sm font-medium rounded-full ${statusColors[quotation.status]}`}>
               {quotation.status}
             </span>
-            <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+            <button onClick={onClose} className="modal-close">
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
@@ -688,7 +476,7 @@ function ViewQuotationModal({ quotation, onClose, onStatusChange }: {
           </div>
         </div>
 
-        <div className="p-6 space-y-6">
+        <div className="modal-body space-y-6">
           {/* Quotation Details */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
