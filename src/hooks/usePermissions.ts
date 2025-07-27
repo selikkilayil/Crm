@@ -79,6 +79,8 @@ export function usePermissions() {
         return hasPermission('activities', 'view_all') || hasPermission('activities', 'view_assigned')
       case 'tags':
         return hasPermission('tags', 'view')
+      case 'settings':
+        return hasPermission('settings', 'view') || user.role === 'ADMIN' || user.role === 'SUPERADMIN'
       case 'dashboard':
         return hasPermission('dashboard', 'view_all') || 
                hasPermission('dashboard', 'view_team') || 

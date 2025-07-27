@@ -7,7 +7,12 @@
     "build": "prisma generate && next build",
     "postinstall": "prisma generate",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "db:seed": "tsx src/lib/seed.ts",
+    "db:migrate": "prisma migrate deploy && npm run db:seed"
+  },
+  "prisma": {
+    "seed": "tsx src/lib/seed.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.12.0",

@@ -47,12 +47,40 @@ interface Quotation {
   updatedAt: string | Date
 }
 
-interface QuotationPDFTemplateProps {
-  quotation: Quotation
+interface PDFSettings {
+  id: string
+  companyName: string
+  companyAddress: string
+  companyPhone: string
+  companyEmail: string
+  companyWebsite: string
+  companyGST: string
+  logoUrl?: string | null
+  logoText: string
+  primaryColor: string
+  secondaryColor: string
+  textColor: string
+  lightBackground: string
+  quotationPrefix: string
+  quotationNumberFormat: string
+  defaultValidityDays: number
+  defaultTermsConditions: string
+  defaultPaymentTerms: string
+  defaultDeliveryTerms: string
+  defaultTaxRate: number
+  showTaxBreakdown: boolean
+  defaultCurrency: string
+  currencySymbol: string
+  footerText: string
 }
 
-// Define styles for the PDF
-const styles = StyleSheet.create({
+interface QuotationPDFTemplateProps {
+  quotation: Quotation
+  settings: PDFSettings
+}
+
+// Create dynamic styles based on settings
+const createStyles = (settings: PDFSettings) => StyleSheet.create({
   page: {
     flexDirection: 'column',
     backgroundColor: '#ffffff',
@@ -61,7 +89,7 @@ const styles = StyleSheet.create({
   
   // Header Section
   header: {
-    backgroundColor: '#2d3748',
+    backgroundColor: settings.primaryColor,
     padding: 20,
     flexDirection: 'row',
     alignItems: 'center',
@@ -76,7 +104,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   headerLogoText: {
-    color: '#2d3748',
+    color: settings.primaryColor,
     fontSize: 16,
     fontWeight: 'bold',
   },
@@ -103,7 +131,7 @@ const styles = StyleSheet.create({
   
   // Quotation Title
   quotationHeader: {
-    backgroundColor: '#f8fafc',
+    backgroundColor: settings.lightBackground,
     borderColor: '#e2e8f0',
     borderWidth: 1,
     borderRadius: 5,
@@ -116,12 +144,12 @@ const styles = StyleSheet.create({
   quotationTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#2d3748',
+    color: settings.textColor,
   },
   quotationNumber: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#6366f1',
+    color: settings.secondaryColor,
   },
   quotationDate: {
     fontSize: 10,
@@ -136,7 +164,7 @@ const styles = StyleSheet.create({
   },
   customerBox: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: settings.lightBackground,
     borderColor: '#e2e8f0',
     borderWidth: 1,
     borderRadius: 5,
@@ -145,7 +173,7 @@ const styles = StyleSheet.create({
   },
   detailsBox: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: settings.lightBackground,
     borderColor: '#e2e8f0',
     borderWidth: 1,
     borderRadius: 5,
@@ -155,7 +183,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 12,
     fontWeight: 'bold',
-    color: '#2d3748',
+    color: settings.textColor,
     marginBottom: 8,
   },
   customerName: {
@@ -181,7 +209,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   tableHeader: {
-    backgroundColor: '#2d3748',
+    backgroundColor: settings.primaryColor,
     flexDirection: 'row',
     padding: 8,
     borderTopLeftRadius: 5,
@@ -232,7 +260,7 @@ const styles = StyleSheet.create({
   },
   summaryBox: {
     width: 200,
-    backgroundColor: '#f8fafc',
+    backgroundColor: settings.lightBackground,
     borderColor: '#e2e8f0',
     borderWidth: 1,
     borderRadius: 5,
@@ -259,7 +287,7 @@ const styles = StyleSheet.create({
     color: '#2563eb',
   },
   totalRow: {
-    backgroundColor: '#2d3748',
+    backgroundColor: settings.primaryColor,
     borderRadius: 5,
     padding: 8,
     marginTop: 10,
@@ -279,7 +307,7 @@ const styles = StyleSheet.create({
   
   // Notes Section
   notesSection: {
-    backgroundColor: '#f8fafc',
+    backgroundColor: settings.lightBackground,
     borderColor: '#e2e8f0',
     borderWidth: 1,
     borderRadius: 5,
@@ -289,7 +317,7 @@ const styles = StyleSheet.create({
   notesTitle: {
     fontSize: 12,
     fontWeight: 'bold',
-    color: '#2d3748',
+    color: settings.textColor,
     marginBottom: 8,
   },
   notesText: {
@@ -300,7 +328,7 @@ const styles = StyleSheet.create({
   
   // Footer
   footer: {
-    backgroundColor: '#2d3748',
+    backgroundColor: settings.primaryColor,
     padding: 15,
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -323,12 +351,15 @@ const styles = StyleSheet.create({
   },
 })
 
-const QuotationPDFTemplate: React.FC<QuotationPDFTemplateProps> = ({ quotation }) => {
+const QuotationPDFTemplate: React.FC<QuotationPDFTemplateProps> = ({ quotation, settings }) => {
+  const styles = createStyles(settings)
+  
   const formatCurrency = (amount: number): string => {
     return new Intl.NumberFormat('en-IN', {
       style: 'currency',
-      currency: 'INR',
-    }).format(amount)
+      currency: settings.defaultCurrency,
+      currencyDisplay: 'symbol'
+    }).format(amount).replace(/^[^\d-]*/, settings.currencySymbol)
   }
 
   const formatDate = (dateInput: string | Date): string => {
@@ -353,14 +384,14 @@ const QuotationPDFTemplate: React.FC<QuotationPDFTemplateProps> = ({ quotation }
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.headerLogo}>
-            <Text style={styles.headerLogoText}>L</Text>
+            <Text style={styles.headerLogoText}>{settings.logoText}</Text>
           </View>
           <View style={styles.headerInfo}>
-            <Text style={styles.companyName}>YOUR COMPANY NAME</Text>
+            <Text style={styles.companyName}>{settings.companyName}</Text>
             <Text style={styles.companyDetails}>
-              123 Business Street, Business City, State 12345{'\n'}
-              Phone: +91 98765 43210 | Email: info@company.com{'\n'}
-              Website: www.yourcompany.com | GST: 29ABCDE1234F1Z5
+              {settings.companyAddress}{'\n'}
+              Phone: {settings.companyPhone} | Email: {settings.companyEmail}{'\n'}
+              Website: {settings.companyWebsite} | GST: {settings.companyGST}
             </Text>
           </View>
         </View>
@@ -413,7 +444,7 @@ const QuotationPDFTemplate: React.FC<QuotationPDFTemplateProps> = ({ quotation }
               )}
               <View style={{ flexDirection: 'row' }}>
                 <Text style={[styles.customerInfo, { fontWeight: 'bold', width: 60 }]}>Currency:</Text>
-                <Text style={styles.customerInfo}>{quotation.currency}</Text>
+                <Text style={styles.customerInfo}>{settings.defaultCurrency}</Text>
               </View>
             </View>
           </View>
@@ -495,7 +526,7 @@ const QuotationPDFTemplate: React.FC<QuotationPDFTemplateProps> = ({ quotation }
         {/* Footer */}
         <View style={styles.footer}>
           <View style={styles.footerLeft}>
-            <Text style={styles.footerText}>Thank you for your business!</Text>
+            <Text style={styles.footerText}>{settings.footerText}</Text>
             <Text style={styles.footerText}>
               Generated on {new Date().toLocaleDateString('en-IN')} | Created by {quotation.createdBy.name}
             </Text>

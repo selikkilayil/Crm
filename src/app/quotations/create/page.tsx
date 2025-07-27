@@ -31,6 +31,7 @@ export default function CreateQuotationPage() {
   const [customers, setCustomers] = useState<Customer[]>([])
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
+  const [settings, setSettings] = useState<any>(null)
   
   const [formData, setFormData] = useState({
     customerId: '',
@@ -48,6 +49,7 @@ export default function CreateQuotationPage() {
 
   useEffect(() => {
     fetchCustomers()
+    fetchSettings()
   }, [])
 
   const fetchCustomers = async () => {
@@ -71,8 +73,40 @@ export default function CreateQuotationPage() {
     }
   }
 
+  const fetchSettings = async () => {
+    try {
+      const response = await fetch('/api/settings/pdf')
+      if (response.ok) {
+        const settingsData = await response.json()
+        setSettings(settingsData)
+        
+        // Calculate default validity date
+        const validityDate = new Date()
+        validityDate.setDate(validityDate.getDate() + (settingsData.defaultValidityDays || 30))
+        
+        // Update form with default values
+        setFormData(prev => ({
+          ...prev,
+          validUntil: validityDate.toISOString().split('T')[0],
+          paymentTerms: settingsData.defaultPaymentTerms || '',
+          deliveryTerms: settingsData.defaultDeliveryTerms || '',
+          currency: settingsData.defaultCurrency || 'INR',
+          termsConditions: settingsData.defaultTermsConditions || '',
+        }))
+        
+        // Update default tax rate for new items
+        setItems([
+          { productName: '', description: '', quantity: 1, unitPrice: 0, discount: 0, taxPercent: Number(settingsData.defaultTaxRate) || 0 }
+        ])
+      }
+    } catch (error) {
+      console.error('Error fetching settings:', error)
+    }
+  }
+
   const addItem = () => {
-    setItems([...items, { productName: '', description: '', quantity: 1, unitPrice: 0, discount: 0, taxPercent: 0 }])
+    const defaultTaxRate = settings ? Number(settings.defaultTaxRate) || 0 : 0
+    setItems([...items, { productName: '', description: '', quantity: 1, unitPrice: 0, discount: 0, taxPercent: defaultTaxRate }])
   }
 
   const removeItem = (index: number) => {

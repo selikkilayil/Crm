@@ -68,6 +68,7 @@ export default function NavBar({ currentPage }: NavBarProps) {
   const settingsItems = [
     { href: '/users', label: 'Users', key: 'users', resource: 'users', icon: '👥' },
     { href: '/roles', label: 'Roles', key: 'roles', resource: 'roles', icon: '🛡️' },
+    { href: '/settings', label: 'PDF Settings', key: 'settings', resource: 'settings', icon: '📄' },
   ]
 
   const filteredFunctionsItems = functionsItems.filter((item) => {

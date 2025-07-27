@@ -277,3 +277,55 @@ enum QuotationStatus {
   REJECTED
   EXPIRED
 }
+
+model PDFSettings {
+  id                    String    @id @default(cuid())
+  // Company Information
+  companyName           String    @default("YOUR COMPANY NAME")
+  companyAddress        String    @default("123 Business Street, Business City, State 12345")
+  companyPhone          String    @default("+91 98765 43210")
+  companyEmail          String    @default("info@company.com")
+  companyWebsite        String    @default("www.yourcompany.com")
+  companyGST            String    @default("29ABCDE1234F1Z5")
+  
+  // Logo Settings
+  logoUrl               String?   // Path to uploaded logo
+  logoText              String    @default("L") // Fallback text if no logo
+  
+  // Color Scheme
+  primaryColor          String    @default("#2d3748") // Header background
+  secondaryColor        String    @default("#6366f1") // Accent color
+  textColor             String    @default("#1f2937") // Main text
+  lightBackground       String    @default("#f8fafc") // Light backgrounds
+  
+  // Quotation Settings
+  quotationPrefix       String    @default("QT")
+  quotationNumberFormat String    @default("QT-YYYY-####") // Format pattern
+  defaultValidityDays   Int       @default(30) // Default validity period in days
+  
+  // Default Terms and Conditions
+  defaultTermsConditions String   @default("1. Prices are valid for the period mentioned above.\n2. Payment terms as agreed.\n3. Delivery will be made as per schedule.\n4. All disputes subject to local jurisdiction.")
+  
+  // Payment Terms Templates
+  defaultPaymentTerms   String    @default("100% advance payment required")
+  
+  // Delivery Terms Templates  
+  defaultDeliveryTerms  String    @default("Delivery within 7-10 working days")
+  
+  // Tax Settings
+  defaultTaxRate        Decimal   @default(18.00) @db.Decimal(5, 2) // Default GST rate
+  showTaxBreakdown      Boolean   @default(true) // Show tax breakdown in PDF
+  
+  // Currency Settings
+  defaultCurrency       String    @default("INR")
+  currencySymbol        String    @default("₹")
+  
+  // Footer Text
+  footerText            String    @default("Thank you for your business!")
+  
+  // Timestamps
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  
+  @@map("pdf_settings")
+}

@@ -27,6 +27,15 @@ export async function GET(
       return NextResponse.json({ error: 'Quotation not found' }, { status: 404 })
     }
 
+    // Fetch PDF settings
+    let settings = await prisma.pDFSettings.findFirst()
+    if (!settings) {
+      // Create default settings if none exist
+      settings = await prisma.pDFSettings.create({
+        data: {}
+      })
+    }
+
     // Convert Prisma Decimal objects to numbers for React PDF
     const processedQuotation = {
       ...quotation,
@@ -44,8 +53,17 @@ export async function GET(
       }))
     }
 
-    // Generate PDF using React PDF template
-    const pdfBuffer = await renderToBuffer(React.createElement(QuotationPDFTemplate, { quotation: processedQuotation }))
+    // Convert settings Decimal objects to numbers
+    const processedSettings = {
+      ...settings,
+      defaultTaxRate: Number(settings.defaultTaxRate)
+    }
+
+    // Generate PDF using React PDF template with settings
+    const pdfBuffer = await renderToBuffer(React.createElement(QuotationPDFTemplate, { 
+      quotation: processedQuotation, 
+      settings: processedSettings 
+    }))
 
     // Return PDF
     return new NextResponse(pdfBuffer, {

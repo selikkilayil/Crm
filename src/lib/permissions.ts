@@ -65,6 +65,10 @@ export const PERMISSIONS = {
   DASHBOARD_VIEW_ALL: { resource: 'dashboard', action: 'view_all' },
   DASHBOARD_VIEW_TEAM: { resource: 'dashboard', action: 'view_team' },
   DASHBOARD_VIEW_PERSONAL: { resource: 'dashboard', action: 'view_personal' },
+  
+  // Settings management
+  SETTINGS_VIEW: { resource: 'settings', action: 'view' },
+  SETTINGS_EDIT: { resource: 'settings', action: 'edit' },
 } as const
 
 // Role-based permissions mapping
@@ -118,6 +122,9 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     PERMISSIONS.QUOTATIONS_SEND,
     
     PERMISSIONS.DASHBOARD_VIEW_ALL,
+    
+    PERMISSIONS.SETTINGS_VIEW,
+    PERMISSIONS.SETTINGS_EDIT,
   ],
   
   MANAGER: [
