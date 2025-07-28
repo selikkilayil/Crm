@@ -12,13 +12,26 @@ interface Customer {
 
 interface QuotationItem {
   id?: string
+  productId?: string
+  variantId?: string
   productName: string
   description?: string
+  configuration?: any
   quantity: number
   unitPrice: number
+  calculatedPrice?: number
   discount: number
   taxPercent: number
   subtotal: number
+  notes?: string
+  product?: {
+    id: string
+    name: string
+    sku?: string
+    unit: string
+    category?: string
+    productType: 'SIMPLE' | 'CONFIGURABLE' | 'CALCULATED'
+  }
 }
 
 interface Quotation {
@@ -242,6 +255,61 @@ const createStyles = (settings: PDFSettings) => StyleSheet.create({
     fontSize: 8,
     color: '#6b7280',
     marginTop: 2,
+  },
+  productSKU: {
+    fontSize: 7,
+    color: '#9ca3af',
+    marginTop: 1,
+    fontStyle: 'italic',
+  },
+  productCategory: {
+    fontSize: 7,
+    color: '#9ca3af',
+    marginTop: 1,
+  },
+  configurationSection: {
+    marginTop: 3,
+    paddingLeft: 5,
+  },
+  configurationTitle: {
+    fontSize: 8,
+    color: '#4b5563',
+    fontWeight: 'bold',
+    marginBottom: 1,
+  },
+  configurationItem: {
+    fontSize: 7,
+    color: '#6b7280',
+    marginLeft: 5,
+    marginBottom: 1,
+  },
+  productTypeBadge: {
+    fontSize: 7,
+    color: '#2563eb',
+    backgroundColor: '#dbeafe',
+    padding: 2,
+    marginTop: 2,
+    borderRadius: 2,
+    textAlign: 'center',
+  },
+  itemNotes: {
+    fontSize: 7,
+    color: '#059669',
+    marginTop: 2,
+    fontStyle: 'italic',
+  },
+  unitText: {
+    fontSize: 7,
+    color: '#9ca3af',
+    textAlign: 'center',
+    marginTop: 1,
+  },
+  calculatedPriceNote: {
+    fontSize: 7,
+    color: '#7c3aed',
+    textAlign: 'center',
+    marginTop: 1,
+    fontStyle: 'italic',
   },
   
   // Column widths
@@ -468,12 +536,69 @@ const QuotationPDFTemplate: React.FC<QuotationPDFTemplateProps> = ({ quotation, 
               <View key={index} style={[styles.tableRow, ...(index % 2 === 0 ? [styles.tableRowAlt] : [])]}>
                 <View style={styles.colDescription}>
                   <Text style={styles.tableCellBold}>{item.productName}</Text>
+                  
+                  {/* Product Details */}
+                  {item.product?.sku && (
+                    <Text style={styles.productSKU}>SKU: {item.product.sku}</Text>
+                  )}
+                  
+                  {item.product?.category && (
+                    <Text style={styles.productCategory}>Category: {item.product.category}</Text>
+                  )}
+                  
+                  {/* Configuration Details */}
+                  {item.configuration && Object.keys(item.configuration).length > 0 && (
+                    <View style={styles.configurationSection}>
+                      <Text style={styles.configurationTitle}>Configuration:</Text>
+                      {Object.entries(item.configuration).map(([key, value]) => (
+                        <Text key={key} style={styles.configurationItem}>
+                          • {key.charAt(0).toUpperCase() + key.slice(1)}: {typeof value === 'object' ? 
+                            (value.width && value.height ? `${value.width} × ${value.height}` : JSON.stringify(value)) : 
+                            String(value)}
+                        </Text>
+                      ))}
+                    </View>
+                  )}
+                  
+                  {/* Description */}
                   {item.description && (
                     <Text style={styles.tableCellDesc}>{item.description}</Text>
                   )}
+                  
+                  {/* Product Type Badge */}
+                  {item.product?.productType && item.product.productType !== 'SIMPLE' && (
+                    <Text style={styles.productTypeBadge}>
+                      {item.product.productType === 'CONFIGURABLE' ? 'Configurable Product' : 
+                       item.product.productType === 'CALCULATED' ? 'Calculated Pricing' : 
+                       item.product.productType}
+                    </Text>
+                  )}
+                  
+                  {/* Notes */}
+                  {item.notes && (
+                    <Text style={styles.itemNotes}>Note: {item.notes}</Text>
+                  )}
                 </View>
-                <Text style={[styles.tableCell, styles.colQty]}>{item.quantity}</Text>
-                <Text style={[styles.tableCell, styles.colRate]}>{formatCurrency(item.unitPrice)}</Text>
+                
+                <View style={styles.colQty}>
+                  <Text style={styles.tableCell}>{item.quantity}</Text>
+                  {item.product?.unit && item.product.unit !== 'piece' && (
+                    <Text style={styles.unitText}>{item.product.unit}</Text>
+                  )}
+                </View>
+                
+                <View style={styles.colRate}>
+                  <Text style={styles.tableCell}>{formatCurrency(item.unitPrice)}</Text>
+                  {item.calculatedPrice && item.calculatedPrice !== item.unitPrice && (
+                    <Text style={styles.calculatedPriceNote}>
+                      (Calculated: {formatCurrency(item.calculatedPrice)})
+                    </Text>
+                  )}
+                  {item.product?.unit && item.product.unit !== 'piece' && (
+                    <Text style={styles.unitText}>per {item.product.unit}</Text>
+                  )}
+                </View>
+                
                 <Text style={[styles.tableCell, styles.colDiscount]}>{item.discount}%</Text>
                 <Text style={[styles.tableCell, styles.colTax]}>{item.taxPercent}%</Text>
                 <Text style={[styles.tableCellBold, styles.colAmount]}>

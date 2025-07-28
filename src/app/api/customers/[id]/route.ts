@@ -3,11 +3,12 @@ import { prisma } from '@/lib/prisma'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params
   try {
     const customer = await prisma.customer.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         activities: {
           orderBy: { createdAt: 'desc' },
@@ -35,8 +36,9 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params
   try {
     const body = await request.json()
     const { 
@@ -52,7 +54,7 @@ export async function PUT(
     } = body
     
     const customer = await prisma.customer.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         name,
         email,
@@ -81,11 +83,12 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params
   try {
     await prisma.customer.delete({
-      where: { id: params.id },
+      where: { id },
     })
     
     return NextResponse.json({ message: 'Customer deleted successfully' })

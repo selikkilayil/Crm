@@ -3,11 +3,12 @@ import { prisma } from '@/lib/prisma'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params
   try {
     const user = await prisma.user.findUnique({
-      where: { id: params.id },
+      where: { id },
       select: {
         id: true,
         name: true,
@@ -48,8 +49,9 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params
   try {
     const body = await request.json()
     const { name, email, role, customRoleId, isActive } = body
@@ -66,7 +68,7 @@ export async function PUT(
       const existingUser = await prisma.user.findFirst({
         where: {
           email,
-          NOT: { id: params.id }
+          NOT: { id }
         }
       })
       
@@ -76,7 +78,7 @@ export async function PUT(
     }
     
     const user = await prisma.user.update({
-      where: { id: params.id },
+      where: { id },
       data: updateData,
       select: {
         id: true,
@@ -113,12 +115,13 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params
   try {
     // Instead of hard delete, we'll deactivate the user
     const user = await prisma.user.update({
-      where: { id: params.id },
+      where: { id },
       data: { isActive: false },
     })
     

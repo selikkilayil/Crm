@@ -52,6 +52,12 @@ export const PERMISSIONS = {
   TAGS_EDIT: { resource: 'tags', action: 'edit' },
   TAGS_DELETE: { resource: 'tags', action: 'delete' },
   
+  // Product management
+  PRODUCTS_VIEW: { resource: 'products', action: 'view' },
+  PRODUCTS_CREATE: { resource: 'products', action: 'create' },
+  PRODUCTS_EDIT: { resource: 'products', action: 'edit' },
+  PRODUCTS_DELETE: { resource: 'products', action: 'delete' },
+  
   // Quotation management
   QUOTATIONS_VIEW_ALL: { resource: 'quotations', action: 'view_all' },
   QUOTATIONS_VIEW_ASSIGNED: { resource: 'quotations', action: 'view_assigned' },
@@ -115,6 +121,11 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     PERMISSIONS.TAGS_EDIT,
     PERMISSIONS.TAGS_DELETE,
     
+    PERMISSIONS.PRODUCTS_VIEW,
+    PERMISSIONS.PRODUCTS_CREATE,
+    PERMISSIONS.PRODUCTS_EDIT,
+    PERMISSIONS.PRODUCTS_DELETE,
+    
     PERMISSIONS.QUOTATIONS_VIEW_ALL,
     PERMISSIONS.QUOTATIONS_CREATE,
     PERMISSIONS.QUOTATIONS_EDIT_ALL,
@@ -154,6 +165,10 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     PERMISSIONS.TAGS_CREATE,
     PERMISSIONS.TAGS_EDIT,
     
+    PERMISSIONS.PRODUCTS_VIEW,
+    PERMISSIONS.PRODUCTS_CREATE,
+    PERMISSIONS.PRODUCTS_EDIT,
+    
     PERMISSIONS.QUOTATIONS_VIEW_ALL,
     PERMISSIONS.QUOTATIONS_CREATE,
     PERMISSIONS.QUOTATIONS_EDIT_ALL,
@@ -181,6 +196,8 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     PERMISSIONS.ACTIVITIES_EDIT_ASSIGNED,
     
     PERMISSIONS.TAGS_VIEW,
+    
+    PERMISSIONS.PRODUCTS_VIEW,
     
     PERMISSIONS.QUOTATIONS_VIEW_ASSIGNED,
     PERMISSIONS.QUOTATIONS_CREATE,

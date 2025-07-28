@@ -215,21 +215,149 @@ model Quotation {
   @@map("quotations")
 }
 
-model QuotationItem {
-  id           String    @id @default(cuid())
-  productName  String
-  description  String?
-  quantity     Decimal   @db.Decimal(10, 3)
-  unitPrice    Decimal   @db.Decimal(10, 2)
-  discount     Decimal   @default(0) @db.Decimal(5, 2)
-  taxPercent   Decimal   @default(0) @db.Decimal(5, 2)
-  subtotal     Decimal   @db.Decimal(10, 2)
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+model Product {
+  id                String               @id @default(cuid())
+  name              String
+  description       String?
+  sku               String?              @unique
+  category          String?
+  productType       ProductType          @default(SIMPLE)
   
-  quotationId  String
-  quotation    Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+  // Pricing Configuration
+  pricingType       PricingType          @default(FIXED)
+  basePrice         Decimal              @default(0) @db.Decimal(10, 2)
+  costPrice         Decimal?             @db.Decimal(10, 2)
+  
+  // Dynamic Pricing Formula
+  calculationFormula String?
+  
+  // Inventory & Manufacturing
+  trackInventory    Boolean              @default(false)
+  currentStock      Decimal?             @default(0) @db.Decimal(10, 3)
+  minStockLevel     Decimal?             @default(0) @db.Decimal(10, 3)
+  unit              String               @default("piece")
+  
+  // Tax & Status
+  defaultTaxRate    Decimal              @default(18) @db.Decimal(5, 2)
+  isActive          Boolean              @default(true)
+  isArchived        Boolean              @default(false)
+  
+  // Timestamps
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+  
+  // Relations
+  attributes        ProductAttribute[]
+  variants          ProductVariant[]
+  quotationItems    QuotationItem[]
+  
+  @@map("products")
+}
 
+model ProductAttribute {
+  id           String                @id @default(cuid())
+  productId    String
+  name         String
+  type         AttributeType         
+  isRequired   Boolean               @default(false)
+  isConfigurable Boolean             @default(true)
+  
+  // For calculated attributes
+  minValue     Decimal?              @db.Decimal(10, 3)
+  maxValue     Decimal?              @db.Decimal(10, 3)
+  defaultValue String?
+  unit         String?
+  
+  createdAt    DateTime              @default(now())
+  updatedAt    DateTime              @updatedAt
+  
+  // Relations
+  product      Product               @relation(fields: [productId], references: [id], onDelete: Cascade)
+  options      AttributeOption[]
+  
+  @@map("product_attributes")
+}
+
+model AttributeOption {
+  id              String           @id @default(cuid())
+  attributeId     String
+  value           String
+  displayName     String?
+  priceModifier   Decimal          @default(0) @db.Decimal(10, 2)
+  costModifier    Decimal?         @default(0) @db.Decimal(10, 2)
+  isActive        Boolean          @default(true)
+  sortOrder       Int              @default(0)
+  
+  createdAt       DateTime         @default(now())
+  
+  // Relations
+  attribute       ProductAttribute @relation(fields: [attributeId], references: [id], onDelete: Cascade)
+  
+  @@map("attribute_options")
+}
+
+model ProductVariant {
+  id              String    @id @default(cuid())
+  productId       String
+  sku             String?   @unique
+  name            String?
+  
+  // Variant Configuration
+  configuration   Json
+  
+  // Pricing Override
+  price           Decimal?  @db.Decimal(10, 2)
+  costPrice       Decimal?  @db.Decimal(10, 2)
+  
+  // Inventory
+  stock           Decimal?  @default(0) @db.Decimal(10, 3)
+  
+  isActive        Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  // Relations
+  product         Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  quotationItems  QuotationItem[]
+  
+  @@map("product_variants")
+}
+
+model QuotationItem {
+  id                String         @id @default(cuid())
+  
+  // Product Reference
+  productId         String?
+  variantId         String?
+  
+  // Legacy support
+  productName       String?
+  description       String?
+  
+  // Configuration
+  configuration     Json?
+  
+  // Quantities & Pricing
+  quantity          Decimal        @db.Decimal(10, 3)
+  unitPrice         Decimal        @db.Decimal(10, 2)
+  calculatedPrice   Decimal?       @db.Decimal(10, 2)
+  discount          Decimal        @default(0) @db.Decimal(5, 2)
+  taxPercent        Decimal        @default(0) @db.Decimal(5, 2)
+  subtotal          Decimal        @db.Decimal(10, 2)
+  
+  // Manufacturing fields
+  estimatedCost     Decimal?       @db.Decimal(10, 2)
+  notes             String?
+  
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+  
+  // Relations
+  quotationId       String
+  quotation         Quotation      @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+  product           Product?       @relation(fields: [productId], references: [id])
+  variant           ProductVariant? @relation(fields: [variantId], references: [id])
+  
   @@map("quotation_items")
 }
 
@@ -276,6 +404,28 @@ enum QuotationStatus {
   ACCEPTED
   REJECTED
   EXPIRED
+}
+
+enum ProductType {
+  SIMPLE
+  CONFIGURABLE
+  CALCULATED
+}
+
+enum PricingType {
+  FIXED
+  PER_UNIT
+  CALCULATED
+  VARIANT_BASED
+}
+
+enum AttributeType {
+  TEXT
+  NUMBER
+  SELECT
+  MULTISELECT
+  DIMENSION
+  BOOLEAN
 }
 
 model PDFSettings {

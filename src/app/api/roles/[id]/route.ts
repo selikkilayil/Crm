@@ -4,13 +4,14 @@ import { requirePermission } from '@/lib/api-auth-dynamic'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params
   try {
     await requirePermission(request, { resource: 'roles', action: 'view' })
     
     const role = await prisma.customRole.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         permissions: {
           include: {
@@ -64,8 +65,9 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params
   try {
     await requirePermission(request, { resource: 'roles', action: 'edit' })
     
@@ -74,7 +76,7 @@ export async function PUT(
     
     // Get existing role
     const existingRole = await prisma.customRole.findUnique({
-      where: { id: params.id }
+      where: { id }
     })
     
     if (!existingRole) {
@@ -114,7 +116,7 @@ export async function PUT(
     if (isActive !== undefined) updateData.isActive = isActive
     
     const role = await prisma.customRole.update({
-      where: { id: params.id },
+      where: { id },
       data: updateData,
       include: {
         permissions: {
@@ -134,20 +136,20 @@ export async function PUT(
     if (permissionIds && Array.isArray(permissionIds)) {
       // Delete existing permissions
       await prisma.rolePermission.deleteMany({
-        where: { roleId: params.id }
+        where: { roleId: id }
       })
       
       // Add new permissions
       await prisma.rolePermission.createMany({
         data: permissionIds.map((permissionId: string) => ({
-          roleId: params.id,
+          roleId: id,
           permissionId
         }))
       })
       
       // Fetch updated role with new permissions
       const updatedRole = await prisma.customRole.findUnique({
-        where: { id: params.id },
+        where: { id },
         include: {
           permissions: {
             include: {
@@ -221,13 +223,14 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params
   try {
     await requirePermission(request, { resource: 'roles', action: 'delete' })
     
     const role = await prisma.customRole.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         _count: {
           select: {
@@ -252,7 +255,7 @@ export async function DELETE(
     }
     
     await prisma.customRole.delete({
-      where: { id: params.id }
+      where: { id }
     })
     
     return NextResponse.json({ message: 'Role deleted successfully' })

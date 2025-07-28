@@ -18,7 +18,20 @@ export async function GET(
       where: { id: quotationId },
       include: {
         customer: true,
-        items: true,
+        items: {
+          include: {
+            product: {
+              select: {
+                id: true,
+                name: true,
+                sku: true,
+                unit: true,
+                category: true,
+                productType: true,
+              }
+            }
+          }
+        },
         createdBy: true,
       },
     })
@@ -47,6 +60,7 @@ export async function GET(
         ...item,
         quantity: Number(item.quantity),
         unitPrice: Number(item.unitPrice),
+        calculatedPrice: item.calculatedPrice ? Number(item.calculatedPrice) : undefined,
         discount: Number(item.discount),
         taxPercent: Number(item.taxPercent),
         subtotal: Number(item.subtotal),
