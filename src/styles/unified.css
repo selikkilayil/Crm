@@ -1,3 +1,5 @@
+@reference tailwindcss;
+
 /* ==========================================================================
    CRM Application - Unified Stylesheet
    ========================================================================== */
@@ -77,12 +79,10 @@
 /* Button Variants */
 .btn-primary {
   @apply bg-blue-600 text-white border-blue-600 hover:bg-blue-700 hover:border-blue-700 focus:ring-blue-500;
-  color: white !important;
 }
 
 .btn-secondary {
   @apply bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200 hover:border-gray-400 focus:ring-gray-500;
-  color: #374151 !important;
 }
 
 .btn-success {
@@ -144,7 +144,7 @@
 /* Labels */
 .form-label {
   @apply block text-sm font-medium mb-1;
-  color: #111827 !important;
+  color: var(--text-color-primary);
 }
 
 .form-label-required::after {
@@ -157,8 +157,8 @@
   @apply w-full px-3 py-2 border border-gray-300 rounded-lg text-sm transition-colors duration-200;
   @apply focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500;
   @apply disabled:bg-gray-50 disabled:cursor-not-allowed;
-  background-color: white !important;
-  color: #111827 !important;
+  @apply bg-white;
+  color: var(--text-color-primary);
   min-height: 44px; /* Touch-friendly */
 }
 
@@ -443,45 +443,7 @@
   color: var(--text-color-secondary);
 }
 
-/* Navigation specific fixes */
-nav {
-  background-color: white !important;
-  border-color: #e5e7eb !important;
-}
-
-nav .text-gray-900 {
-  color: #111827 !important;
-}
-
-nav .text-gray-600 {
-  color: #4b5563 !important;
-}
-
-nav .text-gray-500 {
-  color: #6b7280 !important;
-}
-
-nav .text-blue-600 {
-  color: #2563eb !important;
-}
-
-nav .text-blue-700 {
-  color: #1d4ed8 !important;
-}
-
-/* Dropdown menu styling */
-nav .bg-white {
-  background-color: white !important;
-  color: #111827 !important;
-}
-
-nav .hover\\:bg-gray-50:hover {
-  background-color: #f9fafb !important;
-}
-
-nav .hover\\:bg-gray-100:hover {
-  background-color: #f3f4f6 !important;
-}
+/* Navigation uses standard Tailwind classes - no overrides needed */
 
 /* ==========================================================================
    UTILITY CLASSES
@@ -489,44 +451,26 @@ nav .hover\\:bg-gray-100:hover {
 
 /* Text Colors with proper contrast */
 .text-primary {
-  color: var(--text-color-primary) !important;
+  color: var(--text-color-primary);
 }
 
 .text-secondary {
-  color: var(--text-color-secondary) !important;
+  color: var(--text-color-secondary);
 }
 
 .text-muted {
-  color: var(--text-color-muted) !important;
+  color: var(--text-color-muted);
 }
 
 .text-light {
-  color: var(--text-color-light) !important;
+  color: var(--text-color-light);
 }
 
-/* Override common gray text classes with our design tokens */
-.text-gray-900,
-.text-gray-800,
-.text-gray-700 {
-  color: var(--text-color-primary) !important;
-}
-
-.text-gray-600,
-.text-gray-500 {
-  color: var(--text-color-secondary) !important;
-}
-
-.text-gray-400 {
-  color: var(--text-color-muted) !important;
-}
-
-.text-gray-300 {
-  color: var(--text-color-light) !important;
-}
+/* Design token utilities - use these classes instead of gray-xxx */
 
 /* Heading styles with proper black text */
 h1, h2, h3, h4, h5, h6 {
-  color: var(--text-color-primary) !important;
+  color: var(--text-color-primary);
 }
 
 /* Link styles */
@@ -538,125 +482,47 @@ a:hover {
   color: var(--color-primary-hover);
 }
 
-/* Input placeholder override for all browsers */
+/* Input placeholder styling for all browsers */
 input::placeholder,
 textarea::placeholder,
 select::placeholder {
-  color: var(--text-color-muted) !important;
-  opacity: 1 !important;
+  color: var(--text-color-muted);
+  opacity: 1;
 }
 
 /* Firefox placeholder opacity fix */
 input::-moz-placeholder,
 textarea::-moz-placeholder {
-  color: var(--text-color-muted) !important;
-  opacity: 1 !important;
+  color: var(--text-color-muted);
+  opacity: 1;
 }
 
 /* Webkit placeholder */
 input::-webkit-input-placeholder,
 textarea::-webkit-input-placeholder {
-  color: var(--text-color-muted) !important;
-  opacity: 1 !important;
+  color: var(--text-color-muted);
+  opacity: 1;
 }
 
 /* MS Edge placeholder */
 input:-ms-input-placeholder,
 textarea:-ms-input-placeholder {
-  color: var(--text-color-muted) !important;
-  opacity: 1 !important;
+  color: var(--text-color-muted);
+  opacity: 1;
 }
 
-/* Ensure white text stays white on colored backgrounds */
-.text-white, 
-.bg-blue-600 *, 
-.bg-green-600 *, 
-.bg-red-600 *, 
-.bg-yellow-600 *, 
-.bg-purple-600 *, 
-.bg-gray-600 *,
-.bg-purple-500 *,
-.bg-gray-800 *,
-.bg-gray-900 * {
-  color: white !important;
+/* Ensure white text on colored backgrounds */
+.text-white {
+  color: white;
 }
 
-/* Ensure dark text on light backgrounds - but don't override styled components */
-.bg-white:not(.btn):not(.form-input):not(.nav-link),
-.bg-gray-50:not(.btn):not(.form-input):not(.nav-link),
-.bg-gray-100:not(.btn):not(.form-input):not(.nav-link) {
-  color: #111827;
-}
+/* Use semantic color classes instead of overrides */
 
-/* Target only unstructured content areas */
-.bg-white > p,
-.bg-white > span:not(.btn):not(.badge),
-.bg-white > div:not(.btn):not(.card):not(.modal-container),
-.bg-gray-50 > p,
-.bg-gray-50 > span:not(.btn):not(.badge),
-.bg-gray-50 > div:not(.btn):not(.card) {
-  color: #111827;
-}
+/* Remove problematic global overrides that interfere with navbar */
 
-/* Override problematic text classes */
-.text-gray-900 {
-  color: #111827 !important;
-}
+/* Use standard Tailwind classes - no overrides needed */
 
-.text-gray-800 {
-  color: #1f2937 !important;
-}
-
-.text-gray-700 {
-  color: #374151 !important;
-}
-
-.text-gray-600 {
-  color: #4b5563 !important;
-}
-
-.text-gray-500 {
-  color: #6b7280 !important;
-}
-
-/* Ensure borders are visible */
-.border {
-  border-color: #e5e7eb !important;
-}
-
-.border-gray-200 {
-  border-color: #e5e7eb !important;
-}
-
-.border-gray-300 {
-  border-color: #d1d5db !important;
-}
-
-/* Ensure backgrounds work properly */
-.bg-gray-50 {
-  background-color: #f9fafb !important;
-}
-
-.bg-gray-100 {
-  background-color: #f3f4f6 !important;
-}
-
-.bg-white {
-  background-color: white !important;
-}
-
-/* Make sure shadows are visible */
-.shadow-sm {
-  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05) !important;
-}
-
-.shadow {
-  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1) !important;
-}
-
-.shadow-lg {
-  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1) !important;
-}
+/* Use standard Tailwind shadow classes */
 
 /* Mobile-first responsive utilities */
 .mobile-hidden {

@@ -85,8 +85,8 @@ export default function LoginPage() {
           
           <div className="rounded-md shadow-sm space-y-4">
             <div>
-              <label htmlFor="email" className="block text-sm font-medium mb-1 text-gray-900">
-                Email address <span className="text-red-500">*</span>
+              <label htmlFor="email" className="form-label form-label-required">
+                Email address
               </label>
               <input
                 id="email"
@@ -96,14 +96,13 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="Enter your email"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-50 disabled:cursor-not-allowed"
-                style={{ minHeight: '44px' }}
+                className="form-input"
               />
             </div>
             
             <div>
-              <label htmlFor="password" className="block text-sm font-medium mb-1 text-gray-900">
-                Password <span className="text-red-500">*</span>
+              <label htmlFor="password" className="form-label form-label-required">
+                Password
               </label>
               <input
                 id="password"
@@ -113,8 +112,7 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Enter your password"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-50 disabled:cursor-not-allowed"
-                style={{ minHeight: '44px' }}
+                className="form-input"
               />
             </div>
           </div>
@@ -123,12 +121,11 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-lg border bg-blue-600 text-white border-blue-600 hover:bg-blue-700 hover:border-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
-              style={{ minHeight: '44px' }}
+              className="btn btn-primary w-full"
             >
               {loading ? (
                 <div className="flex items-center">
-                  <div className="animate-spin rounded-full border-b-2 border-white w-4 h-4 mr-2"></div>
+                  <div className="loading-spinner loading-spinner-sm mr-2 border-white"></div>
                   Signing in...
                 </div>
               ) : (
@@ -149,8 +146,7 @@ export default function LoginPage() {
               type="button"
               onClick={handleDemoLogin}
               disabled={loading}
-              className="w-full inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-lg border bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
-              style={{ minHeight: '44px' }}
+              className="btn btn-secondary w-full"
             >
               Try Demo Account
             </button>

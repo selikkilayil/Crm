@@ -67,7 +67,7 @@ export default function Home() {
 
             {/* Quick Stats */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-              <div className="bg-white p-6 rounded-lg shadow-sm border">
+              <div className="bg-white p-6 rounded-lg shadow-sm">
                 <div className="flex items-center">
                   <div className="flex-shrink-0">
                     <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
@@ -81,7 +81,7 @@ export default function Home() {
                 </div>
               </div>
 
-              <div className="bg-white p-6 rounded-lg shadow-sm border">
+              <div className="bg-white p-6 rounded-lg shadow-sm">
                 <div className="flex items-center">
                   <div className="flex-shrink-0">
                     <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
@@ -95,7 +95,7 @@ export default function Home() {
                 </div>
               </div>
 
-              <div className="bg-white p-6 rounded-lg shadow-sm border">
+              <div className="bg-white p-6 rounded-lg shadow-sm">
                 <div className="flex items-center">
                   <div className="flex-shrink-0">
                     <div className="w-8 h-8 bg-amber-100 rounded-full flex items-center justify-center">
@@ -109,7 +109,7 @@ export default function Home() {
                 </div>
               </div>
 
-              <div className="bg-white p-6 rounded-lg shadow-sm border">
+              <div className="bg-white p-6 rounded-lg shadow-sm">
                 <div className="flex items-center">
                   <div className="flex-shrink-0">
                     <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
@@ -135,7 +135,7 @@ export default function Home() {
                       <Link 
                         key={item.resource}
                         href={item.href} 
-                        className="bg-white p-6 rounded-lg shadow hover:shadow-md transition-shadow border"
+                        className="bg-white p-6 rounded-lg shadow hover:shadow-md transition-shadow"
                       >
                         <div className={`${item.color} text-2xl mb-2`}>{item.icon}</div>
                         <h3 className="text-lg font-semibold text-gray-900 mb-1">{item.label}</h3>
@@ -145,7 +145,7 @@ export default function Home() {
 
                   {/* Functions Card */}
                   {hasFunctionsAccess && (
-                    <div className="bg-white p-6 rounded-lg shadow hover:shadow-md transition-shadow border">
+                    <div className="bg-white p-6 rounded-lg shadow hover:shadow-md transition-shadow">
                       <div className="text-gray-600 text-2xl mb-2">🔧</div>
                       <h3 className="text-lg font-semibold text-gray-900 mb-1">Functions</h3>
                       <div className="space-y-1 mt-3">
@@ -182,7 +182,7 @@ export default function Home() {
 
                   {/* Settings Card */}
                   {hasSettingsAccess && (
-                    <div className="bg-white p-6 rounded-lg shadow hover:shadow-md transition-shadow border">
+                    <div className="bg-white p-6 rounded-lg shadow hover:shadow-md transition-shadow">
                       <div className="text-gray-600 text-2xl mb-2">⚙️</div>
                       <h3 className="text-lg font-semibold text-gray-900 mb-1">Settings</h3>
                       <div className="space-y-1 mt-3">
@@ -213,7 +213,7 @@ export default function Home() {
               {/* Recent Activity Sidebar */}
               <div>
                 <h2 className="text-xl font-semibold text-gray-900 mb-4">Recent Activity</h2>
-                <div className="bg-white rounded-lg shadow-sm border p-6">
+                <div className="bg-white rounded-lg shadow-sm p-6">
                   <div className="space-y-4">
                     <div className="flex items-start space-x-3">
                       <div className="flex-shrink-0 w-2 h-2 bg-blue-500 rounded-full mt-2"></div>

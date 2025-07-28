@@ -177,7 +177,7 @@ export default function QuotationsPage() {
               <div>
                 <h1 className="text-3xl font-bold mb-2 flex items-center">
                   <span className="mr-3">📋</span>
-                  Professional Quotations
+                  Quotations
                 </h1>
                 <p className="text-lg text-purple-100">Manage and track your business quotations with style</p>
               </div>
