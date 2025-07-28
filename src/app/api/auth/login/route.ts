@@ -19,6 +19,14 @@ export async function POST(request: NextRequest) {
         email: true,
         name: true,
         role: true,
+        customRoleId: true,
+        customRole: {
+          select: {
+            id: true,
+            name: true,
+            description: true,
+          }
+        },
         password: true,
         isActive: true,
       },

@@ -13,6 +13,14 @@ export async function GET(
         name: true,
         email: true,
         role: true,
+        customRoleId: true,
+        customRole: {
+          select: {
+            id: true,
+            name: true,
+            description: true,
+          }
+        },
         isActive: true,
         createdAt: true,
         updatedAt: true,
@@ -44,12 +52,13 @@ export async function PUT(
 ) {
   try {
     const body = await request.json()
-    const { name, email, role, isActive } = body
+    const { name, email, role, customRoleId, isActive } = body
     
     const updateData: any = {}
     if (name !== undefined) updateData.name = name
     if (email !== undefined) updateData.email = email
     if (role !== undefined) updateData.role = role
+    if (customRoleId !== undefined) updateData.customRoleId = customRoleId
     if (isActive !== undefined) updateData.isActive = isActive
     
     // Check if email is taken by another user
@@ -74,6 +83,14 @@ export async function PUT(
         name: true,
         email: true,
         role: true,
+        customRoleId: true,
+        customRole: {
+          select: {
+            id: true,
+            name: true,
+            description: true,
+          }
+        },
         isActive: true,
         createdAt: true,
         updatedAt: true,

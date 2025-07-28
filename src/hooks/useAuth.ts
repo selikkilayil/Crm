@@ -8,6 +8,12 @@ export interface User {
   email: string
   name: string
   role: 'SUPERADMIN' | 'ADMIN' | 'MANAGER' | 'SALES'
+  customRoleId?: string | null
+  customRole?: {
+    id: string
+    name: string
+    description?: string
+  } | null
 }
 
 interface AuthContextType {

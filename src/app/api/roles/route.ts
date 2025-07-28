@@ -6,8 +6,12 @@ export async function GET(request: NextRequest) {
   try {
     await requirePermission(request, { resource: 'roles', action: 'view' })
     
+    // Exclude system roles for all users since they're managed elsewhere
     const roles = await prisma.customRole.findMany({
-      where: { isActive: true },
+      where: { 
+        isActive: true,
+        isSystem: false // Exclude all system roles (including Super Administrator, Administrator, etc.)
+      },
       include: {
         permissions: {
           include: {
@@ -69,6 +73,17 @@ export async function POST(request: NextRequest) {
     
     if (!name || !Array.isArray(permissionIds)) {
       return NextResponse.json({ error: 'Name and permissions are required' }, { status: 400 })
+    }
+    
+    // Prevent creation of system role names
+    const systemRoleNames = [
+      'SUPERADMIN', 'SUPER ADMINISTRATOR', 'SUPER-ADMINISTRATOR',
+      'ADMIN', 'ADMINISTRATOR', 
+      'MANAGER', 
+      'SALES', 'SALES REPRESENTATIVE', 'SALES-REPRESENTATIVE'
+    ]
+    if (systemRoleNames.includes(name.toUpperCase().replace(/[-_\s]+/g, ' '))) {
+      return NextResponse.json({ error: `"${name}" is a reserved system role name` }, { status: 400 })
     }
     
     // Check if role name already exists

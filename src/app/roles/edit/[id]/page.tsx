@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/hooks/useAuth'
-import { useRouter } from 'next/navigation'
+import { useRouter, useParams } from 'next/navigation'
 import AuthGuard from '@/components/AuthGuard'
 import NavBar from '@/components/NavBar'
 import apiClient from '@/lib/api-client'
@@ -15,9 +15,25 @@ interface Permission {
   category?: string
 }
 
-export default function CreateRolePage() {
+interface Role {
+  id: string
+  name: string
+  description?: string
+  isSystem: boolean
+  isActive: boolean
+  userCount: number
+  permissions: Permission[]
+  createdAt: string
+  updatedAt: string
+}
+
+export default function EditRolePage() {
   const { user } = useAuth()
   const router = useRouter()
+  const params = useParams()
+  const roleId = params.id as string
+  
+  const [role, setRole] = useState<Role | null>(null)
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -36,10 +52,26 @@ export default function CreateRolePage() {
       return
     }
     
-    if (user) {
+    if (user && roleId) {
+      fetchRole()
       fetchPermissions()
     }
-  }, [user, router])
+  }, [user, router, roleId])
+
+  const fetchRole = async () => {
+    try {
+      const data = await apiClient.get(`/api/roles/${roleId}`) as Role
+      setRole(data)
+      setFormData({
+        name: data.name,
+        description: data.description || '',
+      })
+      setSelectedPermissions(data.permissions.map(p => p.id))
+    } catch (error) {
+      console.error('Error fetching role:', error)
+      setError('Failed to load role')
+    }
+  }
 
   const fetchPermissions = async () => {
     try {
@@ -48,6 +80,7 @@ export default function CreateRolePage() {
       setGroupedPermissions(data.groupedPermissions || {})
     } catch (error) {
       console.error('Error fetching permissions:', error)
+      setError('Failed to load permissions')
     } finally {
       setLoading(false)
     }
@@ -59,6 +92,17 @@ export default function CreateRolePage() {
         ? prev.filter(id => id !== permissionId)
         : [...prev, permissionId]
     )
+  }
+
+  const handleCategoryToggle = (category: string) => {
+    const categoryPermissions = groupedPermissions[category]?.map(p => p.id) || []
+    const allSelected = categoryPermissions.every(id => selectedPermissions.includes(id))
+    
+    if (allSelected) {
+      setSelectedPermissions(prev => prev.filter(id => !categoryPermissions.includes(id)))
+    } else {
+      setSelectedPermissions(prev => [...new Set([...prev, ...categoryPermissions])])
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -78,7 +122,7 @@ export default function CreateRolePage() {
     setSubmitting(true)
 
     try {
-      await apiClient.post('/api/roles', {
+      await apiClient.put(`/api/roles/${roleId}`, {
         name: formData.name,
         description: formData.description,
         permissionIds: selectedPermissions,
@@ -86,8 +130,8 @@ export default function CreateRolePage() {
       
       router.push('/roles')
     } catch (error) {
-      console.error('Error creating role:', error)
-      setError('Failed to create role')
+      console.error('Error updating role:', error)
+      setError('Failed to update role')
     } finally {
       setSubmitting(false)
     }
@@ -106,6 +150,27 @@ export default function CreateRolePage() {
     )
   }
 
+  if (!role) {
+    return (
+      <AuthGuard>
+        <div className="min-h-screen bg-gray-50">
+          <NavBar currentPage="roles" />
+          <div className="max-w-4xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+            <div className="text-center">
+              <h1 className="text-2xl font-bold text-gray-900 mb-4">Role Not Found</h1>
+              <button
+                onClick={() => router.push('/roles')}
+                className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+              >
+                ← Back to Roles
+              </button>
+            </div>
+          </div>
+        </div>
+      </AuthGuard>
+    )
+  }
+
   return (
     <AuthGuard>
       <div className="min-h-screen bg-gray-50">
@@ -116,8 +181,15 @@ export default function CreateRolePage() {
           <div className="mb-8">
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-3xl font-bold text-gray-900">Create New Role</h1>
-                <p className="mt-2 text-gray-600">Define a custom role with specific permissions</p>
+                <h1 className="text-3xl font-bold text-gray-900">Edit Role</h1>
+                <p className="mt-2 text-gray-600">Modify role permissions and details</p>
+                {role.isSystem && (
+                  <div className="mt-2">
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                      System Role
+                    </span>
+                  </div>
+                )}
               </div>
               <button
                 onClick={() => router.push('/roles')}
@@ -158,9 +230,15 @@ export default function CreateRolePage() {
                     id="name"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                    disabled={role.isSystem}
+                    className={`mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${
+                      role.isSystem ? 'bg-gray-100 cursor-not-allowed' : ''
+                    }`}
                     placeholder="e.g., Marketing Team"
                   />
+                  {role.isSystem && (
+                    <p className="mt-1 text-xs text-gray-500">System role names cannot be changed</p>
+                  )}
                 </div>
                 <div>
                   <label htmlFor="description" className="block text-sm font-medium text-gray-700">
@@ -174,6 +252,27 @@ export default function CreateRolePage() {
                     className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                     placeholder="Optional description"
                   />
+                </div>
+              </div>
+            </div>
+
+            {/* Role Statistics */}
+            <div className="bg-white shadow rounded-lg p-6">
+              <h2 className="text-lg font-medium text-gray-900 mb-4">Role Statistics</h2>
+              <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-gray-900">{role.userCount}</div>
+                  <div className="text-sm text-gray-600">Users Assigned</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-gray-900">{selectedPermissions.length}</div>
+                  <div className="text-sm text-gray-600">Permissions</div>
+                </div>
+                <div className="text-center">
+                  <div className={`text-2xl font-bold ${role.isActive ? 'text-green-600' : 'text-red-600'}`}>
+                    {role.isActive ? 'Active' : 'Inactive'}
+                  </div>
+                  <div className="text-sm text-gray-600">Status</div>
                 </div>
               </div>
             </div>
@@ -211,7 +310,19 @@ export default function CreateRolePage() {
                 <div className="space-y-6">
                   {Object.entries(groupedPermissions).map(([category, categoryPermissions]) => (
                     <div key={category} className="border border-gray-200 rounded-lg p-4">
-                      <h3 className="text-base font-medium text-gray-900 mb-3">{category}</h3>
+                      <div className="flex items-center justify-between mb-3">
+                        <h3 className="text-base font-medium text-gray-900 capitalize">{category}</h3>
+                        <button
+                          type="button"
+                          onClick={() => handleCategoryToggle(category)}
+                          className="text-sm text-blue-600 hover:text-blue-500"
+                        >
+                          {categoryPermissions.every(p => selectedPermissions.includes(p.id))
+                            ? 'Deselect All'
+                            : 'Select All'
+                          }
+                        </button>
+                      </div>
                       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                         {categoryPermissions.map((permission) => (
                           <label
@@ -259,7 +370,7 @@ export default function CreateRolePage() {
                 disabled={submitting}
                 className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
               >
-                {submitting ? 'Creating...' : 'Create Role'}
+                {submitting ? 'Updating...' : 'Update Role'}
               </button>
             </div>
           </form>

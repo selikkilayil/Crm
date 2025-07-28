@@ -72,12 +72,16 @@ export default function NavBar({ currentPage }: NavBarProps) {
   ]
 
   const filteredFunctionsItems = functionsItems.filter((item) => {
-    if (!user || user.role === 'SUPERADMIN' || permissionsLoading) return false
+    if (!user || permissionsLoading) return false
+    // SUPERADMIN has access to all functions
+    if (user.role === 'SUPERADMIN') return true
     return canAccessResource(item.resource)
   })
 
   const filteredSettingsItems = settingsItems.filter((item) => {
-    if (!user || user.role === 'SUPERADMIN' || permissionsLoading) return false
+    if (!user || permissionsLoading) return false
+    // SUPERADMIN has access to all settings
+    if (user.role === 'SUPERADMIN') return true
     return canAccessResource(item.resource)
   })
 
@@ -86,63 +90,12 @@ export default function NavBar({ currentPage }: NavBarProps) {
   const hasSettingsAccess = filteredSettingsItems.length > 0
 
   const filteredNavItems = navItems.filter((item) => {
-    if (!user || user.role === 'SUPERADMIN' || permissionsLoading) return false
+    if (!user || permissionsLoading) return false
+    // SUPERADMIN has access to all navigation items
+    if (user.role === 'SUPERADMIN') return true
     return canAccessResource(item.resource)
   })
 
-  // Hide entire navbar for superadmin users
-  if (user?.role === 'SUPERADMIN') {
-    return (
-      <nav className="bg-white shadow-sm sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            {/* Logo */}
-            <div className="flex items-center">
-              <div className="text-lg sm:text-xl font-semibold text-gray-900 truncate">
-                <span className="hidden sm:inline">Super Admin Panel</span>
-                <span className="sm:hidden">Admin</span>
-              </div>
-            </div>
-            
-            {/* Super Admin User Menu */}
-            <div className="flex items-center">
-              <div className="relative" ref={menuRef}>
-                <button
-                  onClick={() => setShowUserMenu(!showUserMenu)}
-                  className="flex items-center space-x-2 text-sm text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md hover:bg-gray-50 min-h-[44px] transition-colors"
-                >
-                  <div className="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center text-white text-sm font-medium">
-                    {user?.name?.charAt(0).toUpperCase()}
-                  </div>
-                  <span className="hidden xl:inline">{user?.name}</span>
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </button>
-
-                {showUserMenu && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 border">
-                    <div className="px-4 py-2 text-xs text-gray-500 border-b">
-                      Super Administrator
-                    </div>
-                    <button
-                      onClick={() => {
-                        setShowUserMenu(false)
-                        logout()
-                      }}
-                      className="block w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 min-h-[44px] flex items-center"
-                    >
-                      🚪 Sign Out
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      </nav>
-    )
-  }
 
   const handleMobileNavClick = () => {
     setShowMobileMenu(false)
@@ -157,8 +110,17 @@ export default function NavBar({ currentPage }: NavBarProps) {
           {/* Logo */}
           <div className="flex items-center">
             <Link href="/" className="text-lg sm:text-xl font-semibold text-gray-900 truncate">
-              <span className="hidden sm:inline">RAW </span>
-              <span className="sm:hidden">CRM</span>
+              {user?.role === 'SUPERADMIN' ? (
+                <>
+                  <span className="hidden sm:inline">Super Admin Panel</span>
+                  <span className="sm:hidden">Admin</span>
+                </>
+              ) : (
+                <>
+                  <span className="hidden sm:inline">RAW CRM</span>
+                  <span className="sm:hidden">CRM</span>
+                </>
+              )}
             </Link>
           </div>
           
@@ -265,7 +227,9 @@ export default function NavBar({ currentPage }: NavBarProps) {
                 onClick={() => setShowUserMenu(!showUserMenu)}
                 className="flex items-center space-x-2 text-sm text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md hover:bg-gray-50 min-h-[44px] transition-colors"
               >
-                <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-medium">
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-medium ${
+                  user?.role === 'SUPERADMIN' ? 'bg-purple-500' : 'bg-blue-500'
+                }`}>
                   {user?.name?.charAt(0).toUpperCase()}
                 </div>
                 <span className="hidden xl:inline">{user?.name}</span>
@@ -276,6 +240,9 @@ export default function NavBar({ currentPage }: NavBarProps) {
 
               {showUserMenu && (
                 <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 border">
+                  <div className="px-4 py-2 text-xs text-gray-500 border-b">
+                    {user?.customRole ? user.customRole.name : user?.role}
+                  </div>
                   <Link
                     href="/profile"
                     onClick={() => setShowUserMenu(false)}
@@ -301,7 +268,9 @@ export default function NavBar({ currentPage }: NavBarProps) {
           {/* Mobile menu button */}
           <div className="md:hidden flex items-center space-x-2">
             {/* Mobile User Avatar */}
-            <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-medium">
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-medium ${
+              user?.role === 'SUPERADMIN' ? 'bg-purple-500' : 'bg-blue-500'
+            }`}>
               {user?.name?.charAt(0).toUpperCase()}
             </div>
             
@@ -356,12 +325,16 @@ export default function NavBar({ currentPage }: NavBarProps) {
               {/* User Info */}
               <div className="px-4 py-3 border-b bg-gray-50">
                 <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-medium">
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-medium ${
+                    user?.role === 'SUPERADMIN' ? 'bg-purple-500' : 'bg-blue-500'
+                  }`}>
                     {user?.name?.charAt(0).toUpperCase()}
                   </div>
                   <div>
                     <div className="text-sm font-medium text-gray-900">{user?.name}</div>
-                    <div className="text-xs text-gray-500">{user?.role}</div>
+                    <div className="text-xs text-gray-500">
+                      {user?.customRole ? user.customRole.name : user?.role}
+                    </div>
                   </div>
                 </div>
               </div>

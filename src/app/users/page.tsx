@@ -10,7 +10,13 @@ interface User {
   id: string
   name: string
   email: string
-  role: 'ADMIN' | 'MANAGER' | 'SALES'
+  role: 'SUPERADMIN' | 'ADMIN' | 'MANAGER' | 'SALES'
+  customRoleId?: string | null
+  customRole?: {
+    id: string
+    name: string
+    description?: string
+  }
   isActive: boolean
   createdAt: string
   updatedAt: string
@@ -22,29 +28,39 @@ interface User {
 }
 
 const roleColors = {
+  SUPERADMIN: 'bg-purple-100 text-purple-800 border-purple-200',
   ADMIN: 'bg-red-100 text-red-800 border-red-200',
   MANAGER: 'bg-blue-100 text-blue-800 border-blue-200',
   SALES: 'bg-green-100 text-green-800 border-green-200'
 }
 
 const roleIcons = {
+  SUPERADMIN: '⚡',
   ADMIN: '👑',
   MANAGER: '🎯', 
   SALES: '💼'
 }
 
+interface CustomRole {
+  id: string
+  name: string
+  description?: string
+}
+
 export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([])
+  const [customRoles, setCustomRoles] = useState<CustomRole[]>([])
   const [loading, setLoading] = useState(true)
   const [showAddForm, setShowAddForm] = useState(false)
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
-  const [roleFilter, setRoleFilter] = useState<'ALL' | 'ADMIN' | 'MANAGER' | 'SALES'>('ALL')
+  const [roleFilter, setRoleFilter] = useState<'ALL' | 'SUPERADMIN' | 'ADMIN' | 'MANAGER' | 'SALES'>('ALL')
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'ACTIVE' | 'INACTIVE'>('ALL')
   const { user: currentUser } = useAuth()
 
   useEffect(() => {
     fetchUsers()
+    fetchCustomRoles()
   }, [])
 
   const fetchUsers = async () => {
@@ -62,6 +78,22 @@ export default function UsersPage() {
       setUsers([])
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchCustomRoles = async () => {
+    try {
+      const data = await apiClient.get('/api/roles')
+      
+      if (Array.isArray(data)) {
+        setCustomRoles(data)
+      } else {
+        console.error('Failed to fetch custom roles:', data)
+        setCustomRoles([])
+      }
+    } catch (error) {
+      console.error('Failed to fetch custom roles:', error)
+      setCustomRoles([])
     }
   }
 
@@ -131,7 +163,7 @@ export default function UsersPage() {
                 <p className="text-gray-600">Manage team members and their permissions</p>
               </div>
               
-              {currentUser?.role === 'ADMIN' && (
+              {(currentUser?.role === 'ADMIN' || currentUser?.role === 'SUPERADMIN') && (
                 <button
                   onClick={() => setShowAddForm(true)}
                   className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center justify-center"
@@ -161,6 +193,7 @@ export default function UsersPage() {
                 className="px-3 py-2 border border-gray-300 rounded-md text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="ALL">All Roles</option>
+                {currentUser?.role === 'SUPERADMIN' && <option value="SUPERADMIN">Super Admin</option>}
                 <option value="ADMIN">Admin</option>
                 <option value="MANAGER">Manager</option>
                 <option value="SALES">Sales</option>
@@ -201,7 +234,7 @@ export default function UsersPage() {
                   ? 'Try adjusting your search criteria'
                   : 'Get started by adding your first team member'}
               </p>
-              {!searchTerm && roleFilter === 'ALL' && statusFilter === 'ALL' && currentUser?.role === 'ADMIN' && (
+              {!searchTerm && roleFilter === 'ALL' && statusFilter === 'ALL' && (currentUser?.role === 'ADMIN' || currentUser?.role === 'SUPERADMIN') && (
                 <button
                   onClick={() => setShowAddForm(true)}
                   className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700"
@@ -214,8 +247,10 @@ export default function UsersPage() {
         </main>
 
         {/* Modals */}
-        {showAddForm && currentUser?.role === 'ADMIN' && (
+        {showAddForm && (currentUser?.role === 'ADMIN' || currentUser?.role === 'SUPERADMIN') && (
           <CreateUserModal 
+            currentUser={currentUser}
+            customRoles={customRoles}
             onSubmit={createUser} 
             onClose={() => setShowAddForm(false)} 
           />
@@ -225,6 +260,7 @@ export default function UsersPage() {
           <EditUserModal
             user={selectedUser}
             currentUser={currentUser}
+            customRoles={customRoles}
             onSubmit={(data) => updateUser(selectedUser.id, data)}
             onClose={() => setSelectedUser(null)}
           />
@@ -260,13 +296,21 @@ function UserCard({ user, currentUser, onEdit, onToggleStatus }: {
                 {user.name}
                 {isCurrentUser && <span className="text-sm text-gray-500 ml-1">(You)</span>}
               </h3>
-              <span className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full border ${roleColors[user.role]}`}>
-                {user.role}
-              </span>
+              <div className="flex flex-col gap-1">
+                {user.customRole ? (
+                  <span className="inline-flex items-center px-2 py-1 text-xs font-medium rounded-full border bg-blue-100 text-blue-800 border-blue-200">
+                    {user.customRole.name}
+                  </span>
+                ) : (
+                  <span className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full border ${roleColors[user.role]}`}>
+                    {user.role}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
           
-          {currentUser?.role === 'ADMIN' && (
+          {(currentUser?.role === 'ADMIN' || currentUser?.role === 'SUPERADMIN') && (
             <div className="relative ml-2">
               <button
                 onClick={() => setShowMenu(!showMenu)}
@@ -342,7 +386,9 @@ function UserCard({ user, currentUser, onEdit, onToggleStatus }: {
   )
 }
 
-function CreateUserModal({ onSubmit, onClose }: { 
+function CreateUserModal({ currentUser, customRoles, onSubmit, onClose }: { 
+  currentUser: any
+  customRoles: CustomRole[]
   onSubmit: (data: Partial<User>) => void
   onClose: () => void 
 }) {
@@ -350,6 +396,8 @@ function CreateUserModal({ onSubmit, onClose }: {
     name: '',
     email: '',
     role: 'SALES' as User['role'],
+    customRoleId: '',
+    useCustomRole: false,
     password: '',
     confirmPassword: '',
   })
@@ -366,6 +414,10 @@ function CreateUserModal({ onSubmit, onClose }: {
       newErrors.push('Password must be at least 6 characters')
     }
 
+    if (formData.useCustomRole && !formData.customRoleId) {
+      newErrors.push('Please select a custom role')
+    }
+
     if (newErrors.length > 0) {
       setErrors(newErrors)
       return
@@ -374,7 +426,8 @@ function CreateUserModal({ onSubmit, onClose }: {
     onSubmit({
       name: formData.name,
       email: formData.email,
-      role: formData.role,
+      role: formData.useCustomRole ? 'SALES' : formData.role, // Default to SALES if using custom role
+      customRoleId: formData.useCustomRole ? formData.customRoleId : null,
       password: formData.password,
     })
   }
@@ -419,16 +472,74 @@ function CreateUserModal({ onSubmit, onClose }: {
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Role *</label>
-              <select
-                value={formData.role}
-                onChange={(e) => setFormData({ ...formData, role: e.target.value as User['role'] })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="SALES">Sales - Limited access to assigned data</option>
-                <option value="MANAGER">Manager - Team management capabilities</option>
-                <option value="ADMIN">Admin - Full system access</option>
-              </select>
+              <label className="block text-sm font-medium text-gray-700 mb-3">Role Type *</label>
+              
+              <div className="space-y-4">
+                {/* System Role Option */}
+                <div className="flex items-start space-x-3">
+                  <input
+                    type="radio"
+                    id="systemRole"
+                    name="roleType"
+                    checked={!formData.useCustomRole}
+                    onChange={() => setFormData({ ...formData, useCustomRole: false })}
+                    className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                  />
+                  <div className="flex-1">
+                    <label htmlFor="systemRole" className="block text-sm font-medium text-gray-700 mb-2">
+                      System Role
+                    </label>
+                    <select
+                      value={formData.role}
+                      onChange={(e) => setFormData({ ...formData, role: e.target.value as User['role'] })}
+                      disabled={formData.useCustomRole}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    >
+                      <option value="SALES">Sales - Limited access to assigned data</option>
+                      <option value="MANAGER">Manager - Team management capabilities</option>
+                      <option value="ADMIN">Admin - Full system access</option>
+                      {currentUser?.role === 'SUPERADMIN' && (
+                        <option value="SUPERADMIN">Super Admin - Complete system control</option>
+                      )}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Custom Role Option */}
+                {customRoles.length > 0 && (
+                  <div className="flex items-start space-x-3">
+                    <input
+                      type="radio"
+                      id="customRole"
+                      name="roleType"
+                      checked={formData.useCustomRole}
+                      onChange={() => setFormData({ ...formData, useCustomRole: true })}
+                      className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                    />
+                    <div className="flex-1">
+                      <label htmlFor="customRole" className="block text-sm font-medium text-gray-700 mb-2">
+                        Custom Role
+                      </label>
+                      <select
+                        value={formData.customRoleId}
+                        onChange={(e) => setFormData({ ...formData, customRoleId: e.target.value })}
+                        disabled={!formData.useCustomRole}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                      >
+                        <option value="">Select a custom role</option>
+                        {customRoles.map(role => (
+                          <option key={role.id} value={role.id}>
+                            {role.name} {role.description && `- ${role.description}`}
+                          </option>
+                        ))}
+                      </select>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Custom roles have specific permissions defined in the Roles section
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
             
             <div>
@@ -477,9 +588,10 @@ function CreateUserModal({ onSubmit, onClose }: {
   )
 }
 
-function EditUserModal({ user, currentUser, onSubmit, onClose }: { 
+function EditUserModal({ user, currentUser, customRoles, onSubmit, onClose }: { 
   user: User
   currentUser: any
+  customRoles: CustomRole[]
   onSubmit: (data: Partial<User>) => void
   onClose: () => void 
 }) {
@@ -487,13 +599,21 @@ function EditUserModal({ user, currentUser, onSubmit, onClose }: {
     name: user.name,
     email: user.email,
     role: user.role,
+    customRoleId: user.customRoleId || '',
+    useCustomRole: !!user.customRoleId,
     isActive: user.isActive,
   })
   const isCurrentUser = user.id === currentUser?.id
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    onSubmit(formData)
+    onSubmit({
+      name: formData.name,
+      email: formData.email,
+      role: formData.useCustomRole ? 'SALES' : formData.role, // Default to SALES if using custom role
+      customRoleId: formData.useCustomRole ? formData.customRoleId : null,
+      isActive: formData.isActive,
+    })
   }
 
   return (
@@ -526,19 +646,81 @@ function EditUserModal({ user, currentUser, onSubmit, onClose }: {
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Role *</label>
-              <select
-                value={formData.role}
-                onChange={(e) => setFormData({ ...formData, role: e.target.value as User['role'] })}
-                disabled={isCurrentUser} // Can't change own role
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
-              >
-                <option value="SALES">Sales - Limited access to assigned data</option>
-                <option value="MANAGER">Manager - Team management capabilities</option>
-                <option value="ADMIN">Admin - Full system access</option>
-              </select>
+              <label className="block text-sm font-medium text-gray-700 mb-3">Role Type *</label>
+              
+              <div className="space-y-4">
+                {/* System Role Option */}
+                <div className="flex items-start space-x-3">
+                  <input
+                    type="radio"
+                    id="editSystemRole"
+                    name="editRoleType"
+                    checked={!formData.useCustomRole}
+                    onChange={() => setFormData({ ...formData, useCustomRole: false })}
+                    disabled={isCurrentUser}
+                    className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 disabled:opacity-50"
+                  />
+                  <div className="flex-1">
+                    <label htmlFor="editSystemRole" className="block text-sm font-medium text-gray-700 mb-2">
+                      System Role
+                    </label>
+                    <select
+                      value={formData.role}
+                      onChange={(e) => setFormData({ ...formData, role: e.target.value as User['role'] })}
+                      disabled={formData.useCustomRole || isCurrentUser}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    >
+                      <option value="SALES">Sales - Limited access to assigned data</option>
+                      <option value="MANAGER">Manager - Team management capabilities</option>
+                      <option value="ADMIN">Admin - Full system access</option>
+                      {currentUser?.role === 'SUPERADMIN' && (
+                        <option value="SUPERADMIN">Super Admin - Complete system control</option>
+                      )}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Custom Role Option */}
+                {customRoles.length > 0 && (
+                  <div className="flex items-start space-x-3">
+                    <input
+                      type="radio"
+                      id="editCustomRole"
+                      name="editRoleType"
+                      checked={formData.useCustomRole}
+                      onChange={() => setFormData({ ...formData, useCustomRole: true })}
+                      disabled={isCurrentUser}
+                      className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 disabled:opacity-50"
+                    />
+                    <div className="flex-1">
+                      <label htmlFor="editCustomRole" className="block text-sm font-medium text-gray-700 mb-2">
+                        Custom Role
+                      </label>
+                      <select
+                        value={formData.customRoleId}
+                        onChange={(e) => setFormData({ ...formData, customRoleId: e.target.value })}
+                        disabled={!formData.useCustomRole || isCurrentUser}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                      >
+                        <option value="">Select a custom role</option>
+                        {customRoles.map(role => (
+                          <option key={role.id} value={role.id}>
+                            {role.name} {role.description && `- ${role.description}`}
+                          </option>
+                        ))}
+                      </select>
+                      {user.customRole && (
+                        <p className="text-xs text-gray-600 mt-1">
+                          Current: {user.customRole.name}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+              
               {isCurrentUser && (
-                <p className="text-xs text-gray-500 mt-1">You cannot change your own role</p>
+                <p className="text-xs text-gray-500 mt-2">You cannot change your own role</p>
               )}
             </div>
             

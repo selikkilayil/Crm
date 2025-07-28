@@ -1,15 +1,34 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcrypt'
+import { getAuthenticatedUser } from '@/lib/api-auth-dynamic'
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    // Get the current user to check their role
+    const currentUser = await getAuthenticatedUser(request)
+    
+    // Build where clause - if user is not SUPERADMIN, exclude SUPERADMIN users
+    const whereClause: any = {}
+    if (currentUser?.role !== 'SUPERADMIN') {
+      whereClause.role = { not: 'SUPERADMIN' }
+    }
+    
     const users = await prisma.user.findMany({
+      where: whereClause,
       select: {
         id: true,
         name: true,
         email: true,
         role: true,
+        customRoleId: true,
+        customRole: {
+          select: {
+            id: true,
+            name: true,
+            description: true,
+          }
+        },
         isActive: true,
         createdAt: true,
         updatedAt: true,
@@ -37,6 +56,14 @@ export async function POST(request: NextRequest) {
     
     if (!name || !email || !role || !password) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
+    }
+    
+    // Get the current user to check their role
+    const currentUser = await getAuthenticatedUser(request)
+    
+    // Only SUPERADMIN users can create SUPERADMIN users
+    if (role === 'SUPERADMIN' && currentUser?.role !== 'SUPERADMIN') {
+      return NextResponse.json({ error: 'Insufficient permissions to create SUPERADMIN user' }, { status: 403 })
     }
     
     // Validate custom role if provided
@@ -76,6 +103,14 @@ export async function POST(request: NextRequest) {
         name: true,
         email: true,
         role: true,
+        customRoleId: true,
+        customRole: {
+          select: {
+            id: true,
+            name: true,
+            description: true,
+          }
+        },
         isActive: true,
         createdAt: true,
         updatedAt: true,

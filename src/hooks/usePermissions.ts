@@ -22,23 +22,24 @@ export function usePermissions() {
 
   const fetchUserPermissions = async () => {
     try {
-      const headers: Record<string, string> = {}
-      if (user) {
-        headers['x-auth-user'] = JSON.stringify(user)
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'x-auth-user': JSON.stringify(user)
       }
 
       const response = await fetch(`/api/users/${user.id}/permissions`, { headers })
+      
       if (response.ok) {
         const data = await response.json()
         setPermissions(data.permissions || [])
       } else {
         // Fall back to hardcoded permissions if API fails
-        setPermissions(getHardcodedPermissions(user.role))
+        setPermissions(getHardcodedPermissions(user.role, user.customRoleId))
       }
     } catch (error) {
       console.error('Error fetching user permissions:', error)
       // Fall back to hardcoded permissions
-      setPermissions(getHardcodedPermissions(user.role))
+      setPermissions(getHardcodedPermissions(user.role, user.customRoleId))
     } finally {
       setLoading(false)
     }
@@ -99,7 +100,14 @@ export function usePermissions() {
 }
 
 // Fallback to hardcoded permissions if dynamic permissions fail
-function getHardcodedPermissions(role: string): Permission[] {
+function getHardcodedPermissions(role: string, customRoleId?: string | null): Permission[] {
+  // If user has custom role, we can't determine permissions without DB access
+  // Return empty array to force proper API usage
+  if (customRoleId) {
+    console.warn('Cannot determine custom role permissions in fallback mode')
+    return []
+  }
+
   switch (role) {
     case 'SUPERADMIN':
       return [
@@ -110,7 +118,15 @@ function getHardcodedPermissions(role: string): Permission[] {
         { resource: 'roles', action: 'view' },
         { resource: 'roles', action: 'create' },
         { resource: 'roles', action: 'edit' },
-        { resource: 'roles', action: 'delete' }
+        { resource: 'roles', action: 'delete' },
+        { resource: 'leads', action: 'view_all' },
+        { resource: 'customers', action: 'view_all' },
+        { resource: 'quotations', action: 'view_all' },
+        { resource: 'tasks', action: 'view_all' },
+        { resource: 'activities', action: 'view_all' },
+        { resource: 'tags', action: 'view' },
+        { resource: 'settings', action: 'view' },
+        { resource: 'dashboard', action: 'view_all' }
       ]
     case 'ADMIN':
       return [
@@ -128,6 +144,7 @@ function getHardcodedPermissions(role: string): Permission[] {
         { resource: 'tasks', action: 'view_all' },
         { resource: 'activities', action: 'view_all' },
         { resource: 'tags', action: 'view' },
+        { resource: 'settings', action: 'view' },
         { resource: 'dashboard', action: 'view_all' }
       ]
     case 'MANAGER':
