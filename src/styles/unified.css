@@ -1,3 +1,5 @@
+@reference tailwindcss;
+
 /* ==========================================================================
    CRM Application - Unified Stylesheet
    ========================================================================== */
@@ -71,6 +73,7 @@
 .btn {
   @apply inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-lg border transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed;
   min-height: 44px; /* Touch-friendly minimum */
+  text-decoration: none !important;
 }
 
 /* Button Variants */
@@ -154,6 +157,7 @@
   @apply w-full px-3 py-2 border border-gray-300 rounded-lg text-sm transition-colors duration-200;
   @apply focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500;
   @apply disabled:bg-gray-50 disabled:cursor-not-allowed;
+  @apply bg-white;
   color: var(--text-color-primary);
   min-height: 44px; /* Touch-friendly */
 }
@@ -173,13 +177,12 @@
 
 /* Select Fields */
 .form-select {
-  @apply form-input appearance-none bg-white;
+  @apply form-input appearance-none bg-white text-gray-900;
   background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%234b5563' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
   background-position: right 0.5rem center;
   background-repeat: no-repeat;
   background-size: 1.5em 1.5em;
   padding-right: 2.5rem;
-  color: var(--text-color-primary);
 }
 
 /* Textarea */
@@ -419,7 +422,8 @@
 }
 
 .empty-state-description {
-  @apply text-black mb-4;
+  @apply mb-4;
+  color: var(--text-color-secondary);
 }
 
 /* ==========================================================================
@@ -439,59 +443,33 @@
   color: var(--text-color-secondary);
 }
 
+/* Navigation uses standard Tailwind classes - no overrides needed */
+
 /* ==========================================================================
    UTILITY CLASSES
    ========================================================================== */
 
 /* Text Colors with proper contrast */
 .text-primary {
-  color: var(--text-color-primary) !important;
+  color: var(--text-color-primary);
 }
 
 .text-secondary {
-  color: var(--text-color-secondary) !important;
+  color: var(--text-color-secondary);
 }
 
 .text-muted {
-  color: var(--text-color-muted) !important;
+  color: var(--text-color-muted);
 }
 
 .text-light {
-  color: var(--text-color-light) !important;
+  color: var(--text-color-light);
 }
 
-/* Override common gray text classes with our design tokens */
-.text-gray-900,
-.text-gray-800,
-.text-gray-700 {
-  color: var(--text-color-primary) !important;
-}
-
-.text-gray-600,
-.text-gray-500 {
-  color: var(--text-color-secondary) !important;
-}
-
-.text-gray-400 {
-  color: var(--text-color-muted) !important;
-}
-
-.text-gray-300 {
-  color: var(--text-color-light) !important;
-}
+/* Design token utilities - use these classes instead of gray-xxx */
 
 /* Heading styles with proper black text */
 h1, h2, h3, h4, h5, h6 {
-  color: var(--text-color-primary) !important;
-}
-
-/* Default text color for paragraphs and spans */
-p, span, div {
-  color: var(--text-color-primary) !important;
-}
-
-/* Table text colors */
-td, th {
   color: var(--text-color-primary);
 }
 
@@ -504,60 +482,47 @@ a:hover {
   color: var(--color-primary-hover);
 }
 
-/* Input placeholder override for all browsers */
+/* Input placeholder styling for all browsers */
 input::placeholder,
 textarea::placeholder,
 select::placeholder {
-  color: var(--text-color-muted) !important;
-  opacity: 1 !important;
+  color: var(--text-color-muted);
+  opacity: 1;
 }
 
 /* Firefox placeholder opacity fix */
 input::-moz-placeholder,
 textarea::-moz-placeholder {
-  color: var(--text-color-muted) !important;
-  opacity: 1 !important;
+  color: var(--text-color-muted);
+  opacity: 1;
 }
 
 /* Webkit placeholder */
 input::-webkit-input-placeholder,
 textarea::-webkit-input-placeholder {
-  color: var(--text-color-muted) !important;
-  opacity: 1 !important;
+  color: var(--text-color-muted);
+  opacity: 1;
 }
 
 /* MS Edge placeholder */
 input:-ms-input-placeholder,
 textarea:-ms-input-placeholder {
-  color: var(--text-color-muted) !important;
-  opacity: 1 !important;
+  color: var(--text-color-muted);
+  opacity: 1;
 }
 
-/* Strong text color overrides for better readability */
-.text-readable {
-  color: var(--text-color-primary) !important;
+/* Ensure white text on colored backgrounds */
+.text-white {
+  color: white;
 }
 
-/* Ensure all text is readable */
-* {
-  color: var(--text-color-primary);
-}
+/* Use semantic color classes instead of overrides */
 
-/* Exception for elements that should maintain their colors */
-button, input, select, textarea {
-  color: var(--text-color-primary);
-}
+/* Remove problematic global overrides that interfere with navbar */
 
-/* Ensure white text stays white on colored backgrounds */
-.text-white, 
-.bg-blue-600 *, 
-.bg-green-600 *, 
-.bg-red-600 *, 
-.bg-yellow-600 *, 
-.bg-purple-600 *, 
-.bg-gray-600 * {
-  color: white !important;
-}
+/* Use standard Tailwind classes - no overrides needed */
+
+/* Use standard Tailwind shadow classes */
 
 /* Mobile-first responsive utilities */
 .mobile-hidden {
@@ -611,16 +576,7 @@ button, input, select, textarea {
    DARK MODE SUPPORT (Future Enhancement)
    ========================================================================== */
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --text-color-primary: #ffffff;
-    --text-color-secondary: #f3f4f6;
-    --text-color-muted: #d1d5db;
-    --text-color-light: #9ca3af;
-  }
-  
-  /* Dark mode styles can be added here in the future */
-}
+/* Dark mode is disabled for now to prevent text visibility issues */
 
 /* ==========================================================================
    PRINT STYLES

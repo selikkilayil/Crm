@@ -444,9 +444,12 @@ export default function EnhancedLeadsPage() {
                       <div className="flex flex-wrap gap-2 mt-4">
                         <button
                           onClick={() => router.push(`/leads/edit/${lead.id}`)}
-                          className="px-3 py-1 text-xs font-medium text-blue-600 bg-blue-50 rounded-md hover:bg-blue-100 min-h-[36px] flex items-center"
+                          className="p-2 text-blue-600 bg-blue-50 rounded-md hover:bg-blue-100 min-h-[36px] min-w-[36px] flex items-center justify-center"
+                          title="Edit Lead"
                         >
-                          ✏️ Edit
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
                         </button>
                         {lead.status !== 'CONVERTED' && (
                           <button
@@ -565,8 +568,11 @@ function LeadCard({ lead, onStatusChange, onConvert, onArchive, onEdit }: {
         <div className="absolute right-0 top-8 bg-white border border-gray-200 rounded-md shadow-lg z-10 min-w-32">
           <button
             onClick={() => { onEdit(); setShowMenu(false) }}
-            className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+            className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 w-full"
           >
+            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+            </svg>
             Edit
           </button>
           {lead.status !== 'CONVERTED' && (
@@ -659,9 +665,12 @@ function LeadsTable({ leads, onStatusChange, onConvert, onArchive, onEdit }: {
               <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
                 <button
                   onClick={() => onEdit(lead)}
-                  className="text-blue-600 hover:text-blue-900"
+                  className="text-blue-600 hover:text-blue-900 p-1"
+                  title="Edit Lead"
                 >
-                  Edit
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
                 </button>
                 {lead.status !== 'CONVERTED' && (
                   <button

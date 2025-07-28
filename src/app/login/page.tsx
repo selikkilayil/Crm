@@ -83,10 +83,10 @@ export default function LoginPage() {
             </div>
           )}
           
-          <div className="rounded-md shadow-sm space-y-4">
+          <div className="space-y-4">
             <div>
-              <label htmlFor="email" className="form-label form-label-required">
-                Email address
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                Email address <span className="text-red-500">*</span>
               </label>
               <input
                 id="email"
@@ -96,13 +96,13 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="Enter your email"
-                className="form-input"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200 min-h-[44px]"
               />
             </div>
             
             <div>
-              <label htmlFor="password" className="form-label form-label-required">
-                Password
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+                Password <span className="text-red-500">*</span>
               </label>
               <input
                 id="password"
@@ -112,7 +112,7 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Enter your password"
-                className="form-input"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200 min-h-[44px]"
               />
             </div>
           </div>
@@ -121,11 +121,11 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="btn btn-primary w-full"
+              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 min-h-[44px]"
             >
               {loading ? (
                 <div className="flex items-center">
-                  <div className="loading-spinner loading-spinner-sm mr-2 border-white"></div>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
                   Signing in...
                 </div>
               ) : (
@@ -135,7 +135,7 @@ export default function LoginPage() {
             
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300" />
+                <div className="w-full border-t border-gray-200" />
               </div>
               <div className="relative flex justify-center text-sm">
                 <span className="px-2 bg-gray-50 text-gray-500">Or</span>
@@ -146,16 +146,16 @@ export default function LoginPage() {
               type="button"
               onClick={handleDemoLogin}
               disabled={loading}
-              className="btn btn-secondary w-full"
+              className="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 min-h-[44px]"
             >
               Try Demo Account
             </button>
           </div>
 
-          <div className="border-t border-gray-200 pt-4">
+          <div className="pt-4">
             <div className="text-xs text-gray-500 space-y-1">
-              <p><strong>Demo Account:</strong> Full admin access with sample data</p>
-              <p><strong>Real Login:</strong> Use your registered email and password</p>
+              <p><strong className="text-gray-700">Demo Account:</strong> Full admin access with sample data</p>
+              <p><strong className="text-gray-700">Real Login:</strong> Use your registered email and password</p>
             </div>
           </div>
         </form>

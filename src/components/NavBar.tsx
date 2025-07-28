@@ -93,7 +93,7 @@ export default function NavBar({ currentPage }: NavBarProps) {
   // Hide entire navbar for superadmin users
   if (user?.role === 'SUPERADMIN') {
     return (
-      <nav className="bg-white shadow-sm border-b sticky top-0 z-40">
+      <nav className="bg-white shadow-sm sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
             {/* Logo */}
@@ -151,7 +151,7 @@ export default function NavBar({ currentPage }: NavBarProps) {
   }
 
   return (
-    <nav className="bg-white shadow-sm border-b sticky top-0 z-40">
+    <nav className="bg-white shadow-sm sticky top-0 z-40">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
           {/* Logo */}
