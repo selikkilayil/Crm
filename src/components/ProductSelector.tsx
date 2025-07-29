@@ -106,18 +106,19 @@ export default function ProductSelector({
   const handleProductSelect = (product: Product) => {
     setSelectedProduct(product)
     
+    // Always call onProductSelect first
+    onProductSelect(product, undefined, {})
+    
     if (product.productType === 'SIMPLE') {
-      onProductSelect(product)
-      setShowProductModal(false)
-    } else {
-      // For configurable/calculated products, keep modal open for configuration
-      onProductSelect(product)
+      // For simple products, close modal after selection
+      setTimeout(() => setShowProductModal(false), 100)
     }
+    // For configurable/calculated products, keep modal open for configuration
   }
 
   const handleVariantSelect = (variant: ProductVariant) => {
     if (selectedProduct) {
-      onProductSelect(selectedProduct, variant)
+      onProductSelect(selectedProduct, variant, configuration)
     }
   }
 
@@ -130,12 +131,12 @@ export default function ProductSelector({
 
   const getPriceDisplay = (product: Product) => {
     if (product.pricingType === 'CALCULATED') {
-      return `₹${product.basePrice}/${product.unit} (calculated)`
+      return `₹${Number(product.basePrice)}/${product.unit} (calculated)`
     }
     if (product.pricingType === 'VARIANT_BASED') {
       return 'Variable pricing'
     }
-    return `₹${product.basePrice}${product.pricingType === 'PER_UNIT' ? `/${product.unit}` : ''}`
+    return `₹${Number(product.basePrice)}${product.pricingType === 'PER_UNIT' ? `/${product.unit}` : ''}`
   }
 
   return (
@@ -219,9 +220,7 @@ export default function ProductSelector({
                         {attribute.options.filter(opt => opt.isActive).map((option) => (
                           <option key={option.id} value={option.value}>
                             {option.displayName || option.value}
-                            {option.priceModifier !== 0 && (
-                              <span> ({option.priceModifier > 0 ? '+' : ''}₹{option.priceModifier})</span>
-                            )}
+                            {option.priceModifier !== 0 && ` (${option.priceModifier > 0 ? '+' : ''}₹${option.priceModifier})`}
                           </option>
                         ))}
                       </select>
@@ -292,20 +291,29 @@ export default function ProductSelector({
 
       {/* Product Selection Modal */}
       {showProductModal && (
-        <div className="fixed inset-0 z-50 overflow-y-auto">
+        <div className="fixed inset-0 z-[9999] overflow-y-auto" style={{ zIndex: 9999 }}>
           <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            <div className="fixed inset-0 transition-opacity" onClick={() => setShowProductModal(false)}>
-              <div className="absolute inset-0 bg-gray-500 opacity-75"></div>
-            </div>
+            {/* Backdrop */}
+            <div 
+              className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" 
+              onClick={() => setShowProductModal(false)}
+              aria-hidden="true"
+            ></div>
 
-            <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full">
+            {/* Modal panel */}
+            <div 
+              className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full relative"
+              onClick={(e) => e.stopPropagation()}
+            >
               <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
                 <div className="flex justify-between items-center mb-6">
                   <h3 className="text-lg font-medium text-gray-900">Select Product</h3>
                   <button
+                    type="button"
                     onClick={() => setShowProductModal(false)}
-                    className="text-gray-400 hover:text-gray-600"
+                    className="text-gray-400 hover:text-gray-600 p-2 -m-2"
                   >
+                    <span className="sr-only">Close</span>
                     <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                     </svg>
@@ -320,13 +328,13 @@ export default function ProductSelector({
                       placeholder="Search products..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
                   </div>
                   <select
                     value={selectedCategory}
                     onChange={(e) => setSelectedCategory(e.target.value)}
-                    className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
                   >
                     <option value="">All Categories</option>
                     {categories.map((category) => (
@@ -339,6 +347,7 @@ export default function ProductSelector({
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-96 overflow-y-auto">
                   {loading ? (
                     <div className="col-span-full text-center py-8">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
                       <div className="text-gray-500">Loading products...</div>
                     </div>
                   ) : filteredProducts.length > 0 ? (
@@ -346,7 +355,7 @@ export default function ProductSelector({
                       <div
                         key={product.id}
                         onClick={() => handleProductSelect(product)}
-                        className="border border-gray-200 rounded-lg p-4 hover:border-blue-500 cursor-pointer transition-colors"
+                        className="border border-gray-200 rounded-lg p-4 hover:border-blue-500 hover:bg-blue-50 cursor-pointer transition-all duration-200 select-none"
                       >
                         <h4 className="font-medium text-gray-900 mb-1">{product.name}</h4>
                         {product.sku && (
@@ -372,16 +381,21 @@ export default function ProductSelector({
                     ))
                   ) : (
                     <div className="col-span-full text-center py-8">
+                      <svg className="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                      </svg>
                       <div className="text-gray-500">No products found</div>
+                      <p className="text-sm text-gray-400 mt-1">Try adjusting your search or filters</p>
                     </div>
                   )}
                 </div>
               </div>
 
-              <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+              <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse border-t border-gray-200">
                 <button
+                  type="button"
                   onClick={() => setShowProductModal(false)}
-                  className="w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+                  className="w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm transition-colors"
                 >
                   Cancel
                 </button>

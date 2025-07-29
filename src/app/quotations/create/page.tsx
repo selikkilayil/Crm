@@ -177,8 +177,10 @@ export default function CreateQuotationPage() {
   }
 
   const updateItem = (index: number, field: string, value: any) => {
+    console.log(`Updating item ${index}, field: ${field}, value:`, value)
     const updatedItems = [...items]
     updatedItems[index] = { ...updatedItems[index], [field]: value }
+    console.log('Updated item:', updatedItems[index])
     setItems(updatedItems)
   }
 
@@ -201,14 +203,14 @@ export default function CreateQuotationPage() {
     updateItem(index, 'productId', productId)
     updateItem(index, 'productName', product.name)
     updateItem(index, 'description', product.description || '')
-    updateItem(index, 'taxPercent', product.defaultTaxRate)
+    updateItem(index, 'taxPercent', Number(product.defaultTaxRate))
 
     // For simple products, set price directly
     if (product.productType === 'SIMPLE' && product.pricingType === 'FIXED') {
-      updateItem(index, 'unitPrice', product.basePrice)
+      updateItem(index, 'unitPrice', Number(product.basePrice))
     } else {
       // For configurable/calculated products, will need configuration
-      updateItem(index, 'unitPrice', product.basePrice)
+      updateItem(index, 'unitPrice', Number(product.basePrice))
     }
 
     // Initialize configuration for configurable products
@@ -614,10 +616,11 @@ function QuotationItemEditor({
           configuration={item.configuration}
           onProductSelect={(product, variant, configuration) => {
             if (product) {
+              console.log('Product selected:', product.name, 'Base Price:', product.basePrice, 'Variant:', variant)
               onUpdate(index, 'productId', product.id)
               onUpdate(index, 'productName', product.name)
-              onUpdate(index, 'unitPrice', variant?.price || product.basePrice)
-              onUpdate(index, 'taxPercent', product.defaultTaxRate)
+              onUpdate(index, 'unitPrice', Number(variant?.price || product.basePrice))
+              onUpdate(index, 'taxPercent', Number(product.defaultTaxRate))
               
               if (variant) {
                 onUpdate(index, 'variantId', variant.id)

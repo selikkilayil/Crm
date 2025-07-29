@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { requireAuth } from '@/lib/api-auth'
-import { PERMISSIONS, hasPermission } from '@/lib/permissions'
+import { requireAuth } from '@/lib/api-auth-dynamic'
+import { hasPermission } from '@/lib/dynamic-permissions'
 
 export async function POST(
   request: NextRequest,
@@ -12,8 +12,8 @@ export async function POST(
     const { id } = await params
     
     // Check permissions
-    if (!hasPermission(user.role, PERMISSIONS.QUOTATIONS_CREATE) && 
-        !hasPermission(user.role, PERMISSIONS.QUOTATIONS_EDIT_ALL)) {
+    if (!(await hasPermission(user, { resource: 'quotations', action: 'create' })) && 
+        !(await hasPermission(user, { resource: 'quotations', action: 'edit_all' }))) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 })
     }
     

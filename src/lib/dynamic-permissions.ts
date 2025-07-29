@@ -120,6 +120,10 @@ function getHardcodedRolePermissions(role: UserRole): Permission[] {
         { resource: 'customers', action: 'create' },
         { resource: 'customers', action: 'edit_all' },
         { resource: 'customers', action: 'delete' },
+        { resource: 'products', action: 'view' },
+        { resource: 'products', action: 'create' },
+        { resource: 'products', action: 'edit' },
+        { resource: 'products', action: 'delete' },
         { resource: 'quotations', action: 'view_all' },
         { resource: 'quotations', action: 'create' },
         { resource: 'quotations', action: 'edit_all' },
@@ -139,6 +143,8 @@ function getHardcodedRolePermissions(role: UserRole): Permission[] {
         { resource: 'tags', action: 'edit' },
         { resource: 'tags', action: 'delete' },
         { resource: 'dashboard', action: 'view_all' },
+        { resource: 'settings', action: 'view' },
+        { resource: 'settings', action: 'edit' },
       ]
     
     case 'MANAGER':
@@ -151,6 +157,9 @@ function getHardcodedRolePermissions(role: UserRole): Permission[] {
         { resource: 'customers', action: 'view_all' },
         { resource: 'customers', action: 'create' },
         { resource: 'customers', action: 'edit_all' },
+        { resource: 'products', action: 'view' },
+        { resource: 'products', action: 'create' },
+        { resource: 'products', action: 'edit' },
         { resource: 'quotations', action: 'view_all' },
         { resource: 'quotations', action: 'create' },
         { resource: 'quotations', action: 'edit_all' },
@@ -176,6 +185,7 @@ function getHardcodedRolePermissions(role: UserRole): Permission[] {
         { resource: 'customers', action: 'view_assigned' },
         { resource: 'customers', action: 'create' },
         { resource: 'customers', action: 'edit_assigned' },
+        { resource: 'products', action: 'view' },
         { resource: 'quotations', action: 'view_assigned' },
         { resource: 'quotations', action: 'create' },
         { resource: 'quotations', action: 'edit_assigned' },

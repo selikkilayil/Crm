@@ -7,6 +7,7 @@ import PermissionGuard from '@/components/PermissionGuard'
 import NavBar from '@/components/NavBar'
 import { productApi } from '@/lib/api-client'
 import { PERMISSIONS } from '@/lib/permissions'
+import { useConfirmationDialog } from '@/components/ConfirmationDialog'
 
 interface Product {
   id: string
@@ -74,6 +75,7 @@ export default function ProductsPage() {
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [categories, setCategories] = useState<string[]>([])
   const router = useRouter()
+  const { showConfirmation, ConfirmationComponent } = useConfirmationDialog()
 
   useEffect(() => {
     fetchProducts()
