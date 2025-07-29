@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { verify } from 'jsonwebtoken'
+import { authenticateRequest } from '@/lib/auth-server'
 
 // Routes that require authentication
 const protectedRoutes = [
@@ -37,7 +37,7 @@ const managerRoutes = [
   '/dashboard',
 ]
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
   
   // Skip middleware for login page, public assets, and API auth
@@ -46,51 +46,44 @@ export function middleware(request: NextRequest) {
     pathname.startsWith('/_next') ||
     pathname.startsWith('/favicon') ||
     pathname.startsWith('/api/auth/login') ||
+    pathname.startsWith('/api/auth/logout') ||
     pathname === '/'
   ) {
     return NextResponse.next()
   }
 
-  // Special handling for superadmin route
-  if (pathname === '/superadmin') {
+  // Check if this is a protected route
+  const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route))
+  
+  if (!isProtectedRoute) {
     return NextResponse.next()
   }
+
+  // Authenticate the request
+  const user = await authenticateRequest(request)
   
-  // For now, disable middleware redirects for client-side routes
-  // Let the client-side AuthGuard handle authentication
-  if (!pathname.startsWith('/api/')) {
-    return NextResponse.next()
+  if (!user) {
+    // Redirect to login for page routes
+    if (!pathname.startsWith('/api/')) {
+      return NextResponse.redirect(new URL('/login', request.url))
+    }
+    // Return 401 for API routes
+    return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
   }
-  
-  // Superadmin API access restrictions - block access to non-user APIs
-  const authHeader = request.headers.get('x-auth-user')
-  if (authHeader) {
-    try {
-      const userData = JSON.parse(authHeader)
-      // Check if this appears to be a superadmin user (basic check)
-      // Full verification happens in individual API routes
-      if (userData.role === 'SUPERADMIN') {
-        // Only allow access to user management APIs
-        if (!pathname.startsWith('/api/users') && pathname !== '/api/auth/login') {
-          return NextResponse.json({ error: 'Unauthorized: Superadmin access restricted' }, { status: 403 })
-        }
+
+  // SUPERADMIN role restrictions
+  if (user.role === 'SUPERADMIN') {
+    const allowedPaths = ['/users', '/superadmin', '/api/users', '/api/roles', '/api/permissions']
+    const isAllowed = allowedPaths.some(path => pathname.startsWith(path))
+    
+    if (!isAllowed) {
+      if (!pathname.startsWith('/api/')) {
+        return NextResponse.redirect(new URL('/users', request.url))
       }
-    } catch {
-      // Invalid auth header, let individual routes handle
+      return NextResponse.json({ error: 'Unauthorized: Superadmin access restricted to user management' }, { status: 403 })
     }
   }
-  
-  // Only handle API route protection
-  const isProtectedApiRoute = protectedRoutes.some(route => 
-    pathname.startsWith(route) && pathname.startsWith('/api/')
-  )
-  
-  if (!isProtectedApiRoute) {
-    return NextResponse.next()
-  }
-  
-  // For API routes, let individual route handlers manage auth
-  // since they need to access user data anyway
+
   return NextResponse.next()
 }
 

@@ -3,27 +3,36 @@ export interface User {
   email: string
   name: string
   role: 'SUPERADMIN' | 'ADMIN' | 'MANAGER' | 'SALES'
+  customRoleId?: string
+  customRole?: {
+    id: string
+    name: string
+    description: string
+  }
 }
 
-const DEMO_USER: User = {
-  id: 'demo-user-123',
-  email: 'demo@crm.com',
-  name: 'Demo User',
-  role: 'ADMIN'
-}
+let currentUser: User | null = null
 
 export function setAuthToken(user: User) {
+  currentUser = user
+  // Store user info in localStorage for client-side access
+  // The actual token is stored in HTTP-only cookie
   if (typeof window !== 'undefined') {
     localStorage.setItem('auth_user', JSON.stringify(user))
   }
 }
 
 export function getAuthToken(): User | null {
+  if (currentUser) {
+    return currentUser
+  }
+  
   if (typeof window !== 'undefined') {
     const stored = localStorage.getItem('auth_user')
     if (stored) {
       try {
-        return JSON.parse(stored)
+        currentUser = JSON.parse(stored)
+        return currentUser
       } catch {
         return null
       }
@@ -33,6 +42,7 @@ export function getAuthToken(): User | null {
 }
 
 export function clearAuthToken() {
+  currentUser = null
   if (typeof window !== 'undefined') {
     localStorage.removeItem('auth_user')
   }
@@ -40,11 +50,6 @@ export function clearAuthToken() {
 
 export function isAuthenticated(): boolean {
   return getAuthToken() !== null
-}
-
-export function loginDemo(): User {
-  setAuthToken(DEMO_USER)
-  return DEMO_USER
 }
 
 export async function login(email: string, password: string): Promise<User> {
@@ -66,7 +71,18 @@ export async function login(email: string, password: string): Promise<User> {
   return data.user
 }
 
-export function logout() {
+export async function logout() {
+  try {
+    // Call logout API to clear HTTP-only cookie
+    await fetch('/api/auth/logout', {
+      method: 'POST',
+      credentials: 'include', // Include cookies
+    })
+  } catch (error) {
+    console.error('Logout API call failed:', error)
+    // Continue with client-side cleanup even if API fails
+  }
+  
   clearAuthToken()
   if (typeof window !== 'undefined') {
     window.location.href = '/login'

@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { requirePermission } from '@/lib/auth-server'
 import { QuotationStatus } from '@prisma/client'
 
 export async function GET(request: NextRequest) {
   try {
+    // Require authentication and permission
+    await requirePermission(request, 'QUOTATIONS_VIEW_ALL')
+    
     const { searchParams } = new URL(request.url)
     const status = searchParams.get('status')
     const customerId = searchParams.get('customerId')
@@ -54,14 +58,26 @@ export async function GET(request: NextRequest) {
     })
 
     return NextResponse.json(quotations)
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error fetching quotations:', error)
+    
+    if (error.message === 'Authentication required') {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+    }
+    
+    if (error.message?.startsWith('Insufficient permissions')) {
+      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 })
+    }
+    
     return NextResponse.json({ error: 'Failed to fetch quotations' }, { status: 500 })
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
+    // Require authentication and permission
+    const user = await requirePermission(request, 'QUOTATIONS_CREATE')
+    
     const body = await request.json()
     const {
       customerId,
@@ -155,8 +171,17 @@ export async function POST(request: NextRequest) {
     })
 
     return NextResponse.json(quotation, { status: 201 })
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error creating quotation:', error)
+    
+    if (error.message === 'Authentication required') {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+    }
+    
+    if (error.message?.startsWith('Insufficient permissions')) {
+      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 })
+    }
+    
     return NextResponse.json({ error: 'Failed to create quotation' }, { status: 500 })
   }
 }

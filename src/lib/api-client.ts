@@ -12,20 +12,20 @@ class ApiClient {
       'Content-Type': 'application/json',
     }
 
-    // Add auth user data to headers if available
-    const user = getAuthToken()
-    if (user) {
-      headers['x-auth-user'] = JSON.stringify(user)
-    }
-
     return headers
   }
 
-  async get(endpoint: string): Promise<unknown> {
-    const response = await fetch(`${this.baseURL}${endpoint}`, {
-      method: 'GET',
+  private getRequestInit(method: string, body?: any): RequestInit {
+    return {
+      method,
       headers: this.getHeaders(),
-    })
+      credentials: 'include', // Always include cookies for authentication
+      ...(body && { body: JSON.stringify(body) })
+    }
+  }
+
+  async get(endpoint: string): Promise<unknown> {
+    const response = await fetch(`${this.baseURL}${endpoint}`, this.getRequestInit('GET'))
 
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`)
@@ -35,11 +35,7 @@ class ApiClient {
   }
 
   async post(endpoint: string, data: unknown): Promise<unknown> {
-    const response = await fetch(`${this.baseURL}${endpoint}`, {
-      method: 'POST',
-      headers: this.getHeaders(),
-      body: JSON.stringify(data),
-    })
+    const response = await fetch(`${this.baseURL}${endpoint}`, this.getRequestInit('POST', data))
 
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`)
@@ -49,11 +45,7 @@ class ApiClient {
   }
 
   async put(endpoint: string, data: unknown): Promise<unknown> {
-    const response = await fetch(`${this.baseURL}${endpoint}`, {
-      method: 'PUT',
-      headers: this.getHeaders(),
-      body: JSON.stringify(data),
-    })
+    const response = await fetch(`${this.baseURL}${endpoint}`, this.getRequestInit('PUT', data))
 
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`)
@@ -63,10 +55,7 @@ class ApiClient {
   }
 
   async delete(endpoint: string): Promise<unknown> {
-    const response = await fetch(`${this.baseURL}${endpoint}`, {
-      method: 'DELETE',
-      headers: this.getHeaders(),
-    })
+    const response = await fetch(`${this.baseURL}${endpoint}`, this.getRequestInit('DELETE'))
 
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`)

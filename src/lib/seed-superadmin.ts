@@ -13,8 +13,9 @@ export async function seedSuperAdmin() {
       return existingSuperAdmin
     }
 
-    // Create superadmin user
-    const hashedPassword = await bcrypt.hash('SuperAdmin@123!', 10)
+    // Generate a secure random password
+    const defaultPassword = process.env.SUPERADMIN_PASSWORD || `TempPass${Date.now()}!`
+    const hashedPassword = await bcrypt.hash(defaultPassword, 12)
     
     const superAdmin = await prisma.user.create({
       data: {
@@ -23,12 +24,14 @@ export async function seedSuperAdmin() {
         role: 'SUPERADMIN',
         password: hashedPassword,
         isActive: true,
+        mustChangePassword: true, // Force password change on first login
       }
     })
 
     console.log('SuperAdmin created successfully')
     console.log('Email: superadmin@crm.internal')
-    console.log('Password: SuperAdmin@123!')
+    console.log('Temporary Password:', defaultPassword)
+    console.log('⚠️  IMPORTANT: Change password immediately after first login!')
     
     return superAdmin
   } catch (error) {
