@@ -5,20 +5,21 @@ import bcrypt from 'bcrypt'
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params
   try {
     const user = await requireAuth(request)
     const body = await request.json()
     const { currentPassword, newPassword } = body
     
     // Users can only change their own password, or admins/superadmins can change anyone's
-    if (user.id !== params.id && user.role !== 'ADMIN' && user.role !== 'SUPERADMIN') {
+    if (user.id !== id && user.role !== 'ADMIN' && user.role !== 'SUPERADMIN') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
     }
     
     // For admin/superadmin changing other users' passwords, currentPassword is not required
-    const isAdminChangingOtherUser = (user.role === 'ADMIN' || user.role === 'SUPERADMIN') && user.id !== params.id
+    const isAdminChangingOtherUser = (user.role === 'ADMIN' || user.role === 'SUPERADMIN') && user.id !== id
     
     if (!isAdminChangingOtherUser && !currentPassword) {
       return NextResponse.json({ error: 'Current password is required' }, { status: 400 })
@@ -34,7 +35,7 @@ export async function PUT(
     
     // Get the user from database
     const targetUser = await prisma.user.findUnique({
-      where: { id: params.id },
+      where: { id },
       select: {
         id: true,
         password: true,
@@ -51,7 +52,7 @@ export async function PUT(
     }
     
     // Verify current password if user is changing their own password
-    if (user.id === params.id && currentPassword) {
+    if (user.id === id && currentPassword) {
       if (targetUser.password) {
         const isValidPassword = await bcrypt.compare(currentPassword, targetUser.password)
         if (!isValidPassword) {
@@ -68,7 +69,7 @@ export async function PUT(
     
     // Update the password
     await prisma.user.update({
-      where: { id: params.id },
+      where: { id },
       data: { password: hashedNewPassword },
     })
     

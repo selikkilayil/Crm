@@ -65,6 +65,12 @@ const PERMISSIONS = [
   { resource: 'tags', action: 'edit', description: 'Edit tags', category: 'CRM' },
   { resource: 'tags', action: 'delete', description: 'Delete tags', category: 'CRM' },
   
+  // Product Management
+  { resource: 'products', action: 'view', description: 'View products catalog', category: 'Inventory' },
+  { resource: 'products', action: 'create', description: 'Create new products', category: 'Inventory' },
+  { resource: 'products', action: 'edit', description: 'Edit product details', category: 'Inventory' },
+  { resource: 'products', action: 'delete', description: 'Delete products', category: 'Inventory' },
+  
   // Dashboard & Reports
   { resource: 'dashboard', action: 'view_all', description: 'View all dashboard data', category: 'Reports' },
   { resource: 'dashboard', action: 'view_team', description: 'View team dashboard data', category: 'Reports' },
@@ -87,6 +93,7 @@ const SYSTEM_ROLES = [
       'users:view_all', 'users:create', 'users:edit', 'users:delete',
       'leads:view_all', 'leads:create', 'leads:edit_all', 'leads:delete', 'leads:assign',
       'customers:view_all', 'customers:create', 'customers:edit_all', 'customers:delete',
+      'products:view', 'products:create', 'products:edit', 'products:delete',
       'quotations:view_all', 'quotations:create', 'quotations:edit_all', 'quotations:delete', 'quotations:send',
       'tasks:view_all', 'tasks:create', 'tasks:edit_all', 'tasks:delete', 'tasks:assign',
       'activities:view_all', 'activities:create', 'activities:edit_all', 'activities:delete',
@@ -102,6 +109,7 @@ const SYSTEM_ROLES = [
       'users:view_all',
       'leads:view_all', 'leads:create', 'leads:edit_all', 'leads:assign',
       'customers:view_all', 'customers:create', 'customers:edit_all',
+      'products:view', 'products:create', 'products:edit',
       'quotations:view_all', 'quotations:create', 'quotations:edit_all', 'quotations:send',
       'tasks:view_all', 'tasks:create', 'tasks:edit_all', 'tasks:assign',
       'activities:view_all', 'activities:create', 'activities:edit_all',
@@ -116,6 +124,7 @@ const SYSTEM_ROLES = [
     permissions: [
       'leads:view_assigned', 'leads:create', 'leads:edit_assigned',
       'customers:view_assigned', 'customers:create', 'customers:edit_assigned',
+      'products:view',
       'quotations:view_assigned', 'quotations:create', 'quotations:edit_assigned', 'quotations:send',
       'tasks:view_assigned', 'tasks:create', 'tasks:edit_assigned',
       'activities:view_assigned', 'activities:create', 'activities:edit_assigned',

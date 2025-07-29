@@ -5,8 +5,9 @@ import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import { usePermissions } from '@/hooks/usePermissions'
 
+
 interface NavBarProps {
-  currentPage?: 'home' | 'leads' | 'customers' | 'activities' | 'tasks' | 'tags' | 'users' | 'roles' | 'profile' | 'quotations' | 'settings' | 'functions'
+  currentPage?: 'home' | 'leads' | 'customers' | 'products' | 'activities' | 'tasks' | 'tags' | 'users' | 'roles' | 'profile' | 'quotations' | 'settings' | 'functions'
 }
 
 export default function NavBar({ currentPage }: NavBarProps) {
@@ -56,6 +57,7 @@ export default function NavBar({ currentPage }: NavBarProps) {
   const navItems = [
     { href: '/leads', label: 'Leads', key: 'leads', resource: 'leads', icon: '🎯' },
     { href: '/customers', label: 'Customers', key: 'customers', resource: 'customers', icon: '🤝' },
+    { href: '/products', label: 'Products', key: 'products', resource: 'products', icon: '📦' },
     { href: '/quotations', label: 'Quotations', key: 'quotations', resource: 'quotations', icon: '📄' },
   ]
 

@@ -182,7 +182,239 @@ async function main() {
     }),
   ])
 
-  console.log('Sample data created successfully!')
+  // Create sample products
+  const windowProduct = await prisma.product.create({
+    data: {
+      name: "UPVC Window",
+      description: "High-quality UPVC windows with double glazing",
+      sku: "WIN-UPVC-001",
+      category: "Windows",
+      productType: "CONFIGURABLE",
+      pricingType: "CALCULATED",
+      basePrice: 450, // Per sq ft
+      costPrice: 300,
+      calculationFormula: "width * height * basePrice",
+      trackInventory: false,
+      unit: "sqft",
+      defaultTaxRate: 18,
+      attributes: {
+        create: [
+          {
+            name: "Width",
+            type: "NUMBER",
+            isRequired: true,
+            isConfigurable: true,
+            minValue: 2,
+            maxValue: 10,
+            defaultValue: "4",
+            unit: "ft"
+          },
+          {
+            name: "Height", 
+            type: "NUMBER",
+            isRequired: true,
+            isConfigurable: true,
+            minValue: 2,
+            maxValue: 8,
+            defaultValue: "4",
+            unit: "ft"
+          },
+          {
+            name: "Material",
+            type: "SELECT",
+            isRequired: true,
+            isConfigurable: true,
+            options: {
+              create: [
+                { value: "UPVC", displayName: "UPVC", priceModifier: 0, sortOrder: 1 },
+                { value: "Aluminum", displayName: "Aluminum", priceModifier: 100, sortOrder: 2 },
+                { value: "Wood", displayName: "Wooden", priceModifier: 200, sortOrder: 3 }
+              ]
+            }
+          },
+          {
+            name: "Color",
+            type: "SELECT",
+            isRequired: false,
+            isConfigurable: true,
+            options: {
+              create: [
+                { value: "White", displayName: "White", priceModifier: 0, sortOrder: 1 },
+                { value: "Brown", displayName: "Brown", priceModifier: 50, sortOrder: 2 },
+                { value: "Black", displayName: "Black", priceModifier: 75, sortOrder: 3 }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  })
+
+  const doorProduct = await prisma.product.create({
+    data: {
+      name: "UPVC Door",
+      description: "Premium UPVC doors with security features",
+      sku: "DOOR-UPVC-001", 
+      category: "Doors",
+      productType: "CONFIGURABLE",
+      pricingType: "CALCULATED",
+      basePrice: 650, // Per sq ft
+      costPrice: 450,
+      calculationFormula: "width * height * basePrice + 1000", // +1000 for hardware
+      trackInventory: false,
+      unit: "sqft",
+      defaultTaxRate: 18,
+      attributes: {
+        create: [
+          {
+            name: "Width",
+            type: "NUMBER", 
+            isRequired: true,
+            isConfigurable: true,
+            minValue: 2.5,
+            maxValue: 4,
+            defaultValue: "3",
+            unit: "ft"
+          },
+          {
+            name: "Height",
+            type: "NUMBER",
+            isRequired: true, 
+            isConfigurable: true,
+            minValue: 6,
+            maxValue: 8,
+            defaultValue: "7",
+            unit: "ft"
+          },
+          {
+            name: "Type",
+            type: "SELECT",
+            isRequired: true,
+            isConfigurable: true,
+            options: {
+              create: [
+                { value: "Single", displayName: "Single Door", priceModifier: 0, sortOrder: 1 },
+                { value: "Double", displayName: "Double Door", priceModifier: 800, sortOrder: 2 }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  })
+
+  const tshirtProduct = await prisma.product.create({
+    data: {
+      name: "Cotton T-Shirt",
+      description: "Premium cotton t-shirt with custom printing",
+      sku: "TSHIRT-COT-001",
+      category: "Apparel", 
+      productType: "CONFIGURABLE",
+      pricingType: "VARIANT_BASED",
+      basePrice: 299,
+      costPrice: 150,
+      trackInventory: true,
+      currentStock: 100,
+      minStockLevel: 20,
+      unit: "piece",
+      defaultTaxRate: 12,
+      attributes: {
+        create: [
+          {
+            name: "Size",
+            type: "SELECT",
+            isRequired: true,
+            isConfigurable: true,
+            options: {
+              create: [
+                { value: "S", displayName: "Small", priceModifier: -20, sortOrder: 1 },
+                { value: "M", displayName: "Medium", priceModifier: 0, sortOrder: 2 },
+                { value: "L", displayName: "Large", priceModifier: 20, sortOrder: 3 },
+                { value: "XL", displayName: "Extra Large", priceModifier: 50, sortOrder: 4 }
+              ]
+            }
+          },
+          {
+            name: "Color",
+            type: "SELECT",
+            isRequired: true,
+            isConfigurable: true,
+            options: {
+              create: [
+                { value: "White", displayName: "White", priceModifier: 0, sortOrder: 1 },
+                { value: "Black", displayName: "Black", priceModifier: 0, sortOrder: 2 },
+                { value: "Red", displayName: "Red", priceModifier: 10, sortOrder: 3 },
+                { value: "Blue", displayName: "Blue", priceModifier: 10, sortOrder: 4 }
+              ]
+            }
+          }
+        ]
+      },
+      variants: {
+        create: [
+          {
+            sku: "TSHIRT-COT-001-M-WHT",
+            name: "Medium White T-Shirt",
+            configuration: { size: "M", color: "White" },
+            price: 299,
+            stock: 25
+          },
+          {
+            sku: "TSHIRT-COT-001-L-BLK", 
+            name: "Large Black T-Shirt",
+            configuration: { size: "L", color: "Black" },
+            price: 319,
+            stock: 20
+          }
+        ]
+      }
+    }
+  })
+
+  // Create sample customers with quotations using products
+  const customer1 = await prisma.customer.create({
+    data: {
+      name: "ABC Construction",
+      email: "contact@abcconstruction.com",
+      phone: "+91 98765 43210",
+      company: "ABC Construction Ltd",
+      billingAddress: "123 Builder Street, Construction City, State 12345",
+      shippingAddress: "456 Site Avenue, Project Town, State 67890",
+      gstin: "29ABCDE1234F1Z5",
+      quotations: {
+        create: {
+          quotationNumber: "QT-2024-001",
+          date: new Date(),
+          validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+          status: "SENT",
+          paymentTerms: "50% advance, 50% on completion",
+          deliveryTerms: "15-20 working days",
+          currency: "INR",
+          subtotal: 18000,
+          totalTax: 3240,
+          grandTotal: 21240,
+          notes: "Installation included in the price",
+          createdById: user.id,
+          items: {
+            create: [
+              {
+                productId: windowProduct.id,
+                configuration: { width: 4, height: 5, material: "UPVC", color: "White" },
+                quantity: 2,
+                unitPrice: 9000, // 4*5*450
+                calculatedPrice: 9000,
+                taxPercent: 18,
+                subtotal: 18000,
+                notes: "Living room windows"
+              }
+            ]
+          }
+        }
+      }
+    }
+  })
+
+  console.log('Sample data with Products created successfully!')
 }
 
 main()

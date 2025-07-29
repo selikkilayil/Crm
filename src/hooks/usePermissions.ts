@@ -72,6 +72,8 @@ export function usePermissions() {
         return hasPermission('leads', 'view_all') || hasPermission('leads', 'view_assigned')
       case 'customers':
         return hasPermission('customers', 'view_all') || hasPermission('customers', 'view_assigned')
+      case 'products':
+        return hasPermission('products', 'view')
       case 'quotations':
         return hasPermission('quotations', 'view_all') || hasPermission('quotations', 'view_assigned')
       case 'tasks':
@@ -121,6 +123,10 @@ function getHardcodedPermissions(role: string, customRoleId?: string | null): Pe
         { resource: 'roles', action: 'delete' },
         { resource: 'leads', action: 'view_all' },
         { resource: 'customers', action: 'view_all' },
+        { resource: 'products', action: 'view' },
+        { resource: 'products', action: 'create' },
+        { resource: 'products', action: 'edit' },
+        { resource: 'products', action: 'delete' },
         { resource: 'quotations', action: 'view_all' },
         { resource: 'tasks', action: 'view_all' },
         { resource: 'activities', action: 'view_all' },
@@ -140,6 +146,10 @@ function getHardcodedPermissions(role: string, customRoleId?: string | null): Pe
         { resource: 'roles', action: 'delete' },
         { resource: 'leads', action: 'view_all' },
         { resource: 'customers', action: 'view_all' },
+        { resource: 'products', action: 'view' },
+        { resource: 'products', action: 'create' },
+        { resource: 'products', action: 'edit' },
+        { resource: 'products', action: 'delete' },
         { resource: 'quotations', action: 'view_all' },
         { resource: 'tasks', action: 'view_all' },
         { resource: 'activities', action: 'view_all' },
@@ -151,6 +161,9 @@ function getHardcodedPermissions(role: string, customRoleId?: string | null): Pe
       return [
         { resource: 'leads', action: 'view_all' },
         { resource: 'customers', action: 'view_all' },
+        { resource: 'products', action: 'view' },
+        { resource: 'products', action: 'create' },
+        { resource: 'products', action: 'edit' },
         { resource: 'quotations', action: 'view_all' },
         { resource: 'tasks', action: 'view_all' },
         { resource: 'activities', action: 'view_all' },
@@ -161,6 +174,7 @@ function getHardcodedPermissions(role: string, customRoleId?: string | null): Pe
       return [
         { resource: 'leads', action: 'view_assigned' },
         { resource: 'customers', action: 'view_assigned' },
+        { resource: 'products', action: 'view' },
         { resource: 'quotations', action: 'view_assigned' },
         { resource: 'tasks', action: 'view_assigned' },
         { resource: 'activities', action: 'view_assigned' },

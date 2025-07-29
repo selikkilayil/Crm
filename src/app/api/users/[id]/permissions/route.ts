@@ -4,13 +4,14 @@ import { getUserPermissions } from '@/lib/dynamic-permissions'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await requireAuth(request)
+    const { id } = await params
     
     // Users can only get their own permissions unless they're admin/superadmin
-    if (user.id !== params.id && !['ADMIN', 'SUPERADMIN'].includes(user.role)) {
+    if (user.id !== id && !['ADMIN', 'SUPERADMIN'].includes(user.role)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
     
