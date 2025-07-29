@@ -24,14 +24,12 @@ export async function seedSuperAdmin() {
         role: 'SUPERADMIN',
         password: hashedPassword,
         isActive: true,
-        mustChangePassword: true, // Force password change on first login
       }
     })
 
     console.log('SuperAdmin created successfully')
     console.log('Email: superadmin@crm.internal')
-    console.log('Temporary Password:', defaultPassword)
-    console.log('⚠️  IMPORTANT: Change password immediately after first login!')
+    console.log('Password:', defaultPassword)
     
     return superAdmin
   } catch (error) {

@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { login, loginDemo } from '@/lib/auth'
+import { login } from '@/lib/auth'
 
 export default function LoginPage() {
   const [loading, setLoading] = useState(false)
@@ -39,23 +39,26 @@ export default function LoginPage() {
     }
   }
 
-  const handleDemoLogin = async () => {
+  const handleTestLogin = async () => {
     setLoading(true)
     setError('')
     
     try {
-      // Simulate a brief loading state
-      await new Promise(resolve => setTimeout(resolve, 500))
+      // Use the demo account credentials
+      const user = await login('demo@crm.com', 'DemoPassword123!')
+      console.log('Test login successful, user role:', user.role)
       
-      // Login with demo credentials
-      loginDemo()
-      
-      // Small delay to ensure localStorage is updated
+      // Small delay to ensure auth is updated
       setTimeout(() => {
-        router.push('/')
+        if (user.role === 'SUPERADMIN') {
+          router.push('/superadmin')
+        } else {
+          router.push('/')
+        }
       }, 100)
     } catch (err) {
-      setError('Demo login failed')
+      console.error('Test login error:', err)
+      setError(err instanceof Error ? err.message : 'Test login failed')
     } finally {
       setLoading(false)
     }
@@ -144,7 +147,7 @@ export default function LoginPage() {
             
             <button
               type="button"
-              onClick={handleDemoLogin}
+              onClick={handleTestLogin}
               disabled={loading}
               className="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 min-h-[44px]"
             >
@@ -153,9 +156,20 @@ export default function LoginPage() {
           </div>
 
           <div className="pt-4">
-            <div className="text-xs text-gray-500 space-y-1">
-              <p><strong className="text-gray-700">Demo Account:</strong> Full admin access with sample data</p>
-              <p><strong className="text-gray-700">Real Login:</strong> Use your registered email and password</p>
+            <div className="text-xs text-gray-500 space-y-2">
+              <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
+                <p className="font-semibold text-blue-900 mb-1">Demo Accounts:</p>
+                <div className="space-y-1">
+                  <p className="text-blue-800"><strong>Admin:</strong> <code>demo@crm.com</code> / <code>DemoPassword123!</code></p>
+                  <p className="text-blue-800"><strong>Sales:</strong> <code>sales@crm.com</code> / <code>SalesPassword123!</code></p>
+                  <p className="text-blue-800"><strong>Manager:</strong> <code>manager@crm.com</code> / <code>ManagerPassword123!</code></p>
+                </div>
+              </div>
+              <div className="bg-amber-50 p-3 rounded-lg border border-amber-200">
+                <p className="font-semibold text-amber-900 mb-1">SuperAdmin Access:</p>
+                <p className="text-amber-800">Email: <code>superadmin@crm.internal</code></p>
+                <p className="text-amber-800">Password: <code>SecureAdmin2025!</code></p>
+              </div>
             </div>
           </div>
         </form>

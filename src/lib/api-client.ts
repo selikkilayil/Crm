@@ -24,44 +24,54 @@ class ApiClient {
     }
   }
 
-  async get(endpoint: string): Promise<unknown> {
-    const response = await fetch(`${this.baseURL}${endpoint}`, this.getRequestInit('GET'))
-
+  private async handleResponse(response: Response): Promise<unknown> {
+    // Check if response is JSON
+    const contentType = response.headers.get('content-type')
+    
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
+      if (contentType && contentType.includes('application/json')) {
+        try {
+          const errorData = await response.json()
+          throw new Error(errorData.error || `HTTP error! status: ${response.status}`)
+        } catch (jsonError) {
+          // If JSON parsing fails, fall back to status text
+          throw new Error(`HTTP error! status: ${response.status}`)
+        }
+      } else {
+        // Non-JSON error response
+        const textResponse = await response.text()
+        console.error('Non-JSON error response:', textResponse)
+        throw new Error(`Server error: ${response.status}`)
+      }
+    }
+
+    if (!contentType || !contentType.includes('application/json')) {
+      const textResponse = await response.text()
+      console.error('Non-JSON success response:', textResponse)
+      throw new Error('Invalid response format from server')
     }
 
     return response.json()
+  }
+
+  async get(endpoint: string): Promise<unknown> {
+    const response = await fetch(`${this.baseURL}${endpoint}`, this.getRequestInit('GET'))
+    return this.handleResponse(response)
   }
 
   async post(endpoint: string, data: unknown): Promise<unknown> {
     const response = await fetch(`${this.baseURL}${endpoint}`, this.getRequestInit('POST', data))
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
-    }
-
-    return response.json()
+    return this.handleResponse(response)
   }
 
   async put(endpoint: string, data: unknown): Promise<unknown> {
     const response = await fetch(`${this.baseURL}${endpoint}`, this.getRequestInit('PUT', data))
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
-    }
-
-    return response.json()
+    return this.handleResponse(response)
   }
 
   async delete(endpoint: string): Promise<unknown> {
     const response = await fetch(`${this.baseURL}${endpoint}`, this.getRequestInit('DELETE'))
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
-    }
-
-    return response.json()
+    return this.handleResponse(response)
   }
 }
 

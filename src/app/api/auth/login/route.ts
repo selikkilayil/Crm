@@ -5,11 +5,23 @@ import bcrypt from 'bcrypt'
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
+    // Validate request body
+    let body
+    try {
+      body = await request.json()
+    } catch (jsonError) {
+      console.error('Invalid JSON in request body:', jsonError)
+      return NextResponse.json({ error: 'Invalid request format' }, { status: 400 })
+    }
+
     const { email, password } = body
     
     if (!email || !password) {
       return NextResponse.json({ error: 'Email and password are required' }, { status: 400 })
+    }
+
+    if (typeof email !== 'string' || typeof password !== 'string') {
+      return NextResponse.json({ error: 'Email and password must be strings' }, { status: 400 })
     }
     
     // Find user by email
@@ -80,6 +92,18 @@ export async function POST(request: NextRequest) {
     return response
   } catch (error) {
     console.error('Login error:', error)
-    return NextResponse.json({ error: 'Login failed' }, { status: 500 })
+    
+    // Provide more specific error messages based on the error type
+    if (error instanceof Error) {
+      if (error.message.includes('connect') || error.message.includes('database')) {
+        return NextResponse.json({ error: 'Database connection error' }, { status: 500 })
+      }
+      
+      if (error.message.includes('JWT') || error.message.includes('token')) {
+        return NextResponse.json({ error: 'Authentication system error' }, { status: 500 })
+      }
+    }
+    
+    return NextResponse.json({ error: 'Login failed - please try again' }, { status: 500 })
   }
 }

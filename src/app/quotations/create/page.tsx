@@ -483,42 +483,54 @@ export default function CreateQuotationPage() {
               </div>
 
               <div className="space-y-6">
-                {items.map((item, index) => (
-                  <QuotationItemEditor
-                    key={index}
-                    item={item}
-                    index={index}
-                    products={products}
-                    onUpdate={updateItem}
-                    onRemove={removeItem}
-                    onSelectProduct={selectProduct}
-                    onUpdateConfiguration={updateConfiguration}
-                    onCalculatePrice={calculatePrice}
-                    canRemove={items.length > 1}
-                  />
-                ))}
+                {items.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    <p>No items added yet. Click "Add Item" to get started.</p>
+                  </div>
+                ) : (
+                  items.map((item, index) => (
+                    <QuotationItemEditor
+                      key={index}
+                      item={item}
+                      index={index}
+                      products={products}
+                      onUpdate={updateItem}
+                      onRemove={removeItem}
+                      onSelectProduct={selectProduct}
+                      onUpdateConfiguration={updateConfiguration}
+                      onCalculatePrice={calculatePrice}
+                      canRemove={items.length > 1}
+                    />
+                  ))
+                )}
               </div>
 
               {/* Totals */}
               <div className="mt-8 pt-6 border-t border-gray-200">
                 <div className="flex justify-end">
-                  <div className="w-80">
-                    <div className="space-y-2">
-                      <div className="flex justify-between">
-                        <span className="text-sm text-gray-600">Subtotal:</span>
-                        <span className="text-sm">₹{totals.subtotal.toFixed(2)}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm text-gray-600">Discount:</span>
-                        <span className="text-sm">₹{totals.totalDiscount.toFixed(2)}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm text-gray-600">Tax:</span>
-                        <span className="text-sm">₹{totals.totalTax.toFixed(2)}</span>
-                      </div>
-                      <div className="flex justify-between text-lg font-semibold pt-2 border-t border-gray-200">
-                        <span>Grand Total:</span>
-                        <span>₹{totals.grandTotal.toFixed(2)}</span>
+                  <div className="w-full max-w-md">
+                    <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-3">Quotation Summary</h3>
+                      
+                      <div className="space-y-2">
+                        <div className="flex justify-between">
+                          <span className="text-sm text-gray-600">Subtotal:</span>
+                          <span className="text-sm font-medium">₹{totals.subtotal.toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-sm text-gray-600">Total Discount:</span>
+                          <span className="text-sm font-medium text-red-600">-₹{totals.totalDiscount.toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-sm text-gray-600">Total Tax:</span>
+                          <span className="text-sm font-medium">₹{totals.totalTax.toFixed(2)}</span>
+                        </div>
+                        <div className="border-t border-gray-300 pt-2 mt-2">
+                          <div className="flex justify-between items-center">
+                            <span className="text-lg font-bold text-gray-900">Grand Total:</span>
+                            <span className="text-xl font-bold text-blue-600">₹{totals.grandTotal.toFixed(2)}</span>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -715,76 +727,83 @@ function QuotationItemEditor({
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Quantity
-          </label>
-          <input
-            type="number"
-            step="0.001"
-            value={item.quantity}
-            onChange={(e) => {
-              onUpdate(index, 'quantity', parseFloat(e.target.value) || 0)
-              // Recalculate price if it's a calculated product
-              if (selectedProduct && selectedProduct.pricingType === 'CALCULATED') {
-                setTimeout(() => onCalculatePrice(index), 100)
-              }
-            }}
-            className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            min="0"
-          />
+      {/* Pricing and Calculation */}
+      <div className="space-y-4 mb-4">
+        {/* First Row: Quantity and Unit Price */}  
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Quantity
+            </label>
+            <input
+              type="number"
+              step="0.001"
+              value={item.quantity}
+              onChange={(e) => {
+                onUpdate(index, 'quantity', parseFloat(e.target.value) || 0)
+                // Recalculate price if it's a calculated product
+                if (selectedProduct && selectedProduct.pricingType === 'CALCULATED') {
+                  setTimeout(() => onCalculatePrice(index), 100)
+                }
+              }}
+              className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              min="0"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Unit Price (₹)
+            </label>
+            <input
+              type="number"
+              step="0.01"
+              value={item.unitPrice}
+              onChange={(e) => onUpdate(index, 'unitPrice', parseFloat(e.target.value) || 0)}
+              className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              min="0"
+            />
+          </div>
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Unit Price (₹)
-          </label>
-          <input
-            type="number"
-            step="0.01"
-            value={item.unitPrice}
-            onChange={(e) => onUpdate(index, 'unitPrice', parseFloat(e.target.value) || 0)}
-            className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            min="0"
-          />
-        </div>
+        {/* Second Row: Discount, Tax, and Line Total */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Discount (%)
+            </label>
+            <input
+              type="number"
+              step="0.01"
+              value={item.discount}
+              onChange={(e) => onUpdate(index, 'discount', parseFloat(e.target.value) || 0)}
+              className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              min="0"
+              max="100"
+            />
+          </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Discount (%)
-          </label>
-          <input
-            type="number"
-            step="0.01"
-            value={item.discount}
-            onChange={(e) => onUpdate(index, 'discount', parseFloat(e.target.value) || 0)}
-            className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            min="0"
-            max="100"
-          />
-        </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Tax (%)
+            </label>
+            <input
+              type="number"
+              step="0.01"
+              value={item.taxPercent}
+              onChange={(e) => onUpdate(index, 'taxPercent', parseFloat(e.target.value) || 0)}
+              className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              min="0"
+            />
+          </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Tax (%)
-          </label>
-          <input
-            type="number"
-            step="0.01"
-            value={item.taxPercent}
-            onChange={(e) => onUpdate(index, 'taxPercent', parseFloat(e.target.value) || 0)}
-            className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            min="0"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Line Total
-          </label>
-          <div className="px-3 py-2 bg-gray-50 border border-gray-300 rounded text-sm">
-            ₹{calculateItemTotal(item).toFixed(2)}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Line Total
+            </label>
+            <div className="px-3 py-2 bg-blue-50 border border-blue-200 rounded text-sm font-semibold text-blue-900">
+              ₹{calculateItemTotal(item).toFixed(2)}
+            </div>
           </div>
         </div>
       </div>

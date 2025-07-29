@@ -1,36 +1,54 @@
 import { PrismaClient } from '@prisma/client'
+import bcrypt from 'bcrypt'
 
 const prisma = new PrismaClient()
 
 async function main() {
+  // Hash passwords for demo users
+  const demoPassword = await bcrypt.hash('DemoPassword123!', 12)
+  const salesPassword = await bcrypt.hash('SalesPassword123!', 12)
+  const managerPassword = await bcrypt.hash('ManagerPassword123!', 12)
+
   // Create sample users
   const user = await prisma.user.upsert({
     where: { email: 'demo@crm.com' },
-    update: {},
+    update: {
+      password: demoPassword, // Update password if user exists
+    },
     create: {
       email: 'demo@crm.com',
       name: 'Demo User',
       role: 'ADMIN',
+      password: demoPassword,
+      isActive: true,
     },
   })
 
   const salesUser = await prisma.user.upsert({
     where: { email: 'sales@crm.com' },
-    update: {},
+    update: {
+      password: salesPassword,
+    },
     create: {
       email: 'sales@crm.com',
       name: 'Sales User',
       role: 'SALES',
+      password: salesPassword,
+      isActive: true,
     },
   })
 
   const managerUser = await prisma.user.upsert({
     where: { email: 'manager@crm.com' },
-    update: {},
+    update: {
+      password: managerPassword,
+    },
     create: {
       email: 'manager@crm.com',
       name: 'Manager User',
       role: 'MANAGER',
+      password: managerPassword,
+      isActive: true,
     },
   })
 

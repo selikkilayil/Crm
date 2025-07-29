@@ -53,22 +53,41 @@ export function isAuthenticated(): boolean {
 }
 
 export async function login(email: string, password: string): Promise<User> {
-  const response = await fetch('/api/auth/login', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ email, password }),
-  })
+  try {
+    const response = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email, password }),
+      credentials: 'include', // Include cookies for authentication
+    })
 
-  const data = await response.json()
+    // Check if response is JSON
+    const contentType = response.headers.get('content-type')
+    if (!contentType || !contentType.includes('application/json')) {
+      const textResponse = await response.text()
+      console.error('Non-JSON response:', textResponse)
+      throw new Error('Server error - please try again')
+    }
 
-  if (!response.ok) {
-    throw new Error(data.error || 'Login failed')
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data.error || 'Login failed')
+    }
+
+    setAuthToken(data.user)
+    return data.user
+  } catch (error) {
+    console.error('Login error:', error)
+    
+    if (error instanceof Error) {
+      throw error
+    }
+    
+    throw new Error('Network error - please check your connection')
   }
-
-  setAuthToken(data.user)
-  return data.user
 }
 
 export async function logout() {

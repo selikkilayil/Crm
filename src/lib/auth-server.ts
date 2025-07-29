@@ -75,7 +75,6 @@ export async function authenticateRequest(request: NextRequest): Promise<Authent
         name: true,
         role: true,
         isActive: true,
-        isArchived: true,
         customRoleId: true,
         customRole: {
           select: {
@@ -83,7 +82,8 @@ export async function authenticateRequest(request: NextRequest): Promise<Authent
               select: {
                 permission: {
                   select: {
-                    name: true
+                    resource: true,
+                    action: true
                   }
                 }
               }
@@ -93,14 +93,14 @@ export async function authenticateRequest(request: NextRequest): Promise<Authent
       }
     })
 
-    if (!user || !user.isActive || user.isArchived) {
+    if (!user || !user.isActive) {
       return null
     }
 
     // Get user permissions
     const permissions: string[] = []
     if (user.customRole?.permissions) {
-      permissions.push(...user.customRole.permissions.map(p => p.permission.name))
+      permissions.push(...user.customRole.permissions.map(p => `${p.permission.resource}_${p.permission.action}`))
     }
 
     return {
