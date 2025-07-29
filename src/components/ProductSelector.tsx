@@ -106,7 +106,14 @@ export default function ProductSelector({
   const handleProductSelect = (product: Product) => {
     setSelectedProduct(product)
     
-    // Always call onProductSelect first
+    // Convert Decimal to number properly for price
+    const basePrice = typeof product.basePrice === 'object' ? 
+      parseFloat(product.basePrice.toString()) : 
+      Number(product.basePrice)
+    
+    console.log('ProductSelector: handleProductSelect', product.name, 'basePrice:', basePrice)
+    
+    // Always call onProductSelect first with proper price conversion
     onProductSelect(product, undefined, {})
     
     if (product.productType === 'SIMPLE') {
@@ -118,6 +125,7 @@ export default function ProductSelector({
 
   const handleVariantSelect = (variant: ProductVariant) => {
     if (selectedProduct) {
+      console.log('ProductSelector: handleVariantSelect', variant.name, 'price:', variant.price)
       onProductSelect(selectedProduct, variant, configuration)
     }
   }

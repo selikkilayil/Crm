@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/hooks/useAuth'
 import AuthGuard from '@/components/AuthGuard'
@@ -74,6 +74,14 @@ interface QuotationItem {
   discount: number
   taxPercent: number
   notes?: string
+}
+
+const calculateItemTotal = (item: QuotationItem) => {
+  const lineSubtotal = item.quantity * item.unitPrice
+  const discountAmount = (lineSubtotal * item.discount) / 100
+  const taxableAmount = lineSubtotal - discountAmount
+  const taxAmount = (taxableAmount * item.taxPercent) / 100
+  return taxableAmount + taxAmount
 }
 
 export default function CreateQuotationPage() {
@@ -177,10 +185,16 @@ export default function CreateQuotationPage() {
   }
 
   const updateItem = (index: number, field: string, value: any) => {
-    console.log(`Updating item ${index}, field: ${field}, value:`, value)
+    console.log(`Updating item ${index}, field: ${field}, value:`, value, typeof value)
     const updatedItems = [...items]
     updatedItems[index] = { ...updatedItems[index], [field]: value }
     console.log('Updated item:', updatedItems[index])
+    console.log('All items after update:', updatedItems.map(item => ({ 
+      quantity: item.quantity, 
+      unitPrice: item.unitPrice, 
+      discount: item.discount, 
+      taxPercent: item.taxPercent 
+    })))
     setItems(updatedItems)
   }
 
@@ -205,12 +219,17 @@ export default function CreateQuotationPage() {
     updateItem(index, 'description', product.description || '')
     updateItem(index, 'taxPercent', Number(product.defaultTaxRate))
 
+    // Convert Decimal to number properly for price
+    const basePrice = typeof product.basePrice === 'object' ? 
+      parseFloat(product.basePrice.toString()) : 
+      Number(product.basePrice)
+
     // For simple products, set price directly
     if (product.productType === 'SIMPLE' && product.pricingType === 'FIXED') {
-      updateItem(index, 'unitPrice', Number(product.basePrice))
+      updateItem(index, 'unitPrice', basePrice)
     } else {
-      // For configurable/calculated products, will need configuration
-      updateItem(index, 'unitPrice', Number(product.basePrice))
+      // For configurable/calculated products, start with base price
+      updateItem(index, 'unitPrice', basePrice)
     }
 
     // Initialize configuration for configurable products
@@ -222,6 +241,9 @@ export default function CreateQuotationPage() {
         }
       })
       updateItem(index, 'configuration', defaultConfig)
+      
+      // Calculate price with default configuration
+      setTimeout(() => calculatePrice(index), 100)
     }
   }
 
@@ -263,14 +285,6 @@ export default function CreateQuotationPage() {
     if (product && (product.pricingType === 'CALCULATED' || product.productType === 'CALCULATED')) {
       calculatePrice(index)
     }
-  }
-
-  const calculateItemTotal = (item: QuotationItem) => {
-    const lineSubtotal = item.quantity * item.unitPrice
-    const discountAmount = (lineSubtotal * item.discount) / 100
-    const taxableAmount = lineSubtotal - discountAmount
-    const taxAmount = (taxableAmount * item.taxPercent) / 100
-    return taxableAmount + taxAmount
   }
 
   const calculateTotals = () => {
@@ -345,7 +359,11 @@ export default function CreateQuotationPage() {
     }
   }
 
-  const totals = calculateTotals()
+  const totals = useMemo(() => {
+    const calculated = calculateTotals()
+    console.log('Totals recalculated:', calculated, 'Items count:', items.length)
+    return calculated
+  }, [items])
 
   if (loading) {
     return (
@@ -619,7 +637,20 @@ function QuotationItemEditor({
               console.log('Product selected:', product.name, 'Base Price:', product.basePrice, 'Variant:', variant)
               onUpdate(index, 'productId', product.id)
               onUpdate(index, 'productName', product.name)
-              onUpdate(index, 'unitPrice', Number(variant?.price || product.basePrice))
+              
+              // Convert Decimal to number properly for price
+              let price = 0
+              if (variant?.price) {
+                price = typeof variant.price === 'object' ? 
+                  parseFloat(variant.price.toString()) : 
+                  Number(variant.price)
+              } else {
+                price = typeof product.basePrice === 'object' ? 
+                  parseFloat(product.basePrice.toString()) : 
+                  Number(product.basePrice)
+              }
+              
+              onUpdate(index, 'unitPrice', price)
               onUpdate(index, 'taxPercent', Number(product.defaultTaxRate))
               
               if (variant) {
@@ -631,11 +662,17 @@ function QuotationItemEditor({
               if (configuration) {
                 onUpdate(index, 'configuration', configuration)
               }
+              
+              // Trigger price calculation for configurable/calculated products
+              if (product.productType === 'CONFIGURABLE' || product.productType === 'CALCULATED') {
+                setTimeout(() => onCalculatePrice(index), 100)
+              }
             } else {
               // Clear product selection
               onUpdate(index, 'productId', undefined)
               onUpdate(index, 'variantId', undefined)
               onUpdate(index, 'productName', '')
+              onUpdate(index, 'unitPrice', 0)
               onUpdate(index, 'configuration', {})
             }
           }}
@@ -747,7 +784,7 @@ function QuotationItemEditor({
             Line Total
           </label>
           <div className="px-3 py-2 bg-gray-50 border border-gray-300 rounded text-sm">
-            ₹{((item.quantity * item.unitPrice) * (1 - item.discount / 100) * (1 + item.taxPercent / 100)).toFixed(2)}
+            ₹{calculateItemTotal(item).toFixed(2)}
           </div>
         </div>
       </div>
