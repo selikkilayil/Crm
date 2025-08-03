@@ -104,7 +104,11 @@ export default function ProductSelector({
   const categories = [...new Set(products.map(p => p.category).filter(Boolean))]
 
   const handleProductSelect = (product: Product) => {
+    console.log('ProductSelector: Product selected:', product.name, 'Type:', product.productType)
     setSelectedProduct(product)
+    
+    // Initialize empty configuration for configurable products
+    const initialConfig = {}
     
     // Convert Decimal to number properly for price
     const basePrice = typeof product.basePrice === 'object' ? 
@@ -113,14 +117,16 @@ export default function ProductSelector({
     
     console.log('ProductSelector: handleProductSelect', product.name, 'basePrice:', basePrice)
     
-    // Always call onProductSelect first with proper price conversion
-    onProductSelect(product, undefined, {})
+    // Call onProductSelect with the product
+    onProductSelect(product, undefined, initialConfig)
     
-    if (product.productType === 'SIMPLE') {
-      // For simple products, close modal after selection
-      setTimeout(() => setShowProductModal(false), 100)
+    // Always close modal after selection - user can reopen to modify configuration
+    setShowProductModal(false)
+    
+    // For configurable products, initialize configuration change callback
+    if ((product.productType === 'CONFIGURABLE' || product.productType === 'CALCULATED') && onConfigurationChange) {
+      onConfigurationChange(initialConfig)
     }
-    // For configurable/calculated products, keep modal open for configuration
   }
 
   const handleVariantSelect = (variant: ProductVariant) => {
@@ -130,10 +136,22 @@ export default function ProductSelector({
     }
   }
 
-  const handleConfigurationChange = (attributeId: string, value: any) => {
-    const newConfiguration = { ...configuration, [attributeId]: value }
+  const handleConfigurationChange = (attributeName: string, value: any) => {
+    console.log(`🚨 URGENT: handleConfigurationChange called!!! ${attributeName} = ${value}`)
+    console.log(`🔧 ProductSelector: Configuration change - ${attributeName} = ${value}`)
+    const newConfiguration = { ...configuration, [attributeName.toLowerCase()]: value }
+    console.log('New configuration:', newConfiguration)
+    
+    // Update configuration through callback - this should trigger recalculation
     if (onConfigurationChange) {
+      console.log('📞 Calling onConfigurationChange with:', newConfiguration)
       onConfigurationChange(newConfiguration)
+    }
+    
+    // Also trigger product selection update with new configuration
+    if (selectedProduct) {
+      console.log('📞 Calling onProductSelect with updated configuration')
+      onProductSelect(selectedProduct, undefined, newConfiguration)
     }
   }
 
@@ -171,7 +189,11 @@ export default function ProductSelector({
                 Change
               </button>
               <button
-                onClick={() => onProductSelect(null)}
+                onClick={() => {
+                  console.log('ProductSelector: Removing product')
+                  setSelectedProduct(null)
+                  onProductSelect(null)
+                }}
                 className="text-sm text-red-600 hover:text-red-800"
               >
                 Remove
@@ -219,8 +241,11 @@ export default function ProductSelector({
                     
                     {attribute.type === 'SELECT' && (
                       <select
-                        value={configuration[attribute.id] || ''}
-                        onChange={(e) => handleConfigurationChange(attribute.id, e.target.value)}
+                        value={configuration[attribute.name.toLowerCase()] || ''}
+                        onChange={(e) => {
+                          console.log(`🎯 SELECT onChange fired: ${attribute.name} = ${e.target.value}`)
+                          handleConfigurationChange(attribute.name, e.target.value)
+                        }}
                         className="w-full px-3 py-2 border border-blue-300 rounded bg-white focus:ring-2 focus:ring-blue-500"
                         required={attribute.isRequired}
                       >
@@ -237,8 +262,11 @@ export default function ProductSelector({
                     {attribute.type === 'NUMBER' && (
                       <input
                         type="number"
-                        value={configuration[attribute.id] || ''}
-                        onChange={(e) => handleConfigurationChange(attribute.id, parseFloat(e.target.value) || 0)}
+                        value={configuration[attribute.name.toLowerCase()] || ''}
+                        onChange={(e) => {
+                          console.log(`🎯 NUMBER onChange fired: ${attribute.name} = ${e.target.value}`)
+                          handleConfigurationChange(attribute.name, parseFloat(e.target.value) || 0)
+                        }}
                         className="w-full px-3 py-2 border border-blue-300 rounded focus:ring-2 focus:ring-blue-500"
                         placeholder={`Enter ${attribute.name.toLowerCase()}`}
                         min={attribute.minValue}
@@ -250,8 +278,8 @@ export default function ProductSelector({
                     {attribute.type === 'TEXT' && (
                       <input
                         type="text"
-                        value={configuration[attribute.id] || ''}
-                        onChange={(e) => handleConfigurationChange(attribute.id, e.target.value)}
+                        value={configuration[attribute.name.toLowerCase()] || ''}
+                        onChange={(e) => handleConfigurationChange(attribute.name, e.target.value)}
                         className="w-full px-3 py-2 border border-blue-300 rounded focus:ring-2 focus:ring-blue-500"
                         placeholder={`Enter ${attribute.name.toLowerCase()}`}
                         required={attribute.isRequired}
@@ -260,8 +288,8 @@ export default function ProductSelector({
 
                     {attribute.type === 'BOOLEAN' && (
                       <select
-                        value={configuration[attribute.id] || ''}
-                        onChange={(e) => handleConfigurationChange(attribute.id, e.target.value === 'true')}
+                        value={configuration[attribute.name.toLowerCase()] || ''}
+                        onChange={(e) => handleConfigurationChange(attribute.name, e.target.value === 'true')}
                         className="w-full px-3 py-2 border border-blue-300 rounded bg-white focus:ring-2 focus:ring-blue-500"
                         required={attribute.isRequired}
                       >
@@ -363,7 +391,11 @@ export default function ProductSelector({
                       <div
                         key={product.id}
                         onClick={() => handleProductSelect(product)}
-                        className="border border-gray-200 rounded-lg p-4 hover:border-blue-500 hover:bg-blue-50 cursor-pointer transition-all duration-200 select-none"
+                        className={`border rounded-lg p-4 cursor-pointer transition-all duration-200 select-none ${
+                          selectedProduct?.id === product.id 
+                            ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-200' 
+                            : 'border-gray-200 hover:border-blue-500 hover:bg-blue-50'
+                        }`}
                       >
                         <h4 className="font-medium text-gray-900 mb-1">{product.name}</h4>
                         {product.sku && (
@@ -374,13 +406,20 @@ export default function ProductSelector({
                           <p className="text-xs text-gray-600 line-clamp-2">{product.description}</p>
                         )}
                         <div className="mt-2 flex justify-between items-center">
-                          <span className={`px-2 py-1 text-xs rounded-full ${
-                            product.productType === 'SIMPLE' ? 'bg-green-100 text-green-800' :
-                            product.productType === 'CONFIGURABLE' ? 'bg-blue-100 text-blue-800' :
-                            'bg-purple-100 text-purple-800'
-                          }`}>
-                            {product.productType}
-                          </span>
+                          <div className="flex items-center space-x-2">
+                            <span className={`px-2 py-1 text-xs rounded-full ${
+                              product.productType === 'SIMPLE' ? 'bg-green-100 text-green-800' :
+                              product.productType === 'CONFIGURABLE' ? 'bg-blue-100 text-blue-800' :
+                              'bg-purple-100 text-purple-800'
+                            }`}>
+                              {product.productType}
+                            </span>
+                            {selectedProduct?.id === product.id && (
+                              <span className="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800 font-medium">
+                                ✓ Selected
+                              </span>
+                            )}
+                          </div>
                           {product.category && (
                             <span className="text-xs text-gray-500">{product.category}</span>
                           )}

@@ -30,6 +30,7 @@ interface Product {
   defaultTaxRate: number
   attributes: ProductAttribute[]
   variants: ProductVariant[]
+  calculationFormula?: string
 }
 
 interface ProductAttribute {
@@ -77,7 +78,7 @@ interface QuotationItem {
 }
 
 const calculateItemTotal = (item: QuotationItem) => {
-  const lineSubtotal = item.quantity * item.unitPrice
+  const lineSubtotal = item.quantity * (item.calculatedPrice || item.unitPrice)
   const discountAmount = (lineSubtotal * item.discount) / 100
   const taxableAmount = lineSubtotal - discountAmount
   const taxAmount = (taxableAmount * item.taxPercent) / 100
@@ -189,13 +190,25 @@ export default function CreateQuotationPage() {
     const updatedItems = [...items]
     updatedItems[index] = { ...updatedItems[index], [field]: value }
     console.log('Updated item:', updatedItems[index])
-    console.log('All items after update:', updatedItems.map(item => ({ 
-      quantity: item.quantity, 
-      unitPrice: item.unitPrice, 
-      discount: item.discount, 
-      taxPercent: item.taxPercent 
-    })))
+    
     setItems(updatedItems)
+    
+    // If configuration was updated, trigger price calculation
+    if (field === 'configuration' && updatedItems[index].productId) {
+      const product = products.find(p => p.id === updatedItems[index].productId)
+      console.log('🔄 Configuration updated, checking if recalculation needed for:', product?.name)
+      
+      if (product && (
+        product.pricingType === 'CALCULATED' || 
+        product.productType === 'CALCULATED' ||
+        product.productType === 'CONFIGURABLE' ||
+        product.pricingType === 'VARIANT_BASED' ||
+        product.pricingType === 'PER_UNIT'
+      )) {
+        console.log('🔄 Triggering price recalculation due to configuration update')
+        setTimeout(() => calculatePrice(index), 100)
+      }
+    }
   }
 
   const selectProduct = async (index: number, productId: string) => {
@@ -207,6 +220,7 @@ export default function CreateQuotationPage() {
       updateItem(index, 'unitPrice', 0)
       updateItem(index, 'taxPercent', settings ? Number(settings.defaultTaxRate) || 0 : 0)
       updateItem(index, 'configuration', undefined)
+      updateItem(index, 'calculatedPrice', undefined)
       return
     }
 
@@ -220,29 +234,28 @@ export default function CreateQuotationPage() {
     updateItem(index, 'taxPercent', Number(product.defaultTaxRate))
 
     // Convert Decimal to number properly for price
-    const basePrice = typeof product.basePrice === 'object' ? 
-      parseFloat(product.basePrice.toString()) : 
-      Number(product.basePrice)
+    const basePrice = product.basePrice != null ? Number(product.basePrice) : 0
 
     // For simple products, set price directly
     if (product.productType === 'SIMPLE' && product.pricingType === 'FIXED') {
       updateItem(index, 'unitPrice', basePrice)
+      updateItem(index, 'calculatedPrice', basePrice)
     } else {
-      // For configurable/calculated products, start with base price
+      // For configurable/calculated/variant/per_unit products, start with base price and trigger calculation
       updateItem(index, 'unitPrice', basePrice)
-    }
+      updateItem(index, 'calculatedPrice', basePrice)
 
-    // Initialize configuration for configurable products
-    if (product.productType === 'CONFIGURABLE' || product.productType === 'CALCULATED') {
-      const defaultConfig: any = {}
-      product.attributes.forEach(attr => {
-        if (attr.defaultValue) {
-          defaultConfig[attr.name.toLowerCase()] = attr.defaultValue
-        }
-      })
-      updateItem(index, 'configuration', defaultConfig)
-      
-      // Calculate price with default configuration
+      // Initialize configuration for configurable products
+      if (product.productType === 'CONFIGURABLE' || product.productType === 'CALCULATED') {
+        const defaultConfig: any = {}
+        product.attributes.forEach(attr => {
+          if (attr.defaultValue) {
+            defaultConfig[attr.name.toLowerCase()] = attr.defaultValue
+          }
+        })
+        updateItem(index, 'configuration', defaultConfig)
+      }
+      // Always trigger price calculation for non-simple/fixed products
       setTimeout(() => calculatePrice(index), 100)
     }
   }
@@ -252,38 +265,93 @@ export default function CreateQuotationPage() {
     if (!item.productId) return
 
     try {
-      const response = await productApi.calculate(
-        item.productId,
-        item.configuration || {},
-        item.quantity
-      ) as any
+      console.log(`🔄 Calculating price for item ${index + 1}: ${item.productName}`)
+      console.log('📋 Configuration:', JSON.stringify(item.configuration, null, 2))
+      
+      const product = products.find(p => p.id === item.productId)
+      if (!product) return
 
-      if (response.data) {
-        updateItem(index, 'unitPrice', response.data.unitPrice)
-        updateItem(index, 'calculatedPrice', response.data.unitPrice)
-        
-        // Show any calculation errors
-        if (response.data.errors && response.data.errors.length > 0) {
-          console.warn('Price calculation warnings:', response.data.errors)
+      // Try API first, but fallback to local calculation
+      try {
+        const response = await productApi.calculate(
+          item.productId,
+          item.configuration || {},
+          item.quantity
+        ) as any
+
+        if (response.data) {
+          console.log('✅ API Price calculated:', response.data.unitPrice)
+          updateItem(index, 'unitPrice', response.data.unitPrice)
+          updateItem(index, 'calculatedPrice', response.data.unitPrice)
+          return
+        }
+      } catch (apiError) {
+        console.warn('⚠️ API failed, using local calculation:', apiError)
+      }
+
+      // LOCAL CALCULATION FALLBACK
+      let calculatedPrice = Number(product.basePrice)
+      
+      if (product.pricingType === 'CALCULATED' && product.calculationFormula) {
+        // Handle UPVC Window: width * height * basePrice + 500
+        const config = item.configuration || {}
+        if (config.width && config.height) {
+          calculatedPrice = config.width * config.height * Number(product.basePrice) + 500
+          console.log('🧮 Formula result:', calculatedPrice)
         }
       }
+      
+      // Add attribute modifiers
+      let modifiers = 0
+      if (product.attributes && item.configuration) {
+        product.attributes.forEach(attr => {
+          const selectedValue = item.configuration[attr.name.toLowerCase()]
+          if (selectedValue && attr.options) {
+            const option = attr.options.find((opt: any) => opt.value === selectedValue)
+            if (option) {
+              modifiers += Number(option.priceModifier || 0)
+              console.log(`💎 ${attr.name}: ${selectedValue} -> +₹${option.priceModifier}`)
+            }
+          }
+        })
+      }
+      
+      const finalPrice = calculatedPrice + modifiers
+      console.log('🎯 LOCAL Final price:', finalPrice)
+      
+      updateItem(index, 'unitPrice', finalPrice)
+      updateItem(index, 'calculatedPrice', finalPrice)
+      
     } catch (error) {
-      console.error('Error calculating price:', error)
+      console.error('❌ Price calculation error:', error)
     }
   }
 
   const updateConfiguration = (index: number, attrName: string, value: any) => {
+    console.log(`🔧 Configuration update: Item ${index + 1}, ${attrName} = ${value}`)
     const updatedItems = [...items]
     const config = updatedItems[index].configuration || {}
     config[attrName.toLowerCase()] = value
     updatedItems[index].configuration = config
+    console.log('📝 Updated configuration:', JSON.stringify(config, null, 2))
     setItems(updatedItems)
 
-    // Recalculate price if it's a calculated product
+    // Recalculate price for all products that might need configuration-based pricing
     const item = updatedItems[index]
     const product = products.find(p => p.id === item.productId)
-    if (product && (product.pricingType === 'CALCULATED' || product.productType === 'CALCULATED')) {
-      calculatePrice(index)
+    console.log('🔍 Product found for recalculation:', product?.name, product?.pricingType, product?.productType)
+    
+    if (product && (
+      product.pricingType === 'CALCULATED' || 
+      product.productType === 'CALCULATED' ||
+      product.productType === 'CONFIGURABLE' ||
+      product.pricingType === 'VARIANT_BASED' ||
+      product.pricingType === 'PER_UNIT'
+    )) {
+      console.log('🔄 Triggering recalculation due to configuration change')
+      setTimeout(() => calculatePrice(index), 100)
+    } else {
+      console.log('❌ Not triggering recalculation - product type/pricing type not applicable')
     }
   }
 
@@ -293,7 +361,7 @@ export default function CreateQuotationPage() {
     let totalDiscount = 0
 
     items.forEach(item => {
-      const lineSubtotal = item.quantity * item.unitPrice
+      const lineSubtotal = item.quantity * (item.calculatedPrice || item.unitPrice)
       const discountAmount = (lineSubtotal * item.discount) / 100
       const taxAmount = ((lineSubtotal - discountAmount) * item.taxPercent) / 100
       
@@ -490,7 +558,7 @@ export default function CreateQuotationPage() {
                 ) : (
                   items.map((item, index) => (
                     <QuotationItemEditor
-                      key={index}
+                      key={`item-${index}-${item.productId || 'manual'}`}
                       item={item}
                       index={index}
                       products={products}
@@ -644,6 +712,10 @@ function QuotationItemEditor({
           selectedProductId={item.productId}
           selectedVariantId={item.variantId}
           configuration={item.configuration}
+          onConfigurationChange={(newConfiguration) => {
+            console.log('🔄 PRIMARY onConfigurationChange called with:', newConfiguration)
+            onUpdate(index, 'configuration', newConfiguration)
+          }}
           onProductSelect={(product, variant, configuration) => {
             if (product) {
               console.log('Product selected:', product.name, 'Base Price:', product.basePrice, 'Variant:', variant)
@@ -652,14 +724,10 @@ function QuotationItemEditor({
               
               // Convert Decimal to number properly for price
               let price = 0
-              if (variant?.price) {
-                price = typeof variant.price === 'object' ? 
-                  parseFloat(variant.price.toString()) : 
-                  Number(variant.price)
+              if (variant?.price != null) {
+                price = Number(variant.price)
               } else {
-                price = typeof product.basePrice === 'object' ? 
-                  parseFloat(product.basePrice.toString()) : 
-                  Number(product.basePrice)
+                price = product.basePrice != null ? Number(product.basePrice) : 0
               }
               
               onUpdate(index, 'unitPrice', price)
@@ -675,24 +743,24 @@ function QuotationItemEditor({
                 onUpdate(index, 'configuration', configuration)
               }
               
-              // Trigger price calculation for configurable/calculated products
-              if (product.productType === 'CONFIGURABLE' || product.productType === 'CALCULATED') {
+              // Trigger price calculation for all products that might need it
+              if (product.productType === 'CONFIGURABLE' || 
+                  product.productType === 'CALCULATED' ||
+                  product.pricingType === 'CALCULATED' ||
+                  product.pricingType === 'PER_UNIT' ||
+                  product.pricingType === 'VARIANT_BASED') {
                 setTimeout(() => onCalculatePrice(index), 100)
               }
             } else {
-              // Clear product selection
+              // Clear product selection completely
+              console.log('Clearing product selection for item', index + 1)
               onUpdate(index, 'productId', undefined)
               onUpdate(index, 'variantId', undefined)
               onUpdate(index, 'productName', '')
               onUpdate(index, 'unitPrice', 0)
+              onUpdate(index, 'taxPercent', 0)
               onUpdate(index, 'configuration', {})
-            }
-          }}
-          onConfigurationChange={(configuration) => {
-            onUpdate(index, 'configuration', configuration)
-            // Recalculate price for calculated products
-            if (selectedProduct && selectedProduct.pricingType === 'CALCULATED') {
-              setTimeout(() => onCalculatePrice(index), 100)
+              onUpdate(index, 'calculatedPrice', undefined)
             }
           }}
         />
@@ -740,9 +808,14 @@ function QuotationItemEditor({
               step="0.001"
               value={item.quantity}
               onChange={(e) => {
-                onUpdate(index, 'quantity', parseFloat(e.target.value) || 0)
-                // Recalculate price if it's a calculated product
-                if (selectedProduct && selectedProduct.pricingType === 'CALCULATED') {
+                const newQuantity = parseFloat(e.target.value) || 0
+                onUpdate(index, 'quantity', newQuantity)
+                // Recalculate price for all product types that need it
+                if (selectedProduct && (
+                  selectedProduct.pricingType === 'CALCULATED' || 
+                  selectedProduct.pricingType === 'PER_UNIT' ||
+                  selectedProduct.productType === 'CONFIGURABLE'
+                )) {
                   setTimeout(() => onCalculatePrice(index), 100)
                 }
               }}

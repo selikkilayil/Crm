@@ -1,15 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { requireAuth, getDataFilter } from '@/lib/api-auth'
-import { PERMISSIONS, hasPermission } from '@/lib/permissions'
+import { requireAuth, hasPermission, getDataFilter } from '@/lib/auth-server'
 
 export async function GET(request: NextRequest) {
   try {
     const user = await requireAuth(request)
     
     // Check permissions
-    const canViewAll = hasPermission(user.role, PERMISSIONS.CUSTOMERS_VIEW_ALL)
-    const canViewAssigned = hasPermission(user.role, PERMISSIONS.CUSTOMERS_VIEW_ASSIGNED)
+    const canViewAll = hasPermission(user, 'customers_view_all')
+    const canViewAssigned = hasPermission(user, 'customers_view_assigned')
     
     if (!canViewAll && !canViewAssigned) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 })

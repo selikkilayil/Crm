@@ -149,3 +149,37 @@ export async function requirePermission(request: NextRequest, permission: string
 
   return user
 }
+
+export function getDataFilter(userRole: string, userId: string) {
+  switch (userRole) {
+    case 'SUPERADMIN':
+      // Superadmin has no access to CRM data, only user management
+      return { id: 'no-access' } // This will return no results for CRM data
+      
+    case 'ADMIN':
+      // Admin can see everything
+      return {}
+      
+    case 'MANAGER':
+      // Manager can see everything (but with some restrictions in permissions)
+      return {}
+      
+    case 'SALES':
+      // Sales can only see assigned items
+      return {
+        OR: [
+          { assignedToId: userId },
+          { createdById: userId },
+        ],
+      }
+      
+    default:
+      // Default to most restrictive
+      return {
+        OR: [
+          { assignedToId: userId },
+          { createdById: userId },
+        ],
+      }
+  }
+}

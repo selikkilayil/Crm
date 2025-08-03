@@ -112,4 +112,44 @@ export const productApi = {
   }
 }
 
+// Contact API functions
+export const contactApi = {
+  getAll: (params?: {
+    customerId?: string
+    search?: string
+    isPrimary?: boolean
+  }) => {
+    const searchParams = new URLSearchParams()
+    if (params?.customerId) searchParams.set('customerId', params.customerId)
+    if (params?.search) searchParams.set('search', params.search)
+    if (params?.isPrimary !== undefined) searchParams.set('isPrimary', params.isPrimary.toString())
+    
+    const query = searchParams.toString()
+    return apiClient.get(`/api/contacts${query ? `?${query}` : ''}`)
+  },
+
+  getById: (id: string) => apiClient.get(`/api/contacts/${id}`),
+
+  create: (data: {
+    name: string
+    email?: string
+    phone?: string
+    position?: string
+    isPrimary?: boolean
+    customerId: string
+  }) => apiClient.post('/api/contacts', data),
+
+  update: (id: string, data: {
+    name?: string
+    email?: string
+    phone?: string
+    position?: string
+    isPrimary?: boolean
+  }) => apiClient.put(`/api/contacts/${id}`, data),
+
+  delete: (id: string) => apiClient.delete(`/api/contacts/${id}`),
+
+  getByCustomer: (customerId: string) => contactApi.getAll({ customerId })
+}
+
 export default apiClient
