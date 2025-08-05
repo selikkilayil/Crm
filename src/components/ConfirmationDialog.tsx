@@ -1,5 +1,7 @@
 'use client'
 
+import { useState } from 'react'
+
 interface ConfirmationDialogProps {
   isOpen: boolean
   title: string
@@ -239,5 +241,3 @@ export function useConfirmationDialog() {
     ConfirmationComponent
   }
 }
-
-import { useState } from 'react'
