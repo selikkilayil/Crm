@@ -1,14 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { generateAccessToken } from '@/lib/auth-server'
 import bcrypt from 'bcrypt'
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
+    // Validate request body
+    let body
+    try {
+      body = await request.json()
+    } catch (jsonError) {
+      console.error('Invalid JSON in request body:', jsonError)
+      return NextResponse.json({ error: 'Invalid request format' }, { status: 400 })
+    }
+
     const { email, password } = body
     
     if (!email || !password) {
       return NextResponse.json({ error: 'Email and password are required' }, { status: 400 })
+    }
+
+    if (typeof email !== 'string' || typeof password !== 'string') {
+      return NextResponse.json({ error: 'Email and password must be strings' }, { status: 400 })
     }
     
     // Find user by email
@@ -40,17 +53,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Account is inactive' }, { status: 401 })
     }
     
-    // Check password (handle both hashed and demo passwords)
-    let isValidPassword = false
-    
-    if (user.password) {
-      // Check hashed password
-      isValidPassword = await bcrypt.compare(password, user.password)
-    } else {
-      // Demo mode - allow any password for users without hashed passwords
-      isValidPassword = true
+    // Require password - no demo mode bypass
+    if (!user.password) {
+      return NextResponse.json({ error: 'Account setup incomplete. Please contact administrator.' }, { status: 401 })
     }
     
+    // Verify password
+    const isValidPassword = await bcrypt.compare(password, user.password)
     if (!isValidPassword) {
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 })
     }
@@ -61,15 +70,40 @@ export async function POST(request: NextRequest) {
       data: { lastLoginAt: new Date() },
     })
     
-    // Return user data (without password)
-    const { password: _, ...userWithoutPassword } = user
+    // Generate JWT token
+    const { password: _, ...userForToken } = user
+    const token = generateAccessToken(userForToken)
     
-    return NextResponse.json({
-      user: userWithoutPassword,
+    // Create secure response with HTTP-only cookie
+    const response = NextResponse.json({
+      user: userForToken,
       message: 'Login successful'
     })
+    
+    // Set HTTP-only cookie for secure token storage
+    response.cookies.set('auth-token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 24 * 60 * 60, // 24 hours
+      path: '/'
+    })
+    
+    return response
   } catch (error) {
     console.error('Login error:', error)
-    return NextResponse.json({ error: 'Login failed' }, { status: 500 })
+    
+    // Provide more specific error messages based on the error type
+    if (error instanceof Error) {
+      if (error.message.includes('connect') || error.message.includes('database')) {
+        return NextResponse.json({ error: 'Database connection error' }, { status: 500 })
+      }
+      
+      if (error.message.includes('JWT') || error.message.includes('token')) {
+        return NextResponse.json({ error: 'Authentication system error' }, { status: 500 })
+      }
+    }
+    
+    return NextResponse.json({ error: 'Login failed - please try again' }, { status: 500 })
   }
 }

@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { requireAuth } from '@/lib/api-auth-dynamic'
-import { hasPermission } from '@/lib/dynamic-permissions'
+import { requireAuth, hasPermission } from '@/lib/auth-server'
 
 export async function POST(
   request: NextRequest,
@@ -12,13 +11,18 @@ export async function POST(
     const { id } = await params
     
     // Check permissions
-    if (!(await hasPermission(user, { resource: 'quotations', action: 'create' })) && 
-        !(await hasPermission(user, { resource: 'quotations', action: 'edit_all' }))) {
+    if (!hasPermission(user, 'quotations_create') && !hasPermission(user, 'quotations_edit_all')) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 })
     }
     
     const body = await request.json()
     const { configuration, quantity = 1 } = body
+    
+    console.log('🔄 Product calculation request:', {
+      productId: id,
+      configuration,
+      quantity
+    })
     
     // Get product with attributes and options
     const product = await prisma.product.findUnique({
@@ -57,12 +61,20 @@ export async function POST(
             throw new Error('Calculation formula not defined for this product')
           }
           
+          console.log('🧮 Using formula calculation:', {
+            formula: product.calculationFormula,
+            basePrice: product.basePrice,
+            configuration
+          })
+          
           calculatedPrice = calculateWithFormula(
             product.calculationFormula, 
             configuration, 
             Number(product.basePrice)
           )
           calculatedCost = Number(product.costPrice || 0)
+          
+          console.log('📊 Formula result:', calculatedPrice)
           break
           
         case 'VARIANT_BASED':
@@ -89,8 +101,11 @@ export async function POST(
       
       // Apply attribute-based price modifiers
       const priceModifier = calculateAttributeModifiers(product.attributes, configuration)
+      console.log('🏷️ Attribute modifiers:', priceModifier)
       calculatedPrice += priceModifier.price
       calculatedCost += priceModifier.cost
+      
+      console.log('💰 Final price after modifiers:', calculatedPrice)
       
       // Validate required attributes
       const missingRequired = validateRequiredAttributes(product.attributes, configuration)
@@ -127,7 +142,11 @@ export async function POST(
     })
   } catch (error) {
     console.error('Error calculating product price:', error)
-    return NextResponse.json({ error: 'Failed to calculate price' }, { status: 500 })
+    console.error('Stack trace:', error instanceof Error ? error.stack : 'No stack trace')
+    return NextResponse.json({ 
+      error: 'Failed to calculate price',
+      details: error instanceof Error ? error.message : String(error)
+    }, { status: 500 })
   }
 }
 
@@ -169,10 +188,16 @@ function calculateAttributeModifiers(attributes: any[], configuration: any) {
   let priceModifier = 0
   let costModifier = 0
   
+  console.log('🔍 Calculating attribute modifiers for:', Object.keys(configuration))
+  
   attributes.forEach(attribute => {
     const selectedValue = configuration[attribute.name.toLowerCase()]
+    console.log(`📋 Attribute ${attribute.name}: looking for value "${selectedValue}"`)
+    
     if (selectedValue && attribute.options) {
       const option = attribute.options.find((opt: any) => opt.value === selectedValue)
+      console.log(`🔎 Found option:`, option ? { value: option.value, priceModifier: option.priceModifier } : 'NOT FOUND')
+      
       if (option) {
         priceModifier += Number(option.priceModifier || 0)
         costModifier += Number(option.costModifier || 0)
@@ -180,6 +205,7 @@ function calculateAttributeModifiers(attributes: any[], configuration: any) {
     }
   })
   
+  console.log('🏷️ Total modifiers:', { price: priceModifier, cost: costModifier })
   return { price: priceModifier, cost: costModifier }
 }
 

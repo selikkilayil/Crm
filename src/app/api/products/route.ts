@@ -1,14 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { requireAuth } from '@/lib/api-auth-dynamic'
-import { hasPermission } from '@/lib/dynamic-permissions'
+import { requireAuth, hasPermission } from '@/lib/auth-server'
 
 export async function GET(request: NextRequest) {
   try {
     const user = await requireAuth(request)
     
     // Check permissions
-    if (!(await hasPermission(user, { resource: 'products', action: 'view' }))) {
+    if (!hasPermission(user, 'products_view')) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 })
     }
     
@@ -80,7 +79,7 @@ export async function POST(request: NextRequest) {
     const user = await requireAuth(request)
     
     // Check permissions
-    if (!(await hasPermission(user, { resource: 'products', action: 'create' }))) {
+    if (!hasPermission(user, 'products_create')) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 })
     }
     

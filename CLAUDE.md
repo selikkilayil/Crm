@@ -189,6 +189,19 @@ NODE_ENV=production
 - Images optimized through Next.js Image component
 - Static assets served through Next.js optimization
 
+## Security & Architecture Documentation
+
+### Security Status: 🔴 Critical Issues Identified
+- **Security Audit:** See `SECURITY_AUDIT.md` for complete vulnerability assessment
+- **Critical Issues:** Client-side auth, demo mode bypass, missing API authentication
+- **Action Required:** Address critical vulnerabilities before production deployment
+
+### Modularity Plan: 🟡 Monolithic Modular Approach
+- **Architecture Plan:** See `MODULARITY_PLAN.md` for detailed refactoring roadmap  
+- **Approach:** No microservices - focus on modular monolith
+- **Benefits:** 60% code reduction, 40% faster builds, better maintainability
+- **Next Steps:** Start with Phase 1 - Service layer extraction
+
 ## Common Development Patterns
 
 ### Adding New Features

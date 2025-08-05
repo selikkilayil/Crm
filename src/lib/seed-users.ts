@@ -5,7 +5,7 @@ export async function seedUsers() {
   try {
     // Check if demo user already exists
     const existingUser = await prisma.user.findUnique({
-      where: { email: 'admin@crm.com' }
+      where: { email: 'demo@crm.com' }
     })
 
     if (existingUser) {
@@ -13,13 +13,13 @@ export async function seedUsers() {
       return
     }
 
-    // Create demo users with real passwords
+    // Create demo users with real passwords matching login page
     const users = [
       {
         id: 'user-1',
-        name: 'Admin User',
-        email: 'admin@crm.com',
-        password: await bcrypt.hash('admin123', 10),
+        name: 'Demo Admin',
+        email: 'demo@crm.com',
+        password: await bcrypt.hash('DemoPassword123!', 10),
         role: 'ADMIN' as const,
         isActive: true,
       },
@@ -27,7 +27,7 @@ export async function seedUsers() {
         id: 'user-2', 
         name: 'Manager User',
         email: 'manager@crm.com',
-        password: await bcrypt.hash('manager123', 10),
+        password: await bcrypt.hash('ManagerPassword123!', 10),
         role: 'MANAGER' as const,
         isActive: true,
       },
@@ -35,7 +35,7 @@ export async function seedUsers() {
         id: 'user-3',
         name: 'Sales User',
         email: 'sales@crm.com', 
-        password: await bcrypt.hash('sales123', 10),
+        password: await bcrypt.hash('SalesPassword123!', 10),
         role: 'SALES' as const,
         isActive: true,
       },
@@ -51,9 +51,9 @@ export async function seedUsers() {
 
     console.log('✅ Users seeded successfully')
     console.log('Login credentials:')
-    console.log('- admin@crm.com / admin123 (ADMIN)')
-    console.log('- manager@crm.com / manager123 (MANAGER)')  
-    console.log('- sales@crm.com / sales123 (SALES)')
+    console.log('- demo@crm.com / DemoPassword123! (ADMIN)')
+    console.log('- manager@crm.com / ManagerPassword123! (MANAGER)')  
+    console.log('- sales@crm.com / SalesPassword123! (SALES)')
   } catch (error) {
     console.error('❌ Error seeding users:', error)
   }

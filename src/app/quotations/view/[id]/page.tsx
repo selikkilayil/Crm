@@ -16,13 +16,37 @@ interface Customer {
 
 interface QuotationItem {
   id?: string
+  productId?: string
+  variantId?: string
   productName: string
   description?: string
+  configuration?: any
   quantity: number
   unitPrice: number
+  calculatedPrice?: number
   discount: number
   taxPercent: number
   subtotal: number
+  product?: {
+    id: string
+    name: string
+    sku?: string
+    category?: string
+    unit: string
+    productType: 'SIMPLE' | 'CONFIGURABLE' | 'CALCULATED'
+    pricingType?: 'FIXED' | 'PER_UNIT' | 'CALCULATED' | 'VARIANT_BASED'
+    attributes?: Array<{
+      id: string
+      name: string
+      type: 'TEXT' | 'NUMBER' | 'SELECT' | 'MULTISELECT' | 'DIMENSION' | 'BOOLEAN'
+      options?: Array<{
+        id: string
+        value: string
+        displayName?: string
+        priceModifier?: number
+      }>
+    }>
+  }
 }
 
 interface Quotation {
@@ -393,14 +417,118 @@ export default function QuotationViewPage() {
                     <tr key={index} className="hover:bg-gray-50">
                       <td className="px-4 py-4">
                         <div>
-                          <div className="font-medium text-gray-900">{item.productName}</div>
+                          <div className="font-medium text-gray-900">
+                            {item.productName || item.product?.name || 'Unnamed Product'}
+                          </div>
+                          
+                          {/* Product Details */}
+                          {item.product && (
+                            <div>
+                              <div className="flex flex-wrap gap-4 text-xs text-gray-500 mt-1">
+                                {item.product.sku && <span>SKU: {item.product.sku}</span>}
+                                {item.product.category && <span>Category: {item.product.category}</span>}
+                                {item.product.productType && <span>Type: {item.product.productType}</span>}
+                                {item.product.unit && <span>Unit: {item.product.unit}</span>}
+                              </div>
+                              {item.product.name && item.product.name !== (item.productName || item.product.name) && (
+                                <div className="text-xs text-blue-600 mt-1">Catalog: {item.product.name}</div>
+                              )}
+                            </div>
+                          )}
+                          
+                          {/* Configuration Details */}
+                          {item.configuration && Object.keys(item.configuration).length > 0 && (
+                            <div className="mt-2 p-3 bg-blue-50 rounded-md border border-blue-200">
+                              <h5 className="text-xs font-semibold text-blue-800 mb-2">🔧 Configuration:</h5>
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                {Object.entries(item.configuration).map(([key, value]) => {
+                                  const displayKey = key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1')
+                                  let displayValue: string
+                                  
+                                  if (typeof value === 'object' && value !== null) {
+                                    if (value.width && value.height) {
+                                      displayValue = `${value.width} × ${value.height}`
+                                      if (value.unit) displayValue += ` ${value.unit}`
+                                    } else {
+                                      displayValue = JSON.stringify(value)
+                                    }
+                                  } else {
+                                    displayValue = String(value)
+                                  }
+                                  
+                                  return (
+                                    <div key={key} className="flex justify-between items-center text-xs">
+                                      <span className="font-medium text-blue-700">{displayKey}:</span>
+                                      <span className="text-blue-900 font-semibold">{displayValue}</span>
+                                    </div>
+                                  )
+                                })}
+                              </div>
+                            </div>
+                          )}
+                          
+                          {/* Selected Options with Price Impact */}
+                          {item.product?.attributes && item.configuration && Object.keys(item.configuration).length > 0 && (
+                            <div className="mt-2 p-3 bg-green-50 rounded-md border border-green-200">
+                              <h5 className="text-xs font-semibold text-green-800 mb-2">🎯 Selected Options:</h5>
+                              <div className="space-y-1">
+                                {item.product.attributes.map((attr) => {
+                                  const configValue = item.configuration?.[attr.name.toLowerCase()]
+                                  if (!configValue) return null
+                                  
+                                  const selectedOption = attr.options?.find(opt => opt.value === configValue)
+                                  const priceModifier = selectedOption?.priceModifier || 0
+                                  
+                                  return (
+                                    <div key={attr.id} className="flex justify-between items-center text-xs">
+                                      <span className="font-medium text-green-700">{attr.name}:</span>
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-green-900 font-semibold">
+                                          {selectedOption?.displayName || configValue}
+                                        </span>
+                                        {priceModifier !== 0 && (
+                                          <span className={`px-1.5 py-0.5 rounded text-xs font-bold ${
+                                            priceModifier > 0 ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'
+                                          }`}>
+                                            {priceModifier > 0 ? '+' : ''}{formatCurrency(priceModifier)}
+                                          </span>
+                                        )}
+                                      </div>
+                                    </div>
+                                  )
+                                })}
+                              </div>
+                            </div>
+                          )}
+                          
+                          {/* Pricing Information */}
+                          {item.calculatedPrice && item.calculatedPrice !== item.unitPrice && (
+                            <div className="mt-2 p-2 bg-purple-50 rounded-md border border-purple-200">
+                              <div className="text-xs text-purple-700">
+                                <span className="font-semibold">🤖 Auto-calculated:</span> {formatCurrency(item.calculatedPrice)}
+                                <span className="ml-2 text-purple-600">(Base: {formatCurrency(item.unitPrice)})</span>
+                              </div>
+                            </div>
+                          )}
+                          
+                          {/* Description */}
                           {item.description && (
-                            <div className="text-gray-600 text-xs mt-1">{item.description}</div>
+                            <div className="text-gray-600 text-xs mt-2">{item.description}</div>
                           )}
                         </div>
                       </td>
-                      <td className="px-4 py-4 text-center font-medium">{item.quantity}</td>
-                      <td className="px-4 py-4 text-right">{formatCurrency(item.unitPrice)}</td>
+                      <td className="px-4 py-4 text-center">
+                        <div className="font-medium">{item.quantity}</div>
+                        {item.product?.unit && item.product.unit !== 'piece' && (
+                          <div className="text-xs text-gray-500">{item.product.unit}</div>
+                        )}
+                      </td>
+                      <td className="px-4 py-4 text-right">
+                        <div>{formatCurrency(item.unitPrice)}</div>
+                        {item.calculatedPrice && item.calculatedPrice !== item.unitPrice && (
+                          <div className="text-xs text-purple-600">Auto-priced</div>
+                        )}
+                      </td>
                       <td className="px-4 py-4 text-center">
                         {item.discount > 0 ? (
                           <span className="text-green-600 font-medium">{item.discount}%</span>

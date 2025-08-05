@@ -119,7 +119,7 @@ export default function NavBar({ currentPage }: NavBarProps) {
                 </>
               ) : (
                 <>
-                  <span className="hidden sm:inline">RAW CRM</span>
+                  <span className="hidden sm:inline">RAW </span>
                   <span className="sm:hidden">CRM</span>
                 </>
               )}
