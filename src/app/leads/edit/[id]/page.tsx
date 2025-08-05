@@ -3,9 +3,9 @@
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { LeadStatus } from '@prisma/client'
-import AuthGuard from '@/components/AuthGuard'
-import NavBar from '@/components/NavBar'
-import apiClient from '@/lib/api-client'
+import { AuthGuard } from '@/shared/components'
+import { NavBar } from '@/shared/components'
+import apiClient from '@/shared/services'
 
 interface Lead {
   id: string

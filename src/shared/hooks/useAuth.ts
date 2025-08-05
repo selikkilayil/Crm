@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, createContext, useContext } from 'react'
-import { getAuthToken, clearAuthToken, setAuthToken } from '@/lib/auth'
+import { getAuthToken, clearAuthToken, setAuthToken, logout } from '@/shared/services'
 
 export interface User {
   id: string

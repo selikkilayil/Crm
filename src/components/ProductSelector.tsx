@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { productApi } from '@/lib/api-client'
+import { productApi } from '@/shared/services'
 
 interface Product {
   id: string

@@ -1,9 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useAuth } from '@/hooks/useAuth'
-import AuthGuard from '@/components/AuthGuard'
-import NavBar from '@/components/NavBar'
+import { useAuth } from '@/shared/hooks'
+import { AuthGuard } from '@/shared/components'
+import { NavBar } from '@/shared/components'
 
 interface PDFSettings {
   id: string

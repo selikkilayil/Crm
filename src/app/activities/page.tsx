@@ -3,9 +3,9 @@
 import { useState, useEffect } from 'react'
 import { ActivityType } from '@prisma/client'
 import { useConfirm } from '@/lib/confirmation-context'
-import AuthGuard from '@/components/AuthGuard'
-import NavBar from '@/components/NavBar'
-import apiClient from '@/lib/api-client'
+import { AuthGuard } from '@/shared/components'
+import { NavBar } from '@/shared/components'
+import apiClient from '@/shared/services'
 
 interface Activity {
   id: string

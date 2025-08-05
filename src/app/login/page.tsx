@@ -3,8 +3,8 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import * as Yup from 'yup'
-import { login } from '@/lib/auth'
-import { FormWrapper, FormField, FormButton, FormErrorMessage } from '@/components/forms'
+import { login } from '@/shared/services'
+import { FormWrapper, FormField, FormButton, FormErrorMessage } from '@/shared/components'
 
 const validationSchema = Yup.object({
   email: Yup.string()

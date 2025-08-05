@@ -1,11 +1,11 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useAuth } from '@/hooks/useAuth'
+import { useAuth } from '@/shared/hooks'
 import { useRouter } from 'next/navigation'
 import { useConfirm } from '@/lib/confirmation-context'
-import AuthGuard from '@/components/AuthGuard'
-import NavBar from '@/components/NavBar'
+import { AuthGuard } from '@/shared/components'
+import { NavBar } from '@/shared/components'
 
 interface User {
   id: string

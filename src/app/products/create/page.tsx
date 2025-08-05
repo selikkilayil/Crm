@@ -2,10 +2,10 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import AuthGuard from '@/components/AuthGuard'
-import PermissionGuard from '@/components/PermissionGuard'
-import NavBar from '@/components/NavBar'
-import { productApi } from '@/lib/api-client'
+import { AuthGuard } from '@/shared/components'
+import { PermissionGuard } from '@/shared/components'
+import { NavBar } from '@/shared/components'
+import { productApi } from '@/shared/services'
 import { PERMISSIONS } from '@/lib/permissions'
 
 interface ProductAttribute {

@@ -4,12 +4,11 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { LeadStatus } from '@prisma/client'
 import * as Yup from 'yup'
-import AuthGuard from '@/components/AuthGuard'
-import NavBar from '@/components/NavBar'
+import { AuthGuard, NavBar } from '@/shared/components'
 import TaskSection from '@/components/TaskSection'
 import TagComponent from '@/components/TagComponent'
-import { FormWrapper, FormField, FormButton, FormErrorMessage } from '@/components/forms'
-import apiClient from '@/lib/api-client'
+import { FormWrapper, FormField, FormButton, FormErrorMessage } from '@/shared/components'
+import { apiClient } from '@/shared/services'
 
 interface Lead {
   id: string

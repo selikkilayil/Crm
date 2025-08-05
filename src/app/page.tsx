@@ -1,11 +1,11 @@
 'use client'
 
 import Link from 'next/link'
-import AuthGuard from '@/components/AuthGuard'
-import NavBar from '@/components/NavBar'
-import PermissionGuard from '@/components/PermissionGuard'
-import { useAuth } from '@/hooks/useAuth'
-import { usePermissions } from '@/hooks/usePermissions'
+import { AuthGuard } from '@/shared/components'
+import { NavBar } from '@/shared/components'
+import { PermissionGuard } from '@/shared/components'
+import { useAuth } from '@/shared/hooks'
+import { usePermissions } from '@/shared/hooks'
 
 export default function Home() {
   const { user } = useAuth()

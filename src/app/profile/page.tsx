@@ -1,10 +1,10 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import AuthGuard from '@/components/AuthGuard'
-import NavBar from '@/components/NavBar'
-import { useAuth } from '@/hooks/useAuth'
-import apiClient from '@/lib/api-client'
+import { AuthGuard } from '@/shared/components'
+import { NavBar } from '@/shared/components'
+import { useAuth } from '@/shared/hooks'
+import apiClient from '@/shared/services'
 
 interface ProfileData {
   name: string

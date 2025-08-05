@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { LeadStatus } from '@prisma/client'
-import AuthGuard from '@/components/AuthGuard'
-import NavBar from '@/components/NavBar'
+import { AuthGuard } from '@/shared/components'
+import { NavBar } from '@/shared/components'
 
 interface Lead {
   id: string

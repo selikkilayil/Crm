@@ -2,12 +2,12 @@
 
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import AuthGuard from '@/components/AuthGuard'
-import NavBar from '@/components/NavBar'
+import { AuthGuard } from '@/shared/components'
+import { NavBar } from '@/shared/components'
 import ActivityTimeline from '@/components/ActivityTimeline'
 import TaskSection from '@/components/TaskSection'
 import TagComponent from '@/components/TagComponent'
-import apiClient from '@/lib/api-client'
+import apiClient from '@/shared/services'
 
 interface Customer {
   id: string

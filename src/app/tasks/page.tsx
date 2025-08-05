@@ -3,12 +3,11 @@
 import { useState, useEffect } from 'react'
 import { TaskStatus, TaskPriority } from '@prisma/client'
 import { useConfirm } from '@/lib/confirmation-context'
-import AuthGuard from '@/components/AuthGuard'
-import NavBar from '@/components/NavBar'
-import { FormWrapper, FormField, FormButton, FormErrorMessage } from '@/components/forms'
+import { AuthGuard, NavBar } from '@/shared/components'
+import { FormWrapper, FormField, FormButton, FormErrorMessage } from '@/shared/components'
 import * as Yup from 'yup'
-import { useAuth } from '@/hooks/useAuth'
-import apiClient from '@/lib/api-client'
+import { useAuth } from '@/shared/hooks'
+import { apiClient } from '@/shared/services'
 
 interface Task {
   id: string

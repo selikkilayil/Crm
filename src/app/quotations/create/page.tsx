@@ -2,11 +2,11 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { useAuth } from '@/hooks/useAuth'
-import AuthGuard from '@/components/AuthGuard'
-import NavBar from '@/components/NavBar'
+import { useAuth } from '@/shared/hooks'
+import { AuthGuard } from '@/shared/components'
+import { NavBar } from '@/shared/components'
 import ProductSelector from '@/components/ProductSelector'
-import apiClient, { productApi } from '@/lib/api-client'
+import apiClient, { productApi } from '@/shared/services'
 import { Formik, Form, Field, FieldArray, FormikProps } from 'formik'
 import * as Yup from 'yup'
 

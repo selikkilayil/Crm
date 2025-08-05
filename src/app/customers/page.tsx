@@ -1,65 +1,23 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import AuthGuard from '@/components/AuthGuard'
-import NavBar from '@/components/NavBar'
+import { AuthGuard, NavBar } from '@/shared/components'
 import ActivityTimeline from '@/components/ActivityTimeline'
 import TaskSection from '@/components/TaskSection'
 import TagComponent from '@/components/TagComponent'
-import { FormWrapper, FormField, FormButton, FormErrorMessage } from '@/components/forms'
-import * as Yup from 'yup'
-import apiClient from '@/lib/api-client'
-
-interface Customer {
-  id: string
-  name: string
-  email: string
-  phone: string | null
-  company: string | null
-  billingAddress: string | null
-  shippingAddress: string | null
-  gstin: string | null
-  notes: string | null
-  isArchived: boolean
-  createdAt: string
-  updatedAt: string
-  leadId: string | null
-  contacts?: Contact[]
-  activities?: Activity[]
-  tags?: Tag[]
-}
-
-interface Contact {
-  id: string
-  name: string
-  email: string | null
-  phone: string | null
-  position: string | null
-  isPrimary: boolean
-}
-
-interface Activity {
-  id: string
-  type: string
-  title: string
-  description: string | null
-  createdAt: string
-  completedAt: string | null
-}
-
-interface Tag {
-  id: string
-  name: string
-  color: string
-  description?: string | null
-}
+import { apiClient } from '@/shared/services'
+import { 
+  CustomerForm, 
+  CustomersList, 
+  useCustomers, 
+  customersService,
+  Customer, 
+  Tag 
+} from '@/modules/customers'
 
 export default function EnhancedCustomersPage() {
-  const router = useRouter()
-  const [customers, setCustomers] = useState<Customer[]>([])
+  const { customers, loading, addCustomer, refreshCustomers } = useCustomers()
   const [availableTags, setAvailableTags] = useState<Tag[]>([])
-  const [loading, setLoading] = useState(true)
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid')
   const [showAddForm, setShowAddForm] = useState(false)
   const [showFilters, setShowFilters] = useState(false)
@@ -68,27 +26,9 @@ export default function EnhancedCustomersPage() {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc')
 
   useEffect(() => {
-    fetchCustomers()
     fetchTags()
   }, [])
 
-  const fetchCustomers = async () => {
-    try {
-      const data = await apiClient.get('/api/customers')
-      
-      if (Array.isArray(data)) {
-        setCustomers(data.filter((customer: Customer) => !customer.isArchived))
-      } else {
-        console.error('API Error:', data)
-        setCustomers([])
-      }
-    } catch (error) {
-      console.error('Failed to fetch customers:', error)
-      setCustomers([])
-    } finally {
-      setLoading(false)
-    }
-  }
 
   const fetchTags = async () => {
     try {
@@ -109,7 +49,7 @@ export default function EnhancedCustomersPage() {
         customerIds: [customerId],
         action: 'assign'
       })
-      fetchCustomers()
+      refreshCustomers()
     } catch (error) {
       console.error('Failed to assign tag:', error)
     }
@@ -122,39 +62,38 @@ export default function EnhancedCustomersPage() {
         customerIds: [customerId],
         action: 'remove'
       })
-      fetchCustomers()
+      refreshCustomers()
     } catch (error) {
       console.error('Failed to remove tag:', error)
     }
   }
 
-  const addCustomer = async (customerData: Partial<Customer>) => {
+  const handleAddCustomer = async (customerData: any) => {
     try {
-      await apiClient.post('/api/customers', customerData)
-      fetchCustomers()
+      const newCustomer = await customersService.create(customerData)
+      addCustomer(newCustomer)
       setShowAddForm(false)
     } catch (error) {
       console.error('Failed to add customer:', error)
+      throw error
     }
   }
 
-  const handleEditCustomer = (customer: Customer) => {
-    router.push(`/customers/edit/${customer.id}`)
+  const handleAddTag = async (customerId: string, tagId: string) => {
+    try {
+      await customersService.addTag(customerId, tagId)
+      refreshCustomers()
+    } catch (error) {
+      console.error('Failed to add tag:', error)
+    }
   }
 
-  const archiveCustomer = async (customerId: string) => {
+  const handleRemoveTag = async (customerId: string, tagId: string) => {
     try {
-      const customer = customers.find(c => c.id === customerId)
-      if (!customer) return
-
-      await apiClient.put(`/api/customers/${customerId}`, { 
-        ...customer, 
-        isArchived: true 
-      })
-      
-      setCustomers(customers.filter(c => c.id !== customerId))
+      await customersService.removeTag(customerId, tagId)
+      refreshCustomers()
     } catch (error) {
-      console.error('Failed to archive customer:', error)
+      console.error('Failed to remove tag:', error)
     }
   }
 
@@ -326,32 +265,14 @@ export default function EnhancedCustomersPage() {
             </div>
           )}
 
-          {/* Grid View - Mobile Optimized */}
-          {viewMode === 'grid' && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-              {filteredAndSortedCustomers.map(customer => (
-                <CustomerCard
-                  key={customer.id}
-                  customer={customer}
-                  onEdit={() => handleEditCustomer(customer)}
-                  onArchive={archiveCustomer}
-                  onViewProfile={() => router.push(`/customers/view/${customer.id}`)}
-                />
-              ))}
-            </div>
-          )}
-
-          {/* Table View - Mobile Responsive */}
-          {viewMode === 'table' && (
-            <div className="bg-white shadow overflow-hidden sm:rounded-md border border-gray-200">
-              <CustomersTable 
-                customers={filteredAndSortedCustomers}
-                onEdit={(customer) => handleEditCustomer(customer)}
-                onArchive={archiveCustomer}
-                onViewProfile={(customer) => router.push(`/customers/view/${customer.id}`)}
-              />
-            </div>
-          )}
+          {/* Customers List */}
+          <CustomersList
+            customers={filteredAndSortedCustomers}
+            availableTags={availableTags}
+            viewMode={viewMode}
+            onAddTag={handleAddTag}
+            onRemoveTag={handleRemoveTag}
+          />
 
           {/* No Results */}
           {filteredAndSortedCustomers.length === 0 && !loading && (
@@ -375,341 +296,15 @@ export default function EnhancedCustomersPage() {
 
         {/* Modals */}
         {showAddForm && (
-          <AddCustomerModal 
-            onAdd={addCustomer} 
-            onClose={() => setShowAddForm(false)} 
+          <CustomerForm
+            onSubmit={handleAddCustomer}
+            onClose={() => setShowAddForm(false)}
           />
         )}
 
 
       </div>
     </AuthGuard>
-  )
-}
-
-// Mobile-optimized Customer Card
-function CustomerCard({ customer, onEdit, onArchive, onViewProfile }: {
-  customer: Customer
-  onEdit: () => void
-  onArchive: (id: string) => void
-  onViewProfile: () => void
-}) {
-  const [showMenu, setShowMenu] = useState(false)
-
-  return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
-      <div className="p-4 sm:p-6">
-        <div className="flex justify-between items-start mb-3">
-          <div className="flex-1 min-w-0">
-            <h3 className="text-lg font-medium text-gray-900 truncate">{customer.name}</h3>
-            {customer.company && (
-              <p className="text-sm text-gray-600 truncate">{customer.company}</p>
-            )}
-          </div>
-          <div className="relative ml-2">
-            <button
-              onClick={() => setShowMenu(!showMenu)}
-              className="text-gray-400 hover:text-gray-600 p-2 -m-2"
-            >
-              ⋮
-            </button>
-            
-            {showMenu && (
-              <div className="absolute right-0 top-8 bg-white border border-gray-200 rounded-md shadow-lg z-10 min-w-32">
-                <button
-                  onClick={() => { onViewProfile(); setShowMenu(false) }}
-                  className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 w-full"
-                >
-                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                  </svg>
-                  View Profile
-                </button>
-                <button
-                  onClick={() => { onEdit(); setShowMenu(false) }}
-                  className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 w-full"
-                >
-                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                  </svg>
-                  Edit
-                </button>
-                <button
-                  onClick={() => { onArchive(customer.id); setShowMenu(false) }}
-                  className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-50"
-                >
-                  Archive
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-        
-        <div className="space-y-2">
-          <div className="flex items-center text-sm text-gray-600">
-            <span className="mr-2">📧</span>
-            <span className="truncate">{customer.email}</span>
-          </div>
-          
-          {customer.phone && (
-            <div className="flex items-center text-sm text-gray-600">
-              <span className="mr-2">📞</span>
-              <span>{customer.phone}</span>
-            </div>
-          )}
-          
-          {customer.gstin && (
-            <div className="flex items-center text-sm text-gray-600">
-              <span className="mr-2">🏛️</span>
-              <span className="truncate">{customer.gstin}</span>
-            </div>
-          )}
-          
-          {customer.tags && customer.tags.length > 0 && (
-            <div className="mt-3">
-              <TagComponent 
-                tags={customer.tags}
-                compact={true}
-                maxDisplay={3}
-              />
-            </div>
-          )}
-        </div>
-        
-        <div className="mt-4 pt-4 border-t border-gray-200">
-          <div className="flex justify-between items-center text-xs text-gray-500">
-            <span>Added {new Date(customer.createdAt).toLocaleDateString()}</span>
-            <button
-              onClick={onViewProfile}
-              className="text-blue-600 hover:text-blue-800 p-1"
-              title="View Customer Profile"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-              </svg>
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// Mobile-responsive Table
-function CustomersTable({ customers, onEdit, onArchive, onViewProfile }: {
-  customers: Customer[]
-  onEdit: (customer: Customer) => void
-  onArchive: (id: string) => void
-  onViewProfile: (customer: Customer) => void
-}) {
-  return (
-    <div className="overflow-x-auto">
-      <table className="min-w-full divide-y divide-gray-200">
-        <thead className="bg-gray-50">
-          <tr>
-            <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Customer
-            </th>
-            <th className="hidden sm:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Contact
-            </th>
-            <th className="hidden md:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Company
-            </th>
-            <th className="hidden lg:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              GSTIN
-            </th>
-            <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Actions
-            </th>
-          </tr>
-        </thead>
-        <tbody className="bg-white divide-y divide-gray-200">
-          {customers.map((customer) => (
-            <tr key={customer.id} className="hover:bg-gray-50">
-              <td className="px-3 sm:px-6 py-4">
-                <div>
-                  <div className="text-sm font-medium text-gray-900">{customer.name}</div>
-                  <div className="text-sm text-gray-500 sm:hidden">
-                    {customer.email}
-                    {customer.phone && <div>{customer.phone}</div>}
-                  </div>
-                  {customer.company && (
-                    <div className="text-sm text-gray-500 md:hidden">{customer.company}</div>
-                  )}
-                </div>
-              </td>
-              <td className="hidden sm:table-cell px-6 py-4 whitespace-nowrap">
-                <div className="text-sm text-gray-900">
-                  <div>{customer.email}</div>
-                  {customer.phone && <div>{customer.phone}</div>}
-                </div>
-              </td>
-              <td className="hidden md:table-cell px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                {customer.company || '-'}
-              </td>
-              <td className="hidden lg:table-cell px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                {customer.gstin || '-'}
-              </td>
-              <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm font-medium">
-                <div className="flex flex-col sm:flex-row space-y-1 sm:space-y-0 sm:space-x-2">
-                  <button
-                    onClick={() => onViewProfile(customer)}
-                    className="text-blue-600 hover:text-blue-900 p-1"
-                    title="View Customer Profile"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                    </svg>
-                  </button>
-                  <button
-                    onClick={() => onEdit(customer)}
-                    className="text-indigo-600 hover:text-indigo-900 p-1"
-                    title="Edit Customer"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                    </svg>
-                  </button>
-                  <button
-                    onClick={() => onArchive(customer.id)}
-                    className="text-red-600 hover:text-red-900 text-xs sm:text-sm"
-                  >
-                    Archive
-                  </button>
-                </div>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  )
-}
-
-// Enhanced Add Customer Modal - Formik Version
-function AddCustomerModal({ onAdd, onClose }: { onAdd: (data: any) => void, onClose: () => void }) {
-  const [error, setError] = useState('')
-  const [sameAddress, setSameAddress] = useState(false)
-
-  const validationSchema = Yup.object({
-    name: Yup.string().required('Name is required'),
-    email: Yup.string().email('Invalid email address').required('Email is required'),
-    phone: Yup.string().nullable(),
-    company: Yup.string().nullable(),
-    billingAddress: Yup.string().nullable(),
-    shippingAddress: Yup.string().nullable(),
-    gstin: Yup.string().nullable(),
-    notes: Yup.string().nullable(),
-  })
-
-  const initialValues = {
-    name: '',
-    email: '',
-    phone: '',
-    company: '',
-    billingAddress: '',
-    shippingAddress: '',
-    gstin: '',
-    notes: '',
-  }
-
-  const handleSubmit = async (values: typeof initialValues, { setSubmitting }: any) => {
-    try {
-      setError('')
-      const submitData = {
-        ...values,
-        shippingAddress: sameAddress ? values.billingAddress : values.shippingAddress
-      }
-      await onAdd(submitData)
-    } catch (err: any) {
-      setError(err.message || 'Failed to add customer')
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg w-full max-w-2xl max-h-screen overflow-y-auto">
-        <div className="p-4 sm:p-6">
-          <h2 className="text-xl font-bold mb-4 text-gray-900">Add New Customer</h2>
-          
-          <FormWrapper
-            initialValues={initialValues}
-            validationSchema={validationSchema}
-            onSubmit={handleSubmit}
-          >
-            {({ isSubmitting, values, setFieldValue }: any) => (
-              <>
-                <FormErrorMessage message={error} />
-                
-                {/* Basic Information */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="sm:col-span-2">
-                    <FormField name="name" label="Name" required />
-                  </div>
-                  
-                  <FormField name="email" label="Email" type="email" required />
-                  <FormField name="phone" label="Phone" type="tel" />
-                  <FormField name="company" label="Company" />
-                  <FormField name="gstin" label="GSTIN" />
-                </div>
-                
-                {/* Addresses */}
-                <div className="space-y-4">
-                  <FormField name="billingAddress" label="Billing Address" as="textarea" rows={3} />
-                  
-                  <div className="flex items-center">
-                    <input
-                      type="checkbox"
-                      id="sameAddress"
-                      checked={sameAddress}
-                      onChange={(e) => {
-                        setSameAddress(e.target.checked)
-                        if (e.target.checked) {
-                          setFieldValue('shippingAddress', values.billingAddress)
-                        }
-                      }}
-                      className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
-                    />
-                    <label htmlFor="sameAddress" className="ml-2 text-sm text-gray-700">
-                      Shipping address same as billing
-                    </label>
-                  </div>
-                  
-                  {!sameAddress && (
-                    <FormField name="shippingAddress" label="Shipping Address" as="textarea" rows={3} />
-                  )}
-                </div>
-                
-                <FormField name="notes" label="Notes" as="textarea" rows={3} />
-                
-                <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-3 pt-4">
-                  <FormButton
-                    type="button"
-                    variant="secondary"
-                    onClick={onClose}
-                  >
-                    Cancel
-                  </FormButton>
-                  <FormButton
-                    type="submit"
-                    variant="success"
-                    loading={isSubmitting}
-                  >
-                    Add Customer
-                  </FormButton>
-                </div>
-              </>
-            )}
-          </FormWrapper>
-        </div>
-      </div>
-    </div>
   )
 }
 

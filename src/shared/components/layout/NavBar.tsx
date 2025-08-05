@@ -2,8 +2,7 @@
 
 import Link from 'next/link'
 import { useState, useEffect, useRef } from 'react'
-import { useAuth } from '@/hooks/useAuth'
-import { usePermissions } from '@/hooks/usePermissions'
+import { useAuth, usePermissions } from '@/shared/hooks'
 
 
 interface NavBarProps {
