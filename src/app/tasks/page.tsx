@@ -5,6 +5,8 @@ import { TaskStatus, TaskPriority } from '@prisma/client'
 import { useConfirm } from '@/lib/confirmation-context'
 import AuthGuard from '@/components/AuthGuard'
 import NavBar from '@/components/NavBar'
+import { FormWrapper, FormField, FormButton, FormErrorMessage } from '@/components/forms'
+import * as Yup from 'yup'
 import { useAuth } from '@/hooks/useAuth'
 import apiClient from '@/lib/api-client'
 
@@ -1054,7 +1056,7 @@ function EditTaskModal({ task, onEdit, onClose, taskStatuses, taskPriorities, cu
   )
 }
 
-// Add Task Modal
+// Add Task Modal - Formik Version
 function AddTaskModal({ onAdd, onClose, taskStatuses, taskPriorities, currentUser }: {
   onAdd: (data: unknown) => void
   onClose: () => void
@@ -1062,17 +1064,7 @@ function AddTaskModal({ onAdd, onClose, taskStatuses, taskPriorities, currentUse
   taskPriorities: Array<{value: string, label: string, color: string, icon: string}>
   currentUser: unknown
 }) {
-  const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    status: 'PENDING' as TaskStatus,
-    priority: 'MEDIUM' as TaskPriority,
-    dueDate: '',
-    assignedToId: '',
-    leadId: '',
-    customerId: '',
-  })
-
+  const [error, setError] = useState('')
   const [leads, setLeads] = useState([])
   const [customers, setCustomers] = useState([])
   const [users, setUsers] = useState([])
@@ -1090,18 +1082,44 @@ function AddTaskModal({ onAdd, onClose, taskStatuses, taskPriorities, currentUse
     })
   }, [])
 
-  const handleAddSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    
-    const submitData = {
-      ...formData,
-      dueDate: formData.dueDate ? new Date(formData.dueDate).toISOString() : null,
-      assignedToId: formData.assignedToId || null,
-      leadId: formData.leadId || null,
-      customerId: formData.customerId || null,
+  const validationSchema = Yup.object({
+    title: Yup.string().required('Title is required'),
+    description: Yup.string().nullable(),
+    status: Yup.string().required('Status is required'),
+    priority: Yup.string().required('Priority is required'),
+    dueDate: Yup.string().nullable(),
+    assignedToId: Yup.string().nullable(),
+    leadId: Yup.string().nullable(),
+    customerId: Yup.string().nullable(),
+  })
+
+  const initialValues = {
+    title: '',
+    description: '',
+    status: 'PENDING' as TaskStatus,
+    priority: 'MEDIUM' as TaskPriority,
+    dueDate: '',
+    assignedToId: '',
+    leadId: '',
+    customerId: '',
+  }
+
+  const handleSubmit = async (values: typeof initialValues, { setSubmitting }: any) => {
+    try {
+      setError('')
+      const submitData = {
+        ...values,
+        dueDate: values.dueDate ? new Date(values.dueDate).toISOString() : null,
+        assignedToId: values.assignedToId || null,
+        leadId: values.leadId || null,
+        customerId: values.customerId || null,
+      }
+      await onAdd(submitData)
+    } catch (err: any) {
+      setError(err.message || 'Failed to create task')
+    } finally {
+      setSubmitting(false)
     }
-    
-    onAdd(submitData)
   }
 
   return (
@@ -1110,138 +1128,104 @@ function AddTaskModal({ onAdd, onClose, taskStatuses, taskPriorities, currentUse
         <div className="p-4 sm:p-6">
           <h2 className="text-xl font-bold mb-4 text-gray-900">Create New Task</h2>
           
-          <form onSubmit={handleAddSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Title *</label>
-              <input
-                type="text"
-                required
-                value={formData.title}
-                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                className="block w-full rounded-md border-gray-300 shadow-sm border p-3 sm:p-2 text-base sm:text-sm text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 min-h-[44px]"
-                placeholder="Task title"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Description</label>
-              <textarea
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                className="block w-full rounded-md border-gray-300 shadow-sm border p-3 sm:p-2 text-base sm:text-sm text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 min-h-[44px]"
-                rows={3}
-                placeholder="Task details and requirements"
-              />
-            </div>
-            
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Priority</label>
-                <select
-                  value={formData.priority}
-                  onChange={(e) => setFormData({ ...formData, priority: e.target.value as TaskPriority })}
-                  className="block w-full rounded-md border-gray-300 shadow-sm border p-3 sm:p-2 text-base sm:text-sm text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 min-h-[44px]"
-                >
-                  {taskPriorities.map(priority => (
-                    <option key={priority.value} value={priority.value}>
-                      {priority.icon} {priority.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Status</label>
-                <select
-                  value={formData.status}
-                  onChange={(e) => setFormData({ ...formData, status: e.target.value as TaskStatus })}
-                  className="block w-full rounded-md border-gray-300 shadow-sm border p-3 sm:p-2 text-base sm:text-sm text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 min-h-[44px]"
-                >
-                  {taskStatuses.map(status => (
-                    <option key={status.value} value={status.value}>
-                      {status.icon} {status.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Due Date</label>
-                <input
-                  type="datetime-local"
-                  value={formData.dueDate}
-                  onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
-                  className="block w-full rounded-md border-gray-300 shadow-sm border p-3 sm:p-2 text-base sm:text-sm text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 min-h-[44px]"
-                />
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Assign To</label>
-                <select
-                  value={formData.assignedToId}
-                  onChange={(e) => setFormData({ ...formData, assignedToId: e.target.value })}
-                  className="block w-full rounded-md border-gray-300 shadow-sm border p-3 sm:p-2 text-base sm:text-sm text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 min-h-[44px]"
-                >
-                  <option value="">Select User</option>
-                  {users.map((user: {id: string, name: string, role: string}) => (
-                    <option key={user.id} value={user.id}>
-                      {user.name} ({user.role})
-                    </option>
-                  ))}
-                </select>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Link to Lead</label>
-                <select
-                  value={formData.leadId}
-                  onChange={(e) => setFormData({ ...formData, leadId: e.target.value, customerId: e.target.value ? '' : formData.customerId })}
-                  className="block w-full rounded-md border-gray-300 shadow-sm border p-3 sm:p-2 text-base sm:text-sm text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 min-h-[44px]"
-                >
-                  <option value="">Select Lead</option>
-                  {leads.map((lead: {id: string, name: string, company?: string}) => (
-                    <option key={lead.id} value={lead.id}>
-                      {lead.name} {lead.company && `(${lead.company})`}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Link to Customer</label>
-                <select
-                  value={formData.customerId}
-                  onChange={(e) => setFormData({ ...formData, customerId: e.target.value, leadId: e.target.value ? '' : formData.leadId })}
-                  className="block w-full rounded-md border-gray-300 shadow-sm border p-3 sm:p-2 text-base sm:text-sm text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 min-h-[44px]"
-                >
-                  <option value="">Select Customer</option>
-                  {customers.map((customer: {id: string, name: string, company?: string}) => (
-                    <option key={customer.id} value={customer.id}>
-                      {customer.name} {customer.company && `(${customer.company})`}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-            
-            <div className="flex flex-col sm:flex-row justify-end space-y-3 sm:space-y-0 sm:space-x-3 pt-6">
-              <button
-                type="button"
-                onClick={onClose}
-                className="w-full sm:w-auto px-6 py-3 sm:py-2 text-base sm:text-sm font-medium text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 min-h-[44px] transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className="w-full sm:w-auto px-6 py-3 sm:py-2 text-base sm:text-sm font-medium bg-purple-600 text-white rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 min-h-[44px] transition-colors"
-              >
-                Create Task
-              </button>
-            </div>
-          </form>
+          <FormWrapper
+            initialValues={initialValues}
+            validationSchema={validationSchema}
+            onSubmit={handleSubmit}
+          >
+            {({ isSubmitting, values, setFieldValue }: any) => (
+              <>
+                <FormErrorMessage message={error} />
+                
+                <FormField name="title" label="Title" required placeholder="Task title" />
+                <FormField name="description" label="Description" as="textarea" rows={3} placeholder="Task details and requirements" />
+                
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <FormField name="priority" label="Priority" as="select">
+                    {taskPriorities.map(priority => (
+                      <option key={priority.value} value={priority.value}>
+                        {priority.icon} {priority.label}
+                      </option>
+                    ))}
+                  </FormField>
+                  
+                  <FormField name="status" label="Status" as="select">
+                    {taskStatuses.map(status => (
+                      <option key={status.value} value={status.value}>
+                        {status.icon} {status.label}
+                      </option>
+                    ))}
+                  </FormField>
+                  
+                  <FormField name="dueDate" label="Due Date" type="datetime-local" />
+                </div>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <FormField name="assignedToId" label="Assign To" as="select">
+                    <option value="">Select User</option>
+                    {users.map((user: {id: string, name: string, role: string}) => (
+                      <option key={user.id} value={user.id}>
+                        {user.name} ({user.role})
+                      </option>
+                    ))}
+                  </FormField>
+                  
+                  <FormField 
+                    name="leadId" 
+                    label="Link to Lead" 
+                    as="select"
+                    onChange={(e: any) => {
+                      setFieldValue('leadId', e.target.value)
+                      if (e.target.value) setFieldValue('customerId', '')
+                    }}
+                  >
+                    <option value="">Select Lead</option>
+                    {leads.map((lead: {id: string, name: string, company?: string}) => (
+                      <option key={lead.id} value={lead.id}>
+                        {lead.name} {lead.company && `(${lead.company})`}
+                      </option>
+                    ))}
+                  </FormField>
+                  
+                  <FormField 
+                    name="customerId" 
+                    label="Link to Customer" 
+                    as="select"
+                    onChange={(e: any) => {
+                      setFieldValue('customerId', e.target.value)
+                      if (e.target.value) setFieldValue('leadId', '')
+                    }}
+                  >
+                    <option value="">Select Customer</option>
+                    {customers.map((customer: {id: string, name: string, company?: string}) => (
+                      <option key={customer.id} value={customer.id}>
+                        {customer.name} {customer.company && `(${customer.company})`}
+                      </option>
+                    ))}
+                  </FormField>
+                </div>
+                
+                <div className="flex flex-col sm:flex-row justify-end space-y-3 sm:space-y-0 sm:space-x-3 pt-6">
+                  <FormButton 
+                    type="button" 
+                    variant="secondary" 
+                    onClick={onClose}
+                    className="w-full sm:w-auto min-h-[44px]"
+                  >
+                    Cancel
+                  </FormButton>
+                  <FormButton 
+                    type="submit" 
+                    variant="primary" 
+                    loading={isSubmitting}
+                    className="w-full sm:w-auto min-h-[44px] bg-purple-600 hover:bg-purple-700 focus:ring-purple-500"
+                  >
+                    Create Task
+                  </FormButton>
+                </div>
+              </>
+            )}
+          </FormWrapper>
         </div>
       </div>
     </div>

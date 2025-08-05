@@ -2,22 +2,40 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import * as Yup from 'yup'
 import { login } from '@/lib/auth'
+import { FormWrapper, FormField, FormButton, FormErrorMessage } from '@/components/forms'
+
+const validationSchema = Yup.object({
+  email: Yup.string()
+    .email('Invalid email address')
+    .required('Email is required'),
+  password: Yup.string()
+    .min(6, 'Password must be at least 6 characters')
+    .required('Password is required')
+})
+
+interface LoginFormValues {
+  email: string
+  password: string
+}
 
 export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
   const router = useRouter()
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const initialValues: LoginFormValues = {
+    email: '',
+    password: ''
+  }
+
+  const handleLogin = async (values: LoginFormValues) => {
     setLoading(true)
     setError('')
     
     try {
-      const user = await login(email, password)
+      const user = await login(values.email, values.password)
       console.log('Login successful, user role:', user.role)
       
       // Small delay to ensure localStorage is updated
@@ -79,62 +97,43 @@ export default function LoginPage() {
           </p>
         </div>
         
-        <form className="mt-8 space-y-6" onSubmit={handleLogin}>
-          {error && (
-            <div className="rounded-md bg-red-50 p-4">
-              <div className="text-sm text-red-700">{error}</div>
-            </div>
-          )}
+        <FormWrapper
+          initialValues={initialValues}
+          validationSchema={validationSchema}
+          onSubmit={handleLogin}
+          className="mt-8"
+        >
+          <FormErrorMessage message={error} />
           
-          <div className="space-y-4">
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-                Email address <span className="text-red-500">*</span>
-              </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Enter your email"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200 min-h-[44px]"
-              />
-            </div>
-            
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-                Password <span className="text-red-500">*</span>
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter your password"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200 min-h-[44px]"
-              />
-            </div>
-          </div>
+          <FormField
+            name="email"
+            label="Email address"
+            type="email"
+            placeholder="Enter your email"
+            required
+            disabled={loading}
+          />
+          
+          <FormField
+            name="password"
+            label="Password"
+            type="password"
+            placeholder="Enter your password"
+            required
+            disabled={loading}
+          />
 
           <div className="space-y-4">
-            <button
+            <FormButton
               type="submit"
+              variant="primary"
+              size="md"
               disabled={loading}
-              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 min-h-[44px]"
+              loading={loading}
+              className="w-full min-h-[44px]"
             >
-              {loading ? (
-                <div className="flex items-center">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Signing in...
-                </div>
-              ) : (
-                'Sign in'
-              )}
-            </button>
+              Sign in
+            </FormButton>
             
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
@@ -145,34 +144,37 @@ export default function LoginPage() {
               </div>
             </div>
             
-            <button
+            <FormButton
               type="button"
+              variant="secondary"
+              size="md"
               onClick={handleTestLogin}
               disabled={loading}
-              className="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 min-h-[44px]"
+              loading={loading}
+              className="w-full min-h-[44px]"
             >
               Try Demo Account
-            </button>
+            </FormButton>
           </div>
+        </FormWrapper>
 
-          <div className="pt-4">
-            <div className="text-xs text-gray-500 space-y-2">
-              <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
-                <p className="font-semibold text-blue-900 mb-1">Demo Accounts:</p>
-                <div className="space-y-1">
-                  <p className="text-blue-800"><strong>Admin:</strong> <code>demo@crm.com</code> / <code>DemoPassword123!</code></p>
-                  <p className="text-blue-800"><strong>Sales:</strong> <code>sales@crm.com</code> / <code>SalesPassword123!</code></p>
-                  <p className="text-blue-800"><strong>Manager:</strong> <code>manager@crm.com</code> / <code>ManagerPassword123!</code></p>
-                </div>
-              </div>
-              <div className="bg-amber-50 p-3 rounded-lg border border-amber-200">
-                <p className="font-semibold text-amber-900 mb-1">SuperAdmin Access:</p>
-                <p className="text-amber-800">Email: <code>superadmin@crm.internal</code></p>
-                <p className="text-amber-800">Password: <code>SecureAdmin2025!</code></p>
+        <div className="pt-4">
+          <div className="text-xs text-gray-500 space-y-2">
+            <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
+              <p className="font-semibold text-blue-900 mb-1">Demo Accounts:</p>
+              <div className="space-y-1">
+                <p className="text-blue-800"><strong>Admin:</strong> <code>demo@crm.com</code> / <code>DemoPassword123!</code></p>
+                <p className="text-blue-800"><strong>Sales:</strong> <code>sales@crm.com</code> / <code>SalesPassword123!</code></p>
+                <p className="text-blue-800"><strong>Manager:</strong> <code>manager@crm.com</code> / <code>ManagerPassword123!</code></p>
               </div>
             </div>
+            <div className="bg-amber-50 p-3 rounded-lg border border-amber-200">
+              <p className="font-semibold text-amber-900 mb-1">SuperAdmin Access:</p>
+              <p className="text-amber-800">Email: <code>superadmin@crm.internal</code></p>
+              <p className="text-amber-800">Password: <code>SecureAdmin2025!</code></p>
+            </div>
           </div>
-        </form>
+        </div>
       </div>
     </div>
   )

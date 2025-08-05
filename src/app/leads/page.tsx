@@ -3,10 +3,12 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { LeadStatus } from '@prisma/client'
+import * as Yup from 'yup'
 import AuthGuard from '@/components/AuthGuard'
 import NavBar from '@/components/NavBar'
 import TaskSection from '@/components/TaskSection'
 import TagComponent from '@/components/TagComponent'
+import { FormWrapper, FormField, FormButton, FormErrorMessage } from '@/components/forms'
 import apiClient from '@/lib/api-client'
 
 interface Lead {
@@ -701,9 +703,40 @@ function LeadsTable({ leads, onStatusChange, onConvert, onArchive, onEdit }: {
   )
 }
 
+const leadValidationSchema = Yup.object({
+  name: Yup.string()
+    .min(2, 'Name must be at least 2 characters')
+    .required('Name is required'),
+  email: Yup.string()
+    .email('Invalid email address')
+    .nullable(),
+  phone: Yup.string()
+    .nullable(),
+  company: Yup.string()
+    .nullable(),
+  source: Yup.string()
+    .nullable(),
+  notes: Yup.string()
+    .nullable(),
+  assignedToId: Yup.string()
+    .nullable()
+})
+
+interface LeadFormValues {
+  name: string
+  email: string
+  phone: string
+  company: string
+  source: string
+  notes: string
+  assignedToId: string
+}
+
 // Add Lead Modal (enhanced)
 function AddLeadModal({ onAdd, onClose }: { onAdd: (data: any) => void, onClose: () => void }) {
-  const [formData, setFormData] = useState({
+  const [error, setError] = useState('')
+  
+  const initialValues: LeadFormValues = {
     name: '',
     email: '',
     phone: '',
@@ -711,16 +744,17 @@ function AddLeadModal({ onAdd, onClose }: { onAdd: (data: any) => void, onClose:
     source: '',
     notes: '',
     assignedToId: '',
-  })
+  }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleSubmit = async (values: LeadFormValues) => {
+    setError('')
     
     try {
-      const newLead = await apiClient.post('/api/leads', formData)
+      const newLead = await apiClient.post('/api/leads', values)
       onAdd(newLead)
     } catch (error) {
       console.error('Failed to create lead:', error)
+      setError('Failed to create lead. Please try again.')
     }
   }
 
@@ -729,92 +763,88 @@ function AddLeadModal({ onAdd, onClose }: { onAdd: (data: any) => void, onClose:
       <div className="bg-white rounded-lg p-6 w-full max-w-md max-h-screen overflow-y-auto">
         <h2 className="text-xl font-bold mb-4 text-gray-900">Add New Lead</h2>
         
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Name *</label>
-            <input
-              type="text"
-              required
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Email</label>
-            <input
-              type="email"
-              value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Phone</label>
-            <input
-              type="tel"
-              value={formData.phone}
-              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Company</label>
-            <input
-              type="text"
-              value={formData.company}
-              onChange={(e) => setFormData({ ...formData, company: e.target.value })}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Source</label>
-            <select
-              value={formData.source}
-              onChange={(e) => setFormData({ ...formData, source: e.target.value })}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            >
-              <option value="">Select Source</option>
-              <option value="Website">Website</option>
-              <option value="Referral">Referral</option>
-              <option value="Cold Call">Cold Call</option>
-              <option value="Social Media">Social Media</option>
-              <option value="Trade Show">Trade Show</option>
-              <option value="Advertisement">Advertisement</option>
-              <option value="Other">Other</option>
-            </select>
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Notes</label>
-            <textarea
-              value={formData.notes}
-              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              rows={3}
-            />
-          </div>
-          
-          <div className="flex justify-end space-x-3 pt-4">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              Add Lead
-            </button>
-          </div>
-        </form>
+        <FormWrapper
+          initialValues={initialValues}
+          validationSchema={leadValidationSchema}
+          onSubmit={handleSubmit}
+        >
+          {({ isSubmitting }) => (
+            <>
+              <FormErrorMessage message={error} />
+              
+              <FormField
+                name="name"
+                label="Name"
+                type="text"
+                required
+                disabled={isSubmitting}
+              />
+              
+              <FormField
+                name="email"
+                label="Email"
+                type="email"
+                disabled={isSubmitting}
+              />
+              
+              <FormField
+                name="phone"
+                label="Phone"
+                type="tel"
+                disabled={isSubmitting}
+              />
+              
+              <FormField
+                name="company"
+                label="Company"
+                type="text"
+                disabled={isSubmitting}
+              />
+              
+              <FormField
+                name="source"
+                label="Source"
+                as="select"
+                disabled={isSubmitting}
+              >
+                <option value="">Select source</option>
+                <option value="Website">Website</option>
+                <option value="Referral">Referral</option>
+                <option value="Social Media">Social Media</option>
+                <option value="Advertisement">Advertisement</option>
+                <option value="Cold Call">Cold Call</option>
+                <option value="Other">Other</option>
+              </FormField>
+              
+              <FormField
+                name="notes"
+                label="Notes"
+                as="textarea"
+                rows={3}
+                disabled={isSubmitting}
+              />
+              
+              <div className="flex justify-end space-x-3 pt-4">
+                <FormButton
+                  type="button"
+                  variant="secondary"
+                  onClick={onClose}
+                  disabled={isSubmitting}
+                >
+                  Cancel
+                </FormButton>
+                <FormButton
+                  type="submit"
+                  variant="primary"
+                  loading={isSubmitting}
+                  disabled={isSubmitting}
+                >
+                  Add Lead
+                </FormButton>
+              </div>
+            </>
+          )}
+        </FormWrapper>
       </div>
     </div>
   )

@@ -7,6 +7,8 @@ import NavBar from '@/components/NavBar'
 import ActivityTimeline from '@/components/ActivityTimeline'
 import TaskSection from '@/components/TaskSection'
 import TagComponent from '@/components/TagComponent'
+import { FormWrapper, FormField, FormButton, FormErrorMessage } from '@/components/forms'
+import * as Yup from 'yup'
 import apiClient from '@/lib/api-client'
 
 interface Customer {
@@ -588,9 +590,23 @@ function CustomersTable({ customers, onEdit, onArchive, onViewProfile }: {
   )
 }
 
-// Enhanced Add Customer Modal
+// Enhanced Add Customer Modal - Formik Version
 function AddCustomerModal({ onAdd, onClose }: { onAdd: (data: any) => void, onClose: () => void }) {
-  const [formData, setFormData] = useState({
+  const [error, setError] = useState('')
+  const [sameAddress, setSameAddress] = useState(false)
+
+  const validationSchema = Yup.object({
+    name: Yup.string().required('Name is required'),
+    email: Yup.string().email('Invalid email address').required('Email is required'),
+    phone: Yup.string().nullable(),
+    company: Yup.string().nullable(),
+    billingAddress: Yup.string().nullable(),
+    shippingAddress: Yup.string().nullable(),
+    gstin: Yup.string().nullable(),
+    notes: Yup.string().nullable(),
+  })
+
+  const initialValues = {
     name: '',
     email: '',
     phone: '',
@@ -599,19 +615,21 @@ function AddCustomerModal({ onAdd, onClose }: { onAdd: (data: any) => void, onCl
     shippingAddress: '',
     gstin: '',
     notes: '',
-  })
+  }
 
-  const [sameAddress, setSameAddress] = useState(false)
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    
-    const submitData = {
-      ...formData,
-      shippingAddress: sameAddress ? formData.billingAddress : formData.shippingAddress
+  const handleSubmit = async (values: typeof initialValues, { setSubmitting }: any) => {
+    try {
+      setError('')
+      const submitData = {
+        ...values,
+        shippingAddress: sameAddress ? values.billingAddress : values.shippingAddress
+      }
+      await onAdd(submitData)
+    } catch (err: any) {
+      setError(err.message || 'Failed to add customer')
+    } finally {
+      setSubmitting(false)
     }
-    
-    onAdd(submitData)
   }
 
   return (
@@ -620,126 +638,75 @@ function AddCustomerModal({ onAdd, onClose }: { onAdd: (data: any) => void, onCl
         <div className="p-4 sm:p-6">
           <h2 className="text-xl font-bold mb-4 text-gray-900">Add New Customer</h2>
           
-          <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
-            {/* Basic Information */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="sm:col-span-2">
-                <label className="block text-sm font-medium text-gray-700">Name *</label>
-                <input
-                  type="text"
-                  required
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-gray-900 focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Email *</label>
-                <input
-                  type="email"
-                  required
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-gray-900 focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Phone</label>
-                <input
-                  type="tel"
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-gray-900 focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Company</label>
-                <input
-                  type="text"
-                  value={formData.company}
-                  onChange={(e) => setFormData({ ...formData, company: e.target.value })}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-gray-900 focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700">GSTIN</label>
-                <input
-                  type="text"
-                  value={formData.gstin}
-                  onChange={(e) => setFormData({ ...formData, gstin: e.target.value })}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-gray-900 focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                />
-              </div>
-            </div>
-            
-            {/* Addresses */}
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Billing Address</label>
-                <textarea
-                  value={formData.billingAddress}
-                  onChange={(e) => setFormData({ ...formData, billingAddress: e.target.value })}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-gray-900 focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                  rows={3}
-                />
-              </div>
-              
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  id="sameAddress"
-                  checked={sameAddress}
-                  onChange={(e) => setSameAddress(e.target.checked)}
-                  className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
-                />
-                <label htmlFor="sameAddress" className="ml-2 text-sm text-gray-700">
-                  Shipping address same as billing
-                </label>
-              </div>
-              
-              {!sameAddress && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Shipping Address</label>
-                  <textarea
-                    value={formData.shippingAddress}
-                    onChange={(e) => setFormData({ ...formData, shippingAddress: e.target.value })}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-gray-900 focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                    rows={3}
-                  />
+          <FormWrapper
+            initialValues={initialValues}
+            validationSchema={validationSchema}
+            onSubmit={handleSubmit}
+          >
+            {({ isSubmitting, values, setFieldValue }: any) => (
+              <>
+                <FormErrorMessage message={error} />
+                
+                {/* Basic Information */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="sm:col-span-2">
+                    <FormField name="name" label="Name" required />
+                  </div>
+                  
+                  <FormField name="email" label="Email" type="email" required />
+                  <FormField name="phone" label="Phone" type="tel" />
+                  <FormField name="company" label="Company" />
+                  <FormField name="gstin" label="GSTIN" />
                 </div>
-              )}
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Notes</label>
-              <textarea
-                value={formData.notes}
-                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-gray-900 focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                rows={3}
-              />
-            </div>
-            
-            <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-3 pt-4">
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-4 py-2 text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500"
-              >
-                Add Customer
-              </button>
-            </div>
-          </form>
+                
+                {/* Addresses */}
+                <div className="space-y-4">
+                  <FormField name="billingAddress" label="Billing Address" as="textarea" rows={3} />
+                  
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      id="sameAddress"
+                      checked={sameAddress}
+                      onChange={(e) => {
+                        setSameAddress(e.target.checked)
+                        if (e.target.checked) {
+                          setFieldValue('shippingAddress', values.billingAddress)
+                        }
+                      }}
+                      className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
+                    />
+                    <label htmlFor="sameAddress" className="ml-2 text-sm text-gray-700">
+                      Shipping address same as billing
+                    </label>
+                  </div>
+                  
+                  {!sameAddress && (
+                    <FormField name="shippingAddress" label="Shipping Address" as="textarea" rows={3} />
+                  )}
+                </div>
+                
+                <FormField name="notes" label="Notes" as="textarea" rows={3} />
+                
+                <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-3 pt-4">
+                  <FormButton
+                    type="button"
+                    variant="secondary"
+                    onClick={onClose}
+                  >
+                    Cancel
+                  </FormButton>
+                  <FormButton
+                    type="submit"
+                    variant="success"
+                    loading={isSubmitting}
+                  >
+                    Add Customer
+                  </FormButton>
+                </div>
+              </>
+            )}
+          </FormWrapper>
         </div>
       </div>
     </div>

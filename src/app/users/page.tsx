@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react'
 import AuthGuard from '@/components/AuthGuard'
 import NavBar from '@/components/NavBar'
+import { FormWrapper, FormField, FormButton, FormErrorMessage } from '@/components/forms'
+import * as Yup from 'yup'
 import { useAuth } from '@/hooks/useAuth'
 import apiClient from '@/lib/api-client'
 
@@ -392,44 +394,49 @@ function CreateUserModal({ currentUser, customRoles, onSubmit, onClose }: {
   onSubmit: (data: Partial<User>) => void
   onClose: () => void 
 }) {
-  const [formData, setFormData] = useState({
+  const [error, setError] = useState('')
+  const [useCustomRole, setUseCustomRole] = useState(false)
+
+  const validationSchema = Yup.object({
+    name: Yup.string().required('Name is required'),
+    email: Yup.string().email('Invalid email address').required('Email is required'),
+    role: Yup.string().required('Role is required'),
+    customRoleId: Yup.string().when('useCustomRole', {
+      is: true,
+      then: (schema) => schema.required('Please select a custom role'),
+      otherwise: (schema) => schema.nullable()
+    }),
+    password: Yup.string().min(6, 'Password must be at least 6 characters').required('Password is required'),
+    confirmPassword: Yup.string()
+      .oneOf([Yup.ref('password')], 'Passwords do not match')
+      .required('Please confirm your password'),
+  })
+
+  const initialValues = {
     name: '',
     email: '',
     role: 'SALES' as User['role'],
     customRoleId: '',
-    useCustomRole: false,
     password: '',
     confirmPassword: '',
-  })
-  const [errors, setErrors] = useState<string[]>([])
+  }
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    const newErrors = []
-
-    if (formData.password !== formData.confirmPassword) {
-      newErrors.push('Passwords do not match')
+  const handleSubmit = async (values: typeof initialValues, { setSubmitting }: any) => {
+    try {
+      setError('')
+      const submitData = {
+        name: values.name,
+        email: values.email,
+        role: useCustomRole ? 'SALES' : values.role,
+        customRoleId: useCustomRole ? values.customRoleId : null,
+        password: values.password,
+      }
+      await onSubmit(submitData)
+    } catch (err: any) {
+      setError(err.message || 'Failed to create user')
+    } finally {
+      setSubmitting(false)
     }
-    if (formData.password.length < 6) {
-      newErrors.push('Password must be at least 6 characters')
-    }
-
-    if (formData.useCustomRole && !formData.customRoleId) {
-      newErrors.push('Please select a custom role')
-    }
-
-    if (newErrors.length > 0) {
-      setErrors(newErrors)
-      return
-    }
-
-    onSubmit({
-      name: formData.name,
-      email: formData.email,
-      role: formData.useCustomRole ? 'SALES' : formData.role, // Default to SALES if using custom role
-      customRoleId: formData.useCustomRole ? formData.customRoleId : null,
-      password: formData.password,
-    })
   }
 
   return (
@@ -438,150 +445,96 @@ function CreateUserModal({ currentUser, customRoles, onSubmit, onClose }: {
         <div className="p-4 sm:p-6">
           <h2 className="text-xl font-bold mb-4 text-gray-900">Add New User</h2>
           
-          {errors.length > 0 && (
-            <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
-              {errors.map((error, index) => (
-                <div key={index}>{error}</div>
-              ))}
-            </div>
-          )}
-          
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Name *</label>
-              <input
-                type="text"
-                required
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="Full name"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Email *</label>
-              <input
-                type="email"
-                required
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="user@company.com"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-3">Role Type *</label>
-              
-              <div className="space-y-4">
-                {/* System Role Option */}
-                <div className="flex items-start space-x-3">
-                  <input
-                    type="radio"
-                    id="systemRole"
-                    name="roleType"
-                    checked={!formData.useCustomRole}
-                    onChange={() => setFormData({ ...formData, useCustomRole: false })}
-                    className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
-                  />
-                  <div className="flex-1">
-                    <label htmlFor="systemRole" className="block text-sm font-medium text-gray-700 mb-2">
-                      System Role
-                    </label>
-                    <select
-                      value={formData.role}
-                      onChange={(e) => setFormData({ ...formData, role: e.target.value as User['role'] })}
-                      disabled={formData.useCustomRole}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
-                    >
-                      <option value="SALES">Sales - Limited access to assigned data</option>
-                      <option value="MANAGER">Manager - Team management capabilities</option>
-                      <option value="ADMIN">Admin - Full system access</option>
-                      {currentUser?.role === 'SUPERADMIN' && (
-                        <option value="SUPERADMIN">Super Admin - Complete system control</option>
-                      )}
-                    </select>
+          <FormWrapper
+            initialValues={initialValues}
+            validationSchema={validationSchema}
+            onSubmit={handleSubmit}
+          >
+            {({ isSubmitting, values, setFieldValue }: any) => (
+              <>
+                <FormErrorMessage message={error} />
+                
+                <FormField name="name" label="Name" required placeholder="Full name" />
+                <FormField name="email" label="Email" type="email" required placeholder="user@company.com" />
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-3">Role Type *</label>
+                  
+                  <div className="space-y-4">
+                    {/* System Role Option */}
+                    <div className="flex items-start space-x-3">
+                      <input
+                        type="radio"
+                        id="systemRole"
+                        name="roleType"
+                        checked={!useCustomRole}
+                        onChange={() => {
+                          setUseCustomRole(false)
+                          setFieldValue('customRoleId', '')
+                        }}
+                        className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                      />
+                      <div className="flex-1">
+                        <label htmlFor="systemRole" className="block text-sm font-medium text-gray-700 mb-2">
+                          System Role
+                        </label>
+                        <FormField name="role" as="select" disabled={useCustomRole}>
+                          <option value="SALES">Sales - Limited access to assigned data</option>
+                          <option value="MANAGER">Manager - Team management capabilities</option>
+                          <option value="ADMIN">Admin - Full system access</option>
+                          {currentUser?.role === 'SUPERADMIN' && (
+                            <option value="SUPERADMIN">Super Admin - Complete system control</option>
+                          )}
+                        </FormField>
+                      </div>
+                    </div>
+
+                    {/* Custom Role Option */}
+                    {customRoles.length > 0 && (
+                      <div className="flex items-start space-x-3">
+                        <input
+                          type="radio"
+                          id="customRole"
+                          name="roleType"
+                          checked={useCustomRole}
+                          onChange={() => setUseCustomRole(true)}
+                          className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                        />
+                        <div className="flex-1">
+                          <label htmlFor="customRole" className="block text-sm font-medium text-gray-700 mb-2">
+                            Custom Role
+                          </label>
+                          <FormField name="customRoleId" as="select" disabled={!useCustomRole}>
+                            <option value="">Select a custom role</option>
+                            {customRoles.map(role => (
+                              <option key={role.id} value={role.id}>
+                                {role.name} {role.description && `- ${role.description}`}
+                              </option>
+                            ))}
+                          </FormField>
+                          <p className="text-xs text-gray-500 mt-1">
+                            Custom roles have specific permissions defined in the Roles section
+                          </p>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
-
-                {/* Custom Role Option */}
-                {customRoles.length > 0 && (
-                  <div className="flex items-start space-x-3">
-                    <input
-                      type="radio"
-                      id="customRole"
-                      name="roleType"
-                      checked={formData.useCustomRole}
-                      onChange={() => setFormData({ ...formData, useCustomRole: true })}
-                      className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
-                    />
-                    <div className="flex-1">
-                      <label htmlFor="customRole" className="block text-sm font-medium text-gray-700 mb-2">
-                        Custom Role
-                      </label>
-                      <select
-                        value={formData.customRoleId}
-                        onChange={(e) => setFormData({ ...formData, customRoleId: e.target.value })}
-                        disabled={!formData.useCustomRole}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
-                      >
-                        <option value="">Select a custom role</option>
-                        {customRoles.map(role => (
-                          <option key={role.id} value={role.id}>
-                            {role.name} {role.description && `- ${role.description}`}
-                          </option>
-                        ))}
-                      </select>
-                      <p className="text-xs text-gray-500 mt-1">
-                        Custom roles have specific permissions defined in the Roles section
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Password *</label>
-              <input
-                type="password"
-                required
-                value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="Minimum 6 characters"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Confirm Password *</label>
-              <input
-                type="password"
-                required
-                value={formData.confirmPassword}
-                onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="Confirm password"
-              />
-            </div>
-            
-            <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-3 pt-4">
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-4 py-2 text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-              >
-                Create User
-              </button>
-            </div>
-          </form>
+                
+                <FormField name="password" label="Password" type="password" required placeholder="Minimum 6 characters" />
+                <FormField name="confirmPassword" label="Confirm Password" type="password" required placeholder="Confirm password" />
+                
+                <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-3 pt-4">
+                  <FormButton type="button" variant="secondary" onClick={onClose}>
+                    Cancel
+                  </FormButton>
+                  <FormButton type="submit" variant="primary" loading={isSubmitting}>
+                    Create User
+                  </FormButton>
+                </div>
+              </>
+            )}
+          </FormWrapper>
         </div>
       </div>
     </div>
