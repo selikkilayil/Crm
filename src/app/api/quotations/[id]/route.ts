@@ -31,6 +31,17 @@ export async function GET(
           },
         },
         items: {
+          include: {
+            product: {
+              include: {
+                attributes: {
+                  include: {
+                    options: true,
+                  },
+                },
+              },
+            },
+          },
           orderBy: {
             createdAt: 'asc',
           },
@@ -107,10 +118,14 @@ export async function PUT(
         totalTax += taxAmount
 
         return {
+          productId: item.productId || null,
+          variantId: item.variantId || null,
           productName: item.productName,
           description: item.description || null,
+          configuration: item.configuration || null,
           quantity,
           unitPrice,
+          calculatedPrice: item.calculatedPrice || null,
           discount,
           taxPercent,
           subtotal: itemTotal,
@@ -158,6 +173,17 @@ export async function PUT(
           },
         },
         items: {
+          include: {
+            product: {
+              include: {
+                attributes: {
+                  include: {
+                    options: true,
+                  },
+                },
+              },
+            },
+          },
           orderBy: {
             createdAt: 'asc',
           },

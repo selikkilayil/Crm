@@ -428,7 +428,7 @@ export default function CreateQuotationPage() {
       items: values.items.map(item => ({
         productId: item.productId || undefined,
         variantId: item.variantId || undefined,
-        productName: item.productId ? undefined : item.productName, // Only set if not using product
+        productName: item.productName, // Always save product name for display
         description: item.description,
         configuration: item.configuration,
         quantity: item.quantity,

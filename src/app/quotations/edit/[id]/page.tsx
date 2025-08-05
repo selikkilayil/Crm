@@ -5,6 +5,10 @@ import { useRouter, useParams } from 'next/navigation'
 import { useAuth } from '@/hooks/useAuth'
 import AuthGuard from '@/components/AuthGuard'
 import NavBar from '@/components/NavBar'
+import ProductSelector from '@/components/ProductSelector'
+import apiClient, { productApi } from '@/lib/api-client'
+import { Formik, Form, Field, FieldArray, FormikProps } from 'formik'
+import * as Yup from 'yup'
 
 interface Customer {
   id: string
@@ -12,15 +16,110 @@ interface Customer {
   email: string
   company?: string
   phone?: string
+  isArchived?: boolean
+}
+
+interface Product {
+  id: string
+  name: string
+  description: string | null
+  sku: string | null
+  category: string | null
+  productType: 'SIMPLE' | 'CONFIGURABLE' | 'CALCULATED'
+  pricingType: 'FIXED' | 'PER_UNIT' | 'CALCULATED' | 'VARIANT_BASED'
+  basePrice: number
+  unit: string
+  defaultTaxRate: number
+  attributes: ProductAttribute[]
+  variants: ProductVariant[]
+  calculationFormula?: string
+}
+
+interface ProductAttribute {
+  id: string
+  name: string
+  type: 'TEXT' | 'NUMBER' | 'SELECT' | 'MULTISELECT' | 'DIMENSION' | 'BOOLEAN'
+  isRequired: boolean
+  isConfigurable: boolean
+  minValue?: number
+  maxValue?: number
+  defaultValue?: string
+  unit?: string
+  options: AttributeOption[]
+}
+
+interface AttributeOption {
+  id: string
+  value: string
+  displayName: string | null
+  priceModifier: number
+  isActive: boolean
+}
+
+interface ProductVariant {
+  id: string
+  sku: string | null
+  name: string | null
+  configuration: any
+  price: number | null
+  isActive: boolean
 }
 
 interface QuotationItem {
+  id?: string
+  productId?: string
+  variantId?: string
   productName: string
   description?: string
+  configuration?: any
   quantity: number
   unitPrice: number
+  calculatedPrice?: number
   discount: number
   taxPercent: number
+  notes?: string
+}
+
+interface QuotationFormValues {
+  customerId: string
+  validUntil: string
+  paymentTerms: string
+  deliveryTerms: string
+  currency: string
+  notes: string
+  termsConditions: string
+  items: QuotationItem[]
+}
+
+const validationSchema = Yup.object({
+  customerId: Yup.string().required('Customer is required'),
+  validUntil: Yup.date(),
+  paymentTerms: Yup.string(),
+  deliveryTerms: Yup.string(),
+  currency: Yup.string().required('Currency is required'),
+  notes: Yup.string(),
+  termsConditions: Yup.string(),
+  items: Yup.array().of(
+    Yup.object({
+      productName: Yup.string().required('Product name is required'),
+      description: Yup.string(),
+      quantity: Yup.number().min(0.001, 'Quantity must be greater than 0').required('Quantity is required'),
+      unitPrice: Yup.number().min(0, 'Unit price must be positive').required('Unit price is required'),
+      discount: Yup.number().min(0, 'Discount must be positive').max(100, 'Discount cannot exceed 100%'),
+      taxPercent: Yup.number().min(0, 'Tax percent must be positive')
+    })
+  ).min(1, 'At least one item is required')
+})
+
+const calculateItemTotal = (item: QuotationItem) => {
+  const price = item.calculatedPrice || item.unitPrice
+  const lineSubtotal = item.quantity * price
+  const discountAmount = (lineSubtotal * item.discount) / 100
+  const taxableAmount = lineSubtotal - discountAmount
+  const taxAmount = (taxableAmount * item.taxPercent) / 100
+  const total = taxableAmount + taxAmount
+  
+  return total
 }
 
 interface Quotation {
@@ -43,11 +142,13 @@ export default function EditQuotationPage() {
   const quotationId = params.id as string
   
   const [customers, setCustomers] = useState<Customer[]>([])
+  const [products, setProducts] = useState<Product[]>([])
   const [quotation, setQuotation] = useState<Quotation | null>(null)
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
+  const [settings, setSettings] = useState<any>(null)
   
-  const [formData, setFormData] = useState({
+  const [initialValues, setInitialValues] = useState<QuotationFormValues>({
     customerId: '',
     validUntil: '',
     paymentTerms: '',
@@ -55,15 +156,14 @@ export default function EditQuotationPage() {
     currency: 'INR',
     notes: '',
     termsConditions: '',
+    items: [{ productName: '', description: '', quantity: 1, unitPrice: 0, discount: 0, taxPercent: 0, configuration: {} }] as QuotationItem[]
   })
-  
-  const [items, setItems] = useState<QuotationItem[]>([
-    { productName: '', description: '', quantity: 1, unitPrice: 0, discount: 0, taxPercent: 0 }
-  ])
 
   useEffect(() => {
     fetchQuotation()
     fetchCustomers()
+    fetchProducts()
+    fetchSettings()
   }, [quotationId])
 
   const fetchQuotation = async () => {
@@ -72,7 +172,7 @@ export default function EditQuotationPage() {
       if (response.ok) {
         const data = await response.json()
         setQuotation(data)
-        setFormData({
+        setInitialValues({
           customerId: data.customerId,
           validUntil: data.validUntil ? data.validUntil.split('T')[0] : '',
           paymentTerms: data.paymentTerms || '',
@@ -80,8 +180,21 @@ export default function EditQuotationPage() {
           currency: data.currency || 'INR',
           notes: data.notes || '',
           termsConditions: data.termsConditions || '',
+          items: data.items?.map((item: any) => ({
+            id: item.id,
+            productId: item.productId,
+            variantId: item.variantId,
+            productName: item.productName || item.product?.name || '',
+            description: item.description || '',
+            configuration: item.configuration || {},
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+            calculatedPrice: item.calculatedPrice,
+            discount: item.discount,
+            taxPercent: item.taxPercent,
+            notes: item.notes || ''
+          })) || [{ productName: '', description: '', quantity: 1, unitPrice: 0, discount: 0, taxPercent: 0, configuration: {} }]
         })
-        setItems(data.items || [])
       } else {
         throw new Error('Quotation not found')
       }
@@ -93,49 +206,238 @@ export default function EditQuotationPage() {
 
   const fetchCustomers = async () => {
     try {
-      const response = await fetch('/api/customers')
-      if (response.ok) {
-        const data = await response.json()
-        setCustomers(data.filter((c: Customer) => !c.isArchived))
+      const data = await apiClient.get('/api/customers')
+      
+      if (Array.isArray(data)) {
+        const activeCustomers = data.filter((c: Customer) => !c.isArchived)
+        setCustomers(activeCustomers)
+      } else {
+        console.error('Customers data is not an array:', data)
+        setCustomers([])
       }
     } catch (error) {
       console.error('Error fetching customers:', error)
+      setCustomers([])
+    }
+  }
+
+  const fetchProducts = async () => {
+    try {
+      const response = await productApi.getAll({ isActive: true }) as any
+      setProducts(response.data || [])
+    } catch (error) {
+      console.error('Error fetching products:', error)
+      setProducts([])
     } finally {
       setLoading(false)
     }
   }
 
-  const addItem = () => {
-    setItems([...items, { productName: '', description: '', quantity: 1, unitPrice: 0, discount: 0, taxPercent: 0 }])
-  }
-
-  const removeItem = (index: number) => {
-    if (items.length > 1) {
-      setItems(items.filter((_, i) => i !== index))
+  const fetchSettings = async () => {
+    try {
+      const response = await fetch('/api/settings/pdf')
+      if (response.ok) {
+        const settingsData = await response.json()
+        setSettings(settingsData)
+      }
+    } catch (error) {
+      console.error('Error fetching settings:', error)
     }
   }
 
-  const updateItem = (index: number, field: string, value: any) => {
-    const updatedItems = [...items]
-    updatedItems[index] = { ...updatedItems[index], [field]: value }
-    setItems(updatedItems)
+  const addItem = (formik: FormikProps<QuotationFormValues>) => {
+    const defaultTaxRate = settings ? Number(settings.defaultTaxRate) || 0 : 0
+    const newItem = { productName: '', description: '', quantity: 1, unitPrice: 0, discount: 0, taxPercent: defaultTaxRate, configuration: {} }
+    formik.setFieldValue('items', [...formik.values.items, newItem])
   }
 
-  const calculateItemTotal = (item: QuotationItem) => {
-    const lineSubtotal = item.quantity * item.unitPrice
-    const discountAmount = (lineSubtotal * item.discount) / 100
-    const taxableAmount = lineSubtotal - discountAmount
-    const taxAmount = (taxableAmount * item.taxPercent) / 100
-    return taxableAmount + taxAmount
+  const removeItem = (index: number, formik: FormikProps<QuotationFormValues>) => {
+    if (formik.values.items.length > 1) {
+      const newItems = formik.values.items.filter((_, i) => i !== index)
+      formik.setFieldValue('items', newItems)
+    }
   }
 
-  const calculateTotals = () => {
+  const updateItem = (index: number, field: string, value: any, formik: FormikProps<QuotationFormValues>) => {
+    console.log(`Updating item ${index}, field: ${field}, value:`, value, typeof value)
+    formik.setFieldValue(`items.${index}.${field}`, value)
+    
+    // If configuration was updated, trigger price calculation
+    if (field === 'configuration') {
+      const item = formik.values.items[index]
+      if (item.productId) {
+        const product = products.find(p => p.id === item.productId)
+        console.log('🔄 Configuration updated, checking if recalculation needed for:', product?.name)
+        
+        if (product && (
+          product.pricingType === 'CALCULATED' || 
+          product.productType === 'CALCULATED' ||
+          product.productType === 'CONFIGURABLE' ||
+          product.pricingType === 'VARIANT_BASED' ||
+          product.pricingType === 'PER_UNIT'
+        )) {
+          console.log('🔄 Triggering price recalculation due to configuration update')
+          setTimeout(() => calculatePrice(index, formik), 100)
+        }
+      }
+    }
+  }
+
+  const selectProduct = async (index: number, productId: string, formik: FormikProps<QuotationFormValues>) => {
+    console.log({
+      index, productId
+    })
+    if (!productId) {
+      // Clear product selection
+      formik.setFieldValue(`items.${index}.productId`, undefined)
+      formik.setFieldValue(`items.${index}.productName`, '')
+      formik.setFieldValue(`items.${index}.description`, '')
+      formik.setFieldValue(`items.${index}.unitPrice`, 0)
+      formik.setFieldValue(`items.${index}.taxPercent`, settings ? Number(settings.defaultTaxRate) || 0 : 0)
+      formik.setFieldValue(`items.${index}.configuration`, undefined)
+      formik.setFieldValue(`items.${index}.calculatedPrice`, undefined)
+      return
+    }
+
+    const product = products.find(p => p.id === productId)
+    if (!product) return
+
+    // Update basic product info
+    formik.setFieldValue(`items.${index}.productId`, productId)
+    formik.setFieldValue(`items.${index}.productName`, product.name)
+    formik.setFieldValue(`items.${index}.description`, product.description || '')
+    formik.setFieldValue(`items.${index}.taxPercent`, Number(product.defaultTaxRate))
+
+    // Convert Decimal to number properly for price
+    const basePrice = product.basePrice != null ? Number(product.basePrice) : 0
+    console.log('🏷️ Setting base price:', basePrice, 'for product:', product.name)
+
+    // For simple products, set price directly
+    if (product.productType === 'SIMPLE' && product.pricingType === 'FIXED') {
+      formik.setFieldValue(`items.${index}.unitPrice`, basePrice)
+      formik.setFieldValue(`items.${index}.calculatedPrice`, basePrice)
+    } else {
+      // For configurable/calculated/variant/per_unit products, start with base price and trigger calculation
+      formik.setFieldValue(`items.${index}.unitPrice`, basePrice)
+      formik.setFieldValue(`items.${index}.calculatedPrice`, basePrice)
+
+      // Initialize configuration for configurable products
+      if (product.productType === 'CONFIGURABLE' || product.productType === 'CALCULATED') {
+        const defaultConfig: any = {}
+        product.attributes.forEach(attr => {
+          if (attr.defaultValue) {
+            defaultConfig[attr.name.toLowerCase()] = attr.defaultValue
+          }
+        })
+        formik.setFieldValue(`items.${index}.configuration`, defaultConfig)
+      }
+      // Always trigger price calculation for non-simple/fixed products
+      setTimeout(() => {
+        calculatePrice(index, formik)
+      }, 100)
+    }
+  }
+
+  const calculatePrice = async (index: number, formik: FormikProps<QuotationFormValues>) => {
+    const item = formik.values.items[index]
+    if (!item.productId) return
+
+    try {
+      console.log(`🔄 Calculating price for item ${index + 1}: ${item.productName}`)
+      console.log('📋 Configuration:', JSON.stringify(item.configuration, null, 2))
+      
+      const product = products.find(p => p.id === item.productId)
+      if (!product) return
+
+      // Try API first, but fallback to local calculation
+      try {
+        const response = await productApi.calculate(
+          item.productId,
+          item.configuration || {},
+          item.quantity
+        ) as any
+
+        if (response.data) {
+          console.log('✅ API Price calculated:', response.data.unitPrice)
+          formik.setFieldValue(`items.${index}.unitPrice`, response.data.unitPrice)
+          formik.setFieldValue(`items.${index}.calculatedPrice`, response.data.unitPrice)
+          return
+        }
+      } catch (apiError) {
+        console.warn('⚠️ API failed, using local calculation:', apiError)
+      }
+
+      // LOCAL CALCULATION FALLBACK
+      let calculatedPrice = Number(product.basePrice)
+      
+      if (product.pricingType === 'CALCULATED' && product.calculationFormula) {
+        // Handle UPVC Window: width * height * basePrice + 500
+        const config = item.configuration || {}
+        if (config.width && config.height) {
+          calculatedPrice = config.width * config.height * Number(product.basePrice) + 500
+          console.log('🧮 Formula result:', calculatedPrice)
+        }
+      }
+      
+      // Add attribute modifiers
+      let modifiers = 0
+      if (product.attributes && item.configuration) {
+        product.attributes.forEach(attr => {
+          const selectedValue = item.configuration[attr.name.toLowerCase()]
+          if (selectedValue && attr.options) {
+            const option = attr.options.find((opt: any) => opt.value === selectedValue)
+            if (option) {
+              modifiers += Number(option.priceModifier || 0)
+              console.log(`💎 ${attr.name}: ${selectedValue} -> +₹${option.priceModifier}`)
+            }
+          }
+        })
+      }
+      
+      const finalPrice = calculatedPrice + modifiers
+      console.log('🎯 LOCAL Final price:', finalPrice)
+      
+      formik.setFieldValue(`items.${index}.unitPrice`, finalPrice)
+      formik.setFieldValue(`items.${index}.calculatedPrice`, finalPrice)
+      
+    } catch (error) {
+      console.error('❌ Price calculation error:', error)
+    }
+  }
+
+  const updateConfiguration = (index: number, attrName: string, value: any, formik: FormikProps<QuotationFormValues>) => {
+    console.log(`🔧 Configuration update: Item ${index + 1}, ${attrName} = ${value}`)
+    const currentConfig = formik.values.items[index].configuration || {}
+    const newConfig = { ...currentConfig, [attrName.toLowerCase()]: value }
+    console.log('📝 Updated configuration:', JSON.stringify(newConfig, null, 2))
+    formik.setFieldValue(`items.${index}.configuration`, newConfig)
+
+    // Recalculate price for all products that might need configuration-based pricing
+    const item = formik.values.items[index]
+    const product = products.find(p => p.id === item.productId)
+    console.log('🔍 Product found for recalculation:', product?.name, product?.pricingType, product?.productType)
+    
+    if (product && (
+      product.pricingType === 'CALCULATED' || 
+      product.productType === 'CALCULATED' ||
+      product.productType === 'CONFIGURABLE' ||
+      product.pricingType === 'VARIANT_BASED' ||
+      product.pricingType === 'PER_UNIT'
+    )) {
+      console.log('🔄 Triggering recalculation due to configuration change')
+      setTimeout(() => calculatePrice(index, formik), 100)
+    } else {
+      console.log('❌ Not triggering recalculation - product type/pricing type not applicable')
+    }
+  }
+
+  const calculateTotals = (items: QuotationItem[]) => {
     let subtotal = 0
     let totalTax = 0
     let totalDiscount = 0
 
     items.forEach(item => {
-      const lineSubtotal = item.quantity * item.unitPrice
+      const lineSubtotal = item.quantity * (item.calculatedPrice || item.unitPrice)
       const discountAmount = (lineSubtotal * item.discount) / 100
       const taxAmount = ((lineSubtotal - discountAmount) * item.taxPercent) / 100
       
@@ -149,25 +451,39 @@ export default function EditQuotationPage() {
     return { subtotal, totalTax, totalDiscount, grandTotal }
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleSubmit = async (values: QuotationFormValues) => {
+    const totals = calculateTotals(values.items)
+    
+    const quotationData = {
+      ...values,
+      items: values.items.map(item => ({
+        id: item.id,
+        productId: item.productId || undefined,
+        variantId: item.variantId || undefined,
+        productName: item.productName, // Always save product name for display
+        description: item.description,
+        configuration: item.configuration,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+        calculatedPrice: item.calculatedPrice,
+        discount: item.discount,
+        taxPercent: item.taxPercent,
+        subtotal: calculateItemTotal(item),
+        notes: item.notes
+      })),
+      subtotal: totals.subtotal,
+      totalTax: totals.totalTax,
+      totalDiscount: totals.totalDiscount,
+      grandTotal: totals.grandTotal,
+      updatedById: user?.id,
+    }
+
     setSubmitting(true)
 
     try {
-      const response = await fetch(`/api/quotations/${quotationId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...formData,
-          items,
-        }),
-      })
-
-      if (response.ok) {
-        router.push('/quotations')
-      } else {
-        throw new Error('Failed to update quotation')
-      }
+      const response = await apiClient.put(`/api/quotations/${quotationId}`, quotationData)
+      console.log('Quotation updated:', response)
+      router.push('/quotations')
     } catch (error) {
       console.error('Error updating quotation:', error)
       alert('Failed to update quotation. Please try again.')
@@ -176,7 +492,11 @@ export default function EditQuotationPage() {
     }
   }
 
-  const totals = calculateTotals()
+  const getTotals = (items: QuotationItem[]) => {
+    const calculated = calculateTotals(items)
+    console.log('Totals recalculated:', calculated, 'Items count:', items.length)
+    return calculated
+  }
 
   if (loading || !quotation) {
     return (
@@ -237,222 +557,148 @@ export default function EditQuotationPage() {
             </div>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Customer Information */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-              <div className="border-b border-gray-200 p-4 sm:p-6">
-                <h2 className="text-lg font-semibold text-gray-900 flex items-center">
-                  <span className="mr-2">👤</span>
-                  Customer Information
-                </h2>
-              </div>
-              <div className="p-4 sm:p-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Customer *</label>
-                    <select
-                      value={formData.customerId}
-                      onChange={(e) => setFormData({ ...formData, customerId: e.target.value })}
-                      required
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    >
-                      <option value="">Select Customer</option>
-                      {customers.map(customer => (
-                        <option key={customer.id} value={customer.id}>
-                          {customer.name} {customer.company && `(${customer.company})`}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Valid Until</label>
-                    <input
-                      type="date"
-                      value={formData.validUntil}
-                      onChange={(e) => setFormData({ ...formData, validUntil: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Payment Terms</label>
-                    <input
-                      type="text"
-                      value={formData.paymentTerms}
-                      onChange={(e) => setFormData({ ...formData, paymentTerms: e.target.value })}
-                      placeholder="e.g., 50% advance, 50% on delivery"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Delivery Terms</label>
-                    <input
-                      type="text"
-                      value={formData.deliveryTerms}
-                      onChange={(e) => setFormData({ ...formData, deliveryTerms: e.target.value })}
-                      placeholder="e.g., 7-10 working days"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Line Items */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-              <div className="border-b border-gray-200 p-4 sm:p-6">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-lg font-semibold text-gray-900 flex items-center">
-                    <span className="mr-2">📦</span>
-                    Line Items
-                  </h2>
-                  <button
-                    type="button"
-                    onClick={addItem}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors flex items-center"
-                  >
-                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                    </svg>
-                    Add Item
-                  </button>
-                </div>
-              </div>
-              <div className="p-4 sm:p-6">
-                <div className="space-y-6">
-                  {items.map((item, index) => (
-                    <div key={index} className="p-4 border border-gray-200 rounded-lg bg-white">
-                      <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
-                        <div className="md:col-span-2">
-                          <label className="block text-sm font-medium text-gray-700 mb-2">Product/Service *</label>
-                          <input
-                            type="text"
-                            value={item.productName}
-                            onChange={(e) => updateItem(index, 'productName', e.target.value)}
-                            required
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                            placeholder="Enter product or service name"
-                          />
-                        </div>
-
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">Quantity *</label>
-                          <input
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            value={item.quantity}
-                            onChange={(e) => updateItem(index, 'quantity', parseFloat(e.target.value) || 0)}
-                            required
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                          />
-                        </div>
-
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">Unit Price (₹) *</label>
-                          <input
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            value={item.unitPrice}
-                            onChange={(e) => updateItem(index, 'unitPrice', parseFloat(e.target.value) || 0)}
-                            required
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                          />
-                        </div>
-
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">Discount (%)</label>
-                          <input
-                            type="number"
-                            min="0"
-                            max="100"
-                            step="0.01"
-                            value={item.discount}
-                            onChange={(e) => updateItem(index, 'discount', parseFloat(e.target.value) || 0)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                          />
-                        </div>
-
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">Tax (%)</label>
-                          <input
-                            type="number"
-                            min="0"
-                            max="100"
-                            step="0.01"
-                            value={item.taxPercent}
-                            onChange={(e) => updateItem(index, 'taxPercent', parseFloat(e.target.value) || 0)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                          />
-                        </div>
+          <Formik
+            initialValues={initialValues}
+            validationSchema={validationSchema}
+            onSubmit={handleSubmit}
+            enableReinitialize={true}
+          >
+            {(formik) => {
+              const totals = getTotals(formik.values.items)
+              
+              return (
+                <Form className="space-y-8">
+                  {/* Customer Selection */}
+                  <div className="bg-white rounded-lg shadow-sm p-6">
+                    <h2 className="text-xl font-semibold text-gray-900 mb-6">Customer Information</h2>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Customer *
+                        </label>
+                        <Field
+                          as="select"
+                          name="customerId"
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          required
+                        >
+                          <option value="">Select a customer</option>
+                          {customers.map((customer) => (
+                            <option key={customer.id} value={customer.id}>
+                              {customer.name} {customer.company && `(${customer.company})`}
+                            </option>
+                          ))}
+                        </Field>
                       </div>
 
-                      <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
-                          <input
-                            type="text"
-                            value={item.description}
-                            onChange={(e) => updateItem(index, 'description', e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                            placeholder="Optional description"
-                          />
-                        </div>
-                        <div className="flex items-end justify-between">
-                          <div>
-                            <span className="text-sm text-gray-600">Line Total:</span>
-                            <p className="text-lg font-bold text-gray-900">₹{calculateItemTotal(item).toFixed(2)}</p>
-                          </div>
-                          {items.length > 1 && (
-                            <button
-                              type="button"
-                              onClick={() => removeItem(index)}
-                              className="px-3 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors flex items-center"
-                            >
-                              <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                              </svg>
-                              Remove
-                            </button>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Valid Until
+                        </label>
+                        <Field
+                          type="date"
+                          name="validUntil"
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Payment Terms
+                        </label>
+                        <Field
+                          type="text"
+                          name="paymentTerms"
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          placeholder="e.g., 50% advance, 50% on completion"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Delivery Terms
+                        </label>
+                        <Field
+                          type="text"
+                          name="deliveryTerms"
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          placeholder="e.g., 15-20 working days"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Items */}
+                  <div className="bg-white rounded-lg shadow-sm p-6">
+                    <div className="flex justify-between items-center mb-6">
+                      <h2 className="text-xl font-semibold text-gray-900">Items</h2>
+                      <button
+                        type="button"
+                        onClick={() => addItem(formik)}
+                        className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center"
+                      >
+                        <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                        </svg>
+                        Add Item
+                      </button>
+                    </div>
+
+                    <FieldArray name="items">
+                      {() => (
+                        <div className="space-y-6">
+                          {formik.values.items.length === 0 ? (
+                            <div className="text-center py-8 text-gray-500">
+                              <p>No items added yet. Click "Add Item" to get started.</p>
+                            </div>
+                          ) : (
+                            formik.values.items.map((item, index) => (
+                              <QuotationItemEditor
+                                key={`item-${index}-${item.productId || 'manual'}`}
+                                item={item}
+                                index={index}
+                                products={products}
+                                formik={formik}
+                                onUpdate={updateItem}
+                                onRemove={removeItem}
+                                onSelectProduct={selectProduct}
+                                onUpdateConfiguration={updateConfiguration}
+                                onCalculatePrice={calculatePrice}
+                                canRemove={formik.values.items.length > 1}
+                              />
+                            ))
                           )}
                         </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
+                      )}
+                    </FieldArray>
 
-            {/* Totals */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-              <div className="border-b border-gray-200 p-4 sm:p-6">
-                <h2 className="text-lg font-semibold text-gray-900 flex items-center">
-                  <span className="mr-2">💰</span>
-                  Quotation Summary
-                </h2>
-              </div>
-              <div className="p-4 sm:p-6">
-                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-6">
-                  <div className="space-y-3">
-                    <div className="flex justify-between text-lg">
-                      <span className="text-gray-700">Subtotal:</span>
-                      <span className="text-gray-900 font-semibold">₹{totals.subtotal.toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between text-lg">
-                      <span className="text-gray-700">Total Discount:</span>
-                      <span className="text-green-600 font-semibold">-₹{totals.totalDiscount.toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between text-lg">
-                      <span className="text-gray-700">Total Tax:</span>
-                      <span className="text-blue-600 font-semibold">₹{totals.totalTax.toFixed(2)}</span>
-                    </div>
-                    <div className="border-t border-gray-300 pt-3">
-                      <div className="flex justify-between text-2xl font-bold">
-                        <span className="text-gray-900">Grand Total:</span>
-                        <span className="text-blue-600">₹{totals.grandTotal.toFixed(2)}</span>
+              {/* Totals */}
+              <div className="mt-8 pt-6 border-t border-gray-200">
+                <div className="flex justify-end">
+                  <div className="w-full max-w-md">
+                    <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-3">Quotation Summary</h3>
+                      
+                      <div className="space-y-2">
+                        <div className="flex justify-between">
+                          <span className="text-sm text-gray-600">Subtotal:</span>
+                          <span className="text-sm font-medium">₹{totals.subtotal.toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-sm text-gray-600">Total Discount:</span>
+                          <span className="text-sm font-medium text-red-600">-₹{totals.totalDiscount.toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-sm text-gray-600">Total Tax:</span>
+                          <span className="text-sm font-medium">₹{totals.totalTax.toFixed(2)}</span>
+                        </div>
+                        <div className="border-t border-gray-300 pt-2 mt-2">
+                          <div className="flex justify-between items-center">
+                            <span className="text-lg font-bold text-gray-900">Grand Total:</span>
+                            <span className="text-xl font-bold text-blue-600">₹{totals.grandTotal.toFixed(2)}</span>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -460,76 +706,435 @@ export default function EditQuotationPage() {
               </div>
             </div>
 
-            {/* Notes and Terms */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-              <div className="border-b border-gray-200 p-4 sm:p-6">
-                <h2 className="text-lg font-semibold text-gray-900 flex items-center">
-                  <span className="mr-2">📝</span>
-                  Additional Information
-                </h2>
-              </div>
-              <div className="p-4 sm:p-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Notes</label>
-                    <textarea
-                      value={formData.notes}
-                      onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                      rows={4}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="Internal notes (optional)"
-                    />
+                  {/* Notes and Terms */}
+                  <div className="bg-white rounded-lg shadow-sm p-6">
+                    <h2 className="text-xl font-semibold text-gray-900 mb-6">Additional Information</h2>
+                    
+                    <div className="space-y-6">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Notes
+                        </label>
+                        <Field
+                          as="textarea"
+                          name="notes"
+                          rows={3}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          placeholder="Any additional notes for this quotation"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Terms & Conditions
+                        </label>
+                        <Field
+                          as="textarea"
+                          name="termsConditions"
+                          rows={4}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          placeholder="Terms and conditions for this quotation"
+                        />
+                      </div>
+                    </div>
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Terms & Conditions</label>
-                    <textarea
-                      value={formData.termsConditions}
-                      onChange={(e) => setFormData({ ...formData, termsConditions: e.target.value })}
-                      rows={4}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="Terms and conditions (optional)"
-                    />
+                  {/* Actions */}
+                  <div className="flex justify-end space-x-4">
+                    <button
+                      type="button"
+                      onClick={() => router.push('/quotations')}
+                      className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={submitting}
+                      className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                    >
+                      {submitting ? 'Updating...' : 'Update Quotation'}
+                    </button>
                   </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Form Actions */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
-              <div className="flex flex-col sm:flex-row justify-end space-y-3 sm:space-y-0 sm:space-x-4">
-                <button
-                  type="button"
-                  onClick={() => router.push('/quotations')}
-                  className="w-full sm:w-auto px-6 py-2 text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-gray-500 transition-colors"
-                  disabled={submitting}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="w-full sm:w-auto px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  {submitting ? (
-                    <span className="flex items-center justify-center">
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      Updating...
-                    </span>
-                  ) : (
-                    <span className="flex items-center justify-center">
-                      <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                      Update Quotation
-                    </span>
-                  )}
-                </button>
-              </div>
-            </div>
-          </form>
+                </Form>
+              )
+            }}
+          </Formik>
         </main>
       </div>
     </AuthGuard>
   )
+}
+
+function QuotationItemEditor({
+  item,
+  index,
+  products,
+  formik,
+  onUpdate,
+  onRemove,
+  onSelectProduct,
+  onUpdateConfiguration,
+  onCalculatePrice,
+  canRemove
+}: {
+  item: QuotationItem
+  index: number
+  products: Product[]
+  formik: FormikProps<QuotationFormValues>
+  onUpdate: (index: number, field: string, value: any, formik: FormikProps<QuotationFormValues>) => void
+  onRemove: (index: number, formik: FormikProps<QuotationFormValues>) => void
+  onSelectProduct: (index: number, productId: string, formik: FormikProps<QuotationFormValues>) => void
+  onUpdateConfiguration: (index: number, attrName: string, value: any, formik: FormikProps<QuotationFormValues>) => void
+  onCalculatePrice: (index: number, formik: FormikProps<QuotationFormValues>) => void
+  canRemove: boolean
+}) {
+  const selectedProduct = item.productId ? products.find(p => p.id === item.productId) : null
+
+  return (
+    <div className="border border-gray-200 rounded-lg p-6">
+      <div className="flex justify-between items-start mb-4">
+        <h3 className="text-lg font-medium text-gray-900">Item {index + 1}</h3>
+        {canRemove && (
+          <button
+            type="button"
+            onClick={() => onRemove(index, formik)}
+            className="text-red-600 hover:text-red-800"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+          </button>
+        )}
+      </div>
+
+      {/* Product Selection */}
+      <div className="mb-6">
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Product Selection
+        </label>
+        <ProductSelector
+          selectedProductId={item.productId}
+          selectedVariantId={item.variantId}
+          configuration={item.configuration}
+          onConfigurationChange={(newConfiguration) => {
+            console.log('🔄 PRIMARY onConfigurationChange called with:', newConfiguration)
+            onUpdate(index, 'configuration', newConfiguration, formik)
+          }}
+          onProductSelect={(product, variant, configuration) => {
+            if (product) {
+              console.log('Product selected via ProductSelector:', product.name, 'Base Price:', product.basePrice, 'Variant:', variant)
+              // Use the main selectProduct logic to ensure proper price calculation and state updates
+              onSelectProduct(index, product.id, formik)
+              
+              // Handle variant selection if provided
+              if (variant) {
+                formik.setFieldValue(`items.${index}.variantId`, variant.id)
+                const variantPrice = variant.price != null ? Number(variant.price) : 0
+                formik.setFieldValue(`items.${index}.unitPrice`, variantPrice)
+                formik.setFieldValue(`items.${index}.calculatedPrice`, variantPrice)
+              }
+              
+              // Handle configuration if provided
+              if (configuration) {
+                formik.setFieldValue(`items.${index}.configuration`, configuration)
+                // Trigger price calculation for configurable products
+                if (product.productType === 'CONFIGURABLE' || 
+                    product.productType === 'CALCULATED' ||
+                    product.pricingType === 'CALCULATED' ||
+                    product.pricingType === 'PER_UNIT' ||
+                    product.pricingType === 'VARIANT_BASED') {
+                  setTimeout(() => onCalculatePrice(index, formik), 100)
+                }
+              }
+            } else {
+              // Clear product selection using the main selectProduct logic
+              console.log('Clearing product selection for item', index + 1)
+              onSelectProduct(index, '', formik)
+            }
+          }}
+        />
+      </div>
+
+      {/* Manual Product Entry (if no product selected) */}
+      {!item.productId && (
+        <div className="mb-6">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Manual Product Entry
+          </label>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Field
+                name={`items.${index}.productName`}
+                type="text"
+                className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Enter product name"
+              />
+            </div>
+            <div>
+              <Field
+                as="textarea"
+                name={`items.${index}.description`}
+                className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Product description"
+                rows={2}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Pricing and Calculation */}
+      <div className="space-y-4 mb-4">
+        {/* First Row: Quantity and Unit Price */}  
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Quantity
+            </label>
+            <Field name={`items.${index}.quantity`}>
+              {({ field }: any) => (
+                <input
+                  {...field}
+                  type="number"
+                  step="0.001"
+                  onChange={(e) => {
+                    const newQuantity = parseFloat(e.target.value) || 0
+                    formik.setFieldValue(`items.${index}.quantity`, newQuantity)
+                    // Recalculate price for all product types that need it
+                    if (selectedProduct && (
+                      selectedProduct.pricingType === 'CALCULATED' || 
+                      selectedProduct.pricingType === 'PER_UNIT' ||
+                      selectedProduct.productType === 'CONFIGURABLE'
+                    )) {
+                      setTimeout(() => onCalculatePrice(index, formik), 100)
+                    }
+                  }}
+                  className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  min="0"
+                />
+              )}
+            </Field>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Unit Price (₹)
+              {item.calculatedPrice && (
+                <span className="ml-2 text-xs text-blue-600">(Auto-calculated)</span>
+              )}
+            </label>
+            <Field name={`items.${index}.unitPrice`}>
+              {({ field }: any) => (
+                <input
+                  {...field}
+                  type="number"
+                  step="0.01"
+                  value={item.calculatedPrice || field.value}
+                  onChange={(e) => {
+                    const newPrice = parseFloat(e.target.value) || 0
+                    formik.setFieldValue(`items.${index}.unitPrice`, newPrice)
+                    // Clear calculated price if manually edited
+                    if (!selectedProduct || (
+                      selectedProduct.productType === 'SIMPLE' && 
+                      selectedProduct.pricingType === 'FIXED'
+                    )) {
+                      formik.setFieldValue(`items.${index}.calculatedPrice`, undefined)
+                    }
+                  }}
+                  className={`w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                    item.calculatedPrice 
+                      ? 'bg-blue-50 border-blue-200 text-blue-900' 
+                      : 'border-gray-300'
+                  }`}
+                  readOnly={Boolean(selectedProduct && (
+                    selectedProduct.productType === 'CONFIGURABLE' ||
+                    selectedProduct.productType === 'CALCULATED' ||
+                    selectedProduct.pricingType === 'CALCULATED' ||
+                    selectedProduct.pricingType === 'PER_UNIT' ||
+                    selectedProduct.pricingType === 'VARIANT_BASED'
+                  ))}
+                  min="0"
+                />
+              )}
+            </Field>
+            {item.calculatedPrice && (
+              <p className="text-xs text-blue-600 mt-1">
+                Price calculated from product configuration
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* Second Row: Discount, Tax, and Line Total */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Discount (%)
+            </label>
+            <Field
+              name={`items.${index}.discount`}
+              type="number"
+              step="0.01"
+              className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              min="0"
+              max="100"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Tax (%)
+            </label>
+            <Field
+              name={`items.${index}.taxPercent`}
+              type="number"
+              step="0.01"
+              className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              min="0"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Line Total
+            </label>
+            <div className="px-3 py-2 bg-blue-50 border border-blue-200 rounded text-sm font-semibold text-blue-900">
+              ₹{calculateItemTotal(item).toFixed(2)}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Description
+        </label>
+        <Field
+          as="textarea"
+          name={`items.${index}.description`}
+          rows={2}
+          className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          placeholder="Additional description or notes for this item"
+        />
+      </div>
+    </div>
+  )
+}
+
+function ProductAttributeInput({
+  attribute,
+  value,
+  onChange
+}: {
+  attribute: ProductAttribute
+  value: any
+  onChange: (value: any) => void
+}) {
+  switch (attribute.type) {
+    case 'SELECT':
+      return (
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            {attribute.name} {attribute.isRequired && '*'}
+          </label>
+          <select
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+            required={attribute.isRequired}
+          >
+            <option value="">Select {attribute.name}</option>
+            {attribute.options.filter(opt => opt.isActive).map((option) => (
+              <option key={option.id} value={option.value}>
+                {option.displayName || option.value}
+                {option.priceModifier !== 0 && ` (${option.priceModifier > 0 ? '+' : ''}₹${option.priceModifier})`}
+              </option>
+            ))}
+          </select>
+        </div>
+      )
+
+    case 'NUMBER':
+      return (
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            {attribute.name} {attribute.isRequired && '*'} {attribute.unit && `(${attribute.unit})`}
+          </label>
+          <input
+            type="number"
+            step="0.001"
+            value={value}
+            onChange={(e) => onChange(parseFloat(e.target.value) || '')}
+            className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+            min={attribute.minValue}
+            max={attribute.maxValue}
+            required={attribute.isRequired}
+          />
+        </div>
+      )
+
+    case 'DIMENSION':
+      return (
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            {attribute.name} {attribute.isRequired && '*'} {attribute.unit && `(${attribute.unit})`}
+          </label>
+          <div className="flex space-x-2">
+            <input
+              type="number"
+              step="0.001"
+              value={value?.width || ''}
+              onChange={(e) => onChange({ ...value, width: parseFloat(e.target.value) || '' })}
+              className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+              placeholder="Width"
+              required={attribute.isRequired}
+            />
+            <span className="flex items-center text-gray-500">×</span>
+            <input
+              type="number"
+              step="0.001"
+              value={value?.height || ''}
+              onChange={(e) => onChange({ ...value, height: parseFloat(e.target.value) || '' })}
+              className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+              placeholder="Height"
+              required={attribute.isRequired}
+            />
+          </div>
+        </div>
+      )
+
+    case 'BOOLEAN':
+      return (
+        <div>
+          <label className="flex items-center">
+            <input
+              type="checkbox"
+              checked={value === true || value === 'true'}
+              onChange={(e) => onChange(e.target.checked)}
+              className="mr-2"
+            />
+            <span className="text-sm font-medium text-gray-700">
+              {attribute.name} {attribute.isRequired && '*'}
+            </span>
+          </label>
+        </div>
+      )
+
+    default: // TEXT
+      return (
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            {attribute.name} {attribute.isRequired && '*'}
+          </label>
+          <input
+            type="text"
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+            required={attribute.isRequired}
+          />
+        </div>
+      )
+  }
 }

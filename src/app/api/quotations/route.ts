@@ -118,13 +118,18 @@ export async function POST(request: NextRequest) {
       totalTax += taxAmount
 
       return {
+        productId: item.productId || null,
+        variantId: item.variantId || null,
         productName: item.productName,
         description: item.description || null,
+        configuration: item.configuration || null,
         quantity,
         unitPrice,
+        calculatedPrice: item.calculatedPrice ? parseFloat(item.calculatedPrice) : null,
         discount,
         taxPercent,
         subtotal: itemTotal,
+        notes: item.notes || null,
       }
     })
 
