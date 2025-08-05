@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import { useRouter } from 'next/navigation'
+import { useConfirm } from '@/lib/confirmation-context'
 import AuthGuard from '@/components/AuthGuard'
 import NavBar from '@/components/NavBar'
 import apiClient from '@/lib/api-client'
@@ -30,6 +31,7 @@ interface Role {
 export default function RolesPage() {
   const { user } = useAuth()
   const router = useRouter()
+  const confirm = useConfirm()
   const [roles, setRoles] = useState<Role[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -54,7 +56,16 @@ export default function RolesPage() {
 
 
   const handleDeleteRole = async (roleId: string) => {
-    if (!confirm('Are you sure you want to delete this role?')) return
+    const result = await confirm({
+      title: 'Delete Role',
+      message: 'Are you sure you want to delete this role? This action cannot be undone.',
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      type: 'danger',
+      icon: 'delete'
+    })
+    
+    if (!result) return
 
     try {
       await apiClient.delete(`/api/roles/${roleId}`)

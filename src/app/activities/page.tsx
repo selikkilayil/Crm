@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { ActivityType } from '@prisma/client'
+import { useConfirm } from '@/lib/confirmation-context'
 import AuthGuard from '@/components/AuthGuard'
 import NavBar from '@/components/NavBar'
 import apiClient from '@/lib/api-client'
@@ -36,6 +37,7 @@ const activityTypes = [
 ]
 
 export default function ActivitiesPage() {
+  const confirm = useConfirm()
   const [activities, setActivities] = useState<Activity[]>([])
   const [loading, setLoading] = useState(true)
   const [viewMode, setViewMode] = useState<'timeline' | 'list'>('timeline')
@@ -110,9 +112,16 @@ export default function ActivitiesPage() {
   }
 
   const deleteActivity = async (activityId: string) => {
-    if (!confirm('Are you sure you want to delete this activity? This action cannot be undone.')) {
-      return
-    }
+    const result = await confirm({
+      title: 'Delete Activity',
+      message: 'Are you sure you want to delete this activity? This action cannot be undone.',
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      type: 'danger',
+      icon: 'delete'
+    })
+    
+    if (!result) return
 
     try {
       await apiClient.delete(`/api/activities/${activityId}`)

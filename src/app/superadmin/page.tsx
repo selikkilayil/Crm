@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import { useRouter } from 'next/navigation'
+import { useConfirm } from '@/lib/confirmation-context'
 import AuthGuard from '@/components/AuthGuard'
 import NavBar from '@/components/NavBar'
 
@@ -32,6 +33,7 @@ interface CustomRole {
 export default function SuperAdminPage() {
   const { user } = useAuth()
   const router = useRouter()
+  const confirm = useConfirm()
   const [users, setUsers] = useState<User[]>([])
   const [customRoles, setCustomRoles] = useState<CustomRole[]>([])
   const [loading, setLoading] = useState(true)
@@ -90,7 +92,16 @@ export default function SuperAdminPage() {
   }
 
   const deleteUser = async (userId: string) => {
-    if (!confirm('Are you sure you want to delete this user?')) return
+    const result = await confirm({
+      title: 'Delete User',
+      message: 'Are you sure you want to delete this user? This action cannot be undone.',
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      type: 'danger',
+      icon: 'delete'
+    })
+    
+    if (!result) return
 
     try {
       const response = await fetch(`/api/users/${userId}`, {

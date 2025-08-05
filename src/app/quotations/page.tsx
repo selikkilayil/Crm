@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/hooks/useAuth'
+import { useConfirm } from '@/lib/confirmation-context'
 import AuthGuard from '@/components/AuthGuard'
 import NavBar from '@/components/NavBar'
 
@@ -55,6 +56,7 @@ interface Quotation {
 export default function QuotationsPage() {
   const { user } = useAuth()
   const router = useRouter()
+  const confirm = useConfirm()
   const [quotations, setQuotations] = useState<Quotation[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
@@ -123,9 +125,16 @@ export default function QuotationsPage() {
   }
 
   const handleDeleteQuotation = async (quotationId: string) => {
-    if (!confirm('Are you sure you want to delete this quotation? This action cannot be undone.')) {
-      return
-    }
+    const result = await confirm({
+      title: 'Delete Quotation',
+      message: 'Are you sure you want to delete this quotation? This action cannot be undone.',
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      type: 'danger',
+      icon: 'delete'
+    })
+    
+    if (!result) return
 
     try {
       const response = await fetch(`/api/quotations/${quotationId}`, {

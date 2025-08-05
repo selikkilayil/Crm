@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { TaskStatus, TaskPriority } from '@prisma/client'
+import { useConfirm } from '@/lib/confirmation-context'
 import AuthGuard from '@/components/AuthGuard'
 import NavBar from '@/components/NavBar'
 import { useAuth } from '@/hooks/useAuth'
@@ -58,6 +59,7 @@ const taskPriorities = [
 ]
 
 export default function TasksPage() {
+  const confirm = useConfirm()
   const [tasks, setTasks] = useState<Task[]>([])
   const [loading, setLoading] = useState(true)
   const [viewMode, setViewMode] = useState<'board' | 'list'>('board')
@@ -146,9 +148,16 @@ export default function TasksPage() {
   }
 
   const deleteTask = async (taskId: string) => {
-    if (!confirm('Are you sure you want to delete this task? This action cannot be undone.')) {
-      return
-    }
+    const result = await confirm({
+      title: 'Delete Task',
+      message: 'Are you sure you want to delete this task? This action cannot be undone.',
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      type: 'danger',
+      icon: 'delete'
+    })
+    
+    if (!result) return
 
     try {
       await apiClient.delete(`/api/tasks/${taskId}`)
