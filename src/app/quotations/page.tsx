@@ -1,88 +1,31 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/shared/hooks'
 import { useConfirm } from '@/lib/confirmation-context'
-import { AuthGuard } from '@/shared/components'
-import { NavBar } from '@/shared/components'
+import { AuthGuard, NavBar } from '@/shared/components'
+import {
+  QuotationsList,
+  QuotationsStats,
+  useQuotations,
+  quotationStatuses,
+  Quotation
+} from '@/modules/quotations'
 
-interface Customer {
-  id: string
-  name: string
-  email: string
-  company?: string
-  phone?: string
-}
-
-interface QuotationItem {
-  id?: string
-  productName: string
-  description?: string
-  quantity: number
-  unitPrice: number
-  discount: number
-  taxPercent: number
-  subtotal: number
-}
-
-interface Quotation {
-  id: string
-  quotationNumber: string
-  date: string
-  validUntil?: string
-  status: 'DRAFT' | 'SENT' | 'ACCEPTED' | 'REJECTED' | 'EXPIRED'
-  paymentTerms?: string
-  deliveryTerms?: string
-  currency: string
-  subtotal: number
-  totalTax: number
-  totalDiscount: number
-  grandTotal: number
-  notes?: string
-  termsConditions?: string
-  customer: Customer
-  createdBy: {
-    id: string
-    name: string
-    email: string
-  }
-  items: QuotationItem[]
-  createdAt: string
-  updatedAt: string
-}
 
 
 export default function QuotationsPage() {
   const { user } = useAuth()
   const router = useRouter()
   const confirm = useConfirm()
-  const [quotations, setQuotations] = useState<Quotation[]>([])
-  const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
-
-  useEffect(() => {
-    fetchQuotations()
-  }, [statusFilter, searchTerm])
-
-  const fetchQuotations = async () => {
-    try {
-      const params = new URLSearchParams()
-      if (statusFilter !== 'all') params.append('status', statusFilter)
-      if (searchTerm) params.append('search', searchTerm)
-      
-      const response = await fetch(`/api/quotations?${params}`)
-      if (response.ok) {
-        const data = await response.json()
-        setQuotations(data)
-      }
-    } catch (error) {
-      console.error('Error fetching quotations:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
+  
+  const { quotations, loading, duplicateQuotation, removeQuotation, generatePDF } = useQuotations({ 
+    statusFilter, 
+    searchTerm 
+  })
 
   const handleCreateQuotation = () => {
     router.push('/quotations/create')
@@ -94,33 +37,20 @@ export default function QuotationsPage() {
 
   const handleDuplicateQuotation = async (quotationId: string) => {
     try {
-      const response = await fetch(`/api/quotations/${quotationId}/duplicate`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ createdById: user?.id }),
-      })
-
-      if (response.ok) {
-        fetchQuotations()
-      }
+      await duplicateQuotation(quotationId, user?.id || '')
+      alert('Quotation duplicated successfully!')
     } catch (error) {
       console.error('Error duplicating quotation:', error)
+      alert('Failed to duplicate quotation. Please try again.')
     }
   }
 
-  const handleStatusChange = async (quotationId: string, newStatus: string) => {
+  const handleDownloadPDF = async (quotationId: string, filename: string) => {
     try {
-      const response = await fetch(`/api/quotations/${quotationId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: newStatus }),
-      })
-
-      if (response.ok) {
-        fetchQuotations()
-      }
+      await generatePDF(quotationId, filename)
     } catch (error) {
-      console.error('Error updating quotation status:', error)
+      console.error('Error downloading PDF:', error)
+      alert('Failed to download PDF. Please try again.')
     }
   }
 
@@ -137,30 +67,12 @@ export default function QuotationsPage() {
     if (!result) return
 
     try {
-      const response = await fetch(`/api/quotations/${quotationId}`, {
-        method: 'DELETE',
-      })
-
-      if (response.ok) {
-        fetchQuotations()
-      } else {
-        throw new Error('Failed to delete quotation')
-      }
+      await removeQuotation(quotationId)
+      alert('Quotation deleted successfully!')
     } catch (error) {
       console.error('Error deleting quotation:', error)
       alert('Failed to delete quotation. Please try again.')
     }
-  }
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-    }).format(amount)
-  }
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-IN')
   }
 
   if (loading) {
@@ -201,29 +113,7 @@ export default function QuotationsPage() {
           </div>
 
           {/* 📊 PROFESSIONAL STATS CARDS */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
-            {[
-              { label: 'Total', value: quotations.length, color: 'bg-gradient-to-br from-blue-500 to-blue-600', icon: '📄' },
-              { label: 'Draft', value: quotations.filter(q => q.status === 'DRAFT').length, color: 'bg-gradient-to-br from-gray-500 to-gray-600', icon: '📝' },
-              { label: 'Sent', value: quotations.filter(q => q.status === 'SENT').length, color: 'bg-gradient-to-br from-blue-500 to-indigo-600', icon: '📤' },
-              { label: 'Accepted', value: quotations.filter(q => q.status === 'ACCEPTED').length, color: 'bg-gradient-to-br from-green-500 to-green-600', icon: '✅' },
-              { label: 'Rejected', value: quotations.filter(q => q.status === 'REJECTED').length, color: 'bg-gradient-to-br from-red-500 to-red-600', icon: '❌' },
-            ].map((stat, index) => (
-              <div key={index} className="bg-white rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-shadow">
-                <div className="p-4">
-                  <div className="flex items-center">
-                    <div className={`w-12 h-12 ${stat.color} rounded-xl flex items-center justify-center text-white mr-3 shadow-lg`}>
-                      <span className="text-lg">{stat.icon}</span>
-                    </div>
-                    <div>
-                      <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
-                      <p className="text-sm text-gray-600">{stat.label}</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+          <QuotationsStats quotations={quotations} />
         </div>
 
         {/* 🔍 PROFESSIONAL FILTERS */}
@@ -257,11 +147,11 @@ export default function QuotationsPage() {
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                 >
                   <option value="all">All Status</option>
-                  <option value="DRAFT">Draft</option>
-                  <option value="SENT">Sent</option>
-                  <option value="ACCEPTED">Accepted</option>
-                  <option value="REJECTED">Rejected</option>
-                  <option value="EXPIRED">Expired</option>
+                  {quotationStatuses.map(status => (
+                    <option key={status.value} value={status.value}>
+                      {status.icon} {status.label}
+                    </option>
+                  ))}
                 </select>
               </div>
               <div className="flex items-end">
@@ -297,7 +187,7 @@ export default function QuotationsPage() {
             {(!searchTerm && statusFilter === 'all') && (
               <button
                 onClick={handleCreateQuotation}
-                className="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition-colors flex items-center"
+                className="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition-colors flex items-center mx-auto"
               >
                 <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -307,129 +197,16 @@ export default function QuotationsPage() {
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-            {quotations.map((quotation) => (
-              <div
-                key={quotation.id}
-                className="bg-white rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1"
-              >
-                <div className="p-6">
-                  {/* Card Header */}
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-2 mb-2">
-                        <h3 className="text-lg font-bold text-gray-900">{quotation.quotationNumber}</h3>
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          quotation.status === 'DRAFT' ? 'bg-gray-100 text-gray-800' :
-                          quotation.status === 'SENT' ? 'bg-blue-100 text-blue-800' :
-                          quotation.status === 'ACCEPTED' ? 'bg-green-100 text-green-800' :
-                          quotation.status === 'REJECTED' ? 'bg-red-100 text-red-800' :
-                          'bg-yellow-100 text-yellow-800'
-                        }`}>
-                          {quotation.status}
-                        </span>
-                      </div>
-                      <div className="space-y-1">
-                        <p className="text-sm font-medium text-gray-900">{quotation.customer.name}</p>
-                        {quotation.customer.company && (
-                          <p className="text-sm text-gray-700">{quotation.customer.company}</p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Card Content */}
-                  <div className="space-y-3 mb-4">
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <span className="text-gray-600">Date:</span>
-                        <p className="font-medium text-gray-900">{formatDate(quotation.date)}</p>
-                      </div>
-                      {quotation.validUntil && (
-                        <div>
-                          <span className="text-gray-600">Valid Until:</span>
-                          <p className="font-medium text-gray-900">{formatDate(quotation.validUntil)}</p>
-                        </div>
-                      )}
-                    </div>
-                    
-                    <div className="bg-gray-50 rounded-lg p-3">
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-gray-600">Total Amount:</span>
-                        <span className="text-lg font-bold text-gray-900">{formatCurrency(quotation.grandTotal)}</span>
-                      </div>
-                      <div className="flex justify-between items-center text-xs text-gray-600 mt-1">
-                        <span>{quotation.items.length} item{quotation.items.length !== 1 ? 's' : ''}</span>
-                        <span>Created by {quotation.createdBy.name}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Card Actions */}
-                  <div className="flex flex-wrap gap-2">
-                    <button
-                      onClick={() => handleViewQuotation(quotation)}
-                      className="bg-gray-100 text-gray-700 p-2 rounded-md hover:bg-gray-200 transition-colors flex items-center justify-center min-w-[40px] min-h-[40px]"
-                      title="View Quotation"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                      </svg>
-                    </button>
-                    {quotation.status === 'DRAFT' && (
-                      <button
-                        onClick={() => router.push(`/quotations/edit/${quotation.id}`)}
-                        className="bg-white text-gray-700 border border-gray-300 p-2 rounded-md hover:bg-gray-50 transition-colors flex items-center justify-center min-w-[40px] min-h-[40px]"
-                        title="Edit Quotation"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                        </svg>
-                      </button>
-                    )}
-                    <button
-                      onClick={() => handleDuplicateQuotation(quotation.id)}
-                      className="bg-white text-gray-700 border border-gray-300 p-2 rounded-md hover:bg-gray-50 transition-colors flex items-center justify-center min-w-[40px] min-h-[40px]"
-                      title="Duplicate Quotation"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                      </svg>
-                    </button>
-                    {quotation.status === 'DRAFT' && (
-                      <button
-                        onClick={() => handleDeleteQuotation(quotation.id)}
-                        className="bg-red-600 text-white p-2 rounded-md hover:bg-red-700 transition-colors flex items-center justify-center min-w-[40px] min-h-[40px]"
-                        title="Delete Quotation"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                      </button>
-                    )}
-                    {quotation.status === 'DRAFT' && (
-                      <button
-                        onClick={() => handleStatusChange(quotation.id, 'SENT')}
-                        className="bg-green-600 text-white px-3 py-2 rounded-md hover:bg-green-700 transition-colors text-sm flex-1 flex items-center justify-center"
-                      >
-                        <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                        </svg>
-                        Send
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+          <QuotationsList
+            quotations={quotations}
+            onView={handleViewQuotation}
+            onDuplicate={handleDuplicateQuotation}
+            onDelete={handleDeleteQuotation}
+            onDownloadPDF={handleDownloadPDF}
+          />
         )}
-
         </div>
       </div>
     </AuthGuard>
   )
 }
-
-
