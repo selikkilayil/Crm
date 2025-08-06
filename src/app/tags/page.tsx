@@ -1,88 +1,32 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useConfirm } from '@/lib/confirmation-context'
 import { AuthGuard } from '@/shared/components'
 import { NavBar } from '@/shared/components'
-import apiClient from '@/shared/services'
-
-interface Tag {
-  id: string
-  name: string
-  color: string
-  description: string | null
-  createdAt: string
-  updatedAt: string
-  _count: {
-    leads: number
-    customers: number
-  }
-}
-
-const predefinedColors = [
-  '#3B82F6', // Blue
-  '#10B981', // Green
-  '#F59E0B', // Yellow
-  '#EF4444', // Red
-  '#8B5CF6', // Purple
-  '#F97316', // Orange
-  '#06B6D4', // Cyan
-  '#84CC16', // Lime
-  '#EC4899', // Pink
-  '#6B7280', // Gray
-]
+import { TagsList, TagForm, useTags, Tag, TagFormData } from '@/modules/tags'
 
 export default function TagsPage() {
   const confirm = useConfirm()
-  const [tags, setTags] = useState<Tag[]>([])
-  const [loading, setLoading] = useState(true)
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedTag, setSelectedTag] = useState<Tag | null>(null)
+  
+  const { tags, loading, createTag, updateTag, deleteTag } = useTags()
 
-  useEffect(() => {
-    fetchTags()
-  }, [])
-
-  const fetchTags = async () => {
-    try {
-      const data = await apiClient.get('/api/tags')
-      
-      if (Array.isArray(data)) {
-        setTags(data)
-      } else {
-        console.error('API Error:', data)
-        setTags([])
-      }
-    } catch (error) {
-      console.error('Failed to fetch tags:', error)
-      setTags([])
-    } finally {
-      setLoading(false)
-    }
+  const handleCreateTag = async (data: TagFormData) => {
+    await createTag(data)
+    setShowCreateForm(false)
   }
 
-  const createTag = async (tagData: Partial<Tag>) => {
-    try {
-      await apiClient.post('/api/tags', tagData)
-      fetchTags()
-      setShowCreateForm(false)
-    } catch (error) {
-      console.error('Failed to create tag:', error)
-    }
-  }
-
-  const updateTag = async (tagId: string, tagData: Partial<Tag>) => {
-    try {
-      await apiClient.put(`/api/tags/${tagId}`, tagData)
-      fetchTags()
+  const handleUpdateTag = async (data: TagFormData) => {
+    if (selectedTag) {
+      await updateTag(selectedTag.id, data)
       setSelectedTag(null)
-    } catch (error) {
-      console.error('Failed to update tag:', error)
     }
   }
 
-  const deleteTag = async (tagId: string) => {
+  const handleDeleteTag = async (tagId: string) => {
     const result = await confirm({
       title: 'Delete Tag',
       message: 'Are you sure you want to delete this tag? It will be removed from all leads and customers.',
@@ -92,13 +36,8 @@ export default function TagsPage() {
       icon: 'delete'
     })
     
-    if (!result) return
-
-    try {
-      await apiClient.delete(`/api/tags/${tagId}`)
-      fetchTags()
-    } catch (error) {
-      console.error('Failed to delete tag:', error)
+    if (result) {
+      await deleteTag(tagId)
     }
   }
 
@@ -155,16 +94,11 @@ export default function TagsPage() {
           </div>
 
           {/* Tags Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
-            {filteredTags.map(tag => (
-              <TagCard
-                key={tag.id}
-                tag={tag}
-                onEdit={() => setSelectedTag(tag)}
-                onDelete={deleteTag}
-              />
-            ))}
-          </div>
+          <TagsList 
+            tags={filteredTags}
+            onEdit={(tag) => setSelectedTag(tag)}
+            onDelete={handleDeleteTag}
+          />
 
           {/* No Results */}
           {filteredTags.length === 0 && !loading && (
@@ -188,291 +122,24 @@ export default function TagsPage() {
 
         {/* Modals */}
         {showCreateForm && (
-          <CreateTagModal 
-            onSubmit={createTag} 
-            onClose={() => setShowCreateForm(false)} 
+          <TagForm
+            onSubmit={handleCreateTag}
+            onClose={() => setShowCreateForm(false)}
+            title="Create New Tag"
+            submitLabel="Create Tag"
           />
         )}
 
         {selectedTag && (
-          <EditTagModal
-            tag={selectedTag}
-            onSubmit={(data) => updateTag(selectedTag.id, data)}
+          <TagForm
+            onSubmit={handleUpdateTag}
             onClose={() => setSelectedTag(null)}
+            initialData={selectedTag}
+            title="Edit Tag"
+            submitLabel="Update Tag"
           />
         )}
       </div>
     </AuthGuard>
-  )
-}
-
-function TagCard({ tag, onEdit, onDelete }: {
-  tag: Tag
-  onEdit: () => void
-  onDelete: (id: string) => void
-}) {
-  const [showMenu, setShowMenu] = useState(false)
-  const totalUsage = tag._count.leads + tag._count.customers
-
-  return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
-      <div className="p-4 sm:p-6">
-        <div className="flex justify-between items-start mb-3">
-          <div className="flex items-center space-x-3 flex-1 min-w-0">
-            <div 
-              className="w-4 h-4 rounded-full flex-shrink-0"
-              style={{ backgroundColor: tag.color }}
-            />
-            <h3 className="text-lg font-medium text-gray-900 truncate">{tag.name}</h3>
-          </div>
-          
-          <div className="relative ml-2">
-            <button
-              onClick={() => setShowMenu(!showMenu)}
-              className="text-gray-400 hover:text-gray-600 p-2 -m-2"
-            >
-              ⋮
-            </button>
-            
-            {showMenu && (
-              <div className="absolute right-0 top-8 bg-white border border-gray-200 rounded-md shadow-lg z-10 min-w-32">
-                <button
-                  onClick={() => { onEdit(); setShowMenu(false) }}
-                  className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                >
-                  Edit
-                </button>
-                <button
-                  onClick={() => { onDelete(tag.id); setShowMenu(false) }}
-                  className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-50"
-                >
-                  Delete
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-        
-        {tag.description && (
-          <p className="text-sm text-gray-600 mb-4 line-clamp-2">{tag.description}</p>
-        )}
-        
-        <div className="space-y-2">
-          <div className="flex justify-between items-center text-sm text-gray-600">
-            <span>Used in {totalUsage} item{totalUsage !== 1 ? 's' : ''}</span>
-          </div>
-          
-          {(tag._count.leads > 0 || tag._count.customers > 0) && (
-            <div className="flex space-x-4 text-xs text-gray-500">
-              {tag._count.leads > 0 && (
-                <span>{tag._count.leads} lead{tag._count.leads !== 1 ? 's' : ''}</span>
-              )}
-              {tag._count.customers > 0 && (
-                <span>{tag._count.customers} customer{tag._count.customers !== 1 ? 's' : ''}</span>
-              )}
-            </div>
-          )}
-        </div>
-        
-        <div className="mt-4 pt-4 border-t border-gray-200">
-          <div className="flex justify-between items-center text-xs text-gray-500">
-            <span>Created {new Date(tag.createdAt).toLocaleDateString()}</span>
-            <button
-              onClick={onEdit}
-              className="text-blue-600 hover:text-blue-800 font-medium"
-            >
-              Edit →
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function CreateTagModal({ onSubmit, onClose }: { 
-  onSubmit: (data: Partial<Tag>) => void
-  onClose: () => void 
-}) {
-  const [formData, setFormData] = useState({
-    name: '',
-    color: predefinedColors[0],
-    description: '',
-  })
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    onSubmit(formData)
-  }
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg w-full max-w-md max-h-screen overflow-y-auto">
-        <div className="p-4 sm:p-6">
-          <h2 className="text-xl font-bold mb-4 text-gray-900">Create New Tag</h2>
-          
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Name *</label>
-              <input
-                type="text"
-                required
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="Enter tag name"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Color *</label>
-              <div className="grid grid-cols-5 gap-2">
-                {predefinedColors.map(color => (
-                  <button
-                    key={color}
-                    type="button"
-                    onClick={() => setFormData({ ...formData, color })}
-                    className={`w-10 h-10 rounded-full border-2 ${
-                      formData.color === color ? 'border-gray-800' : 'border-gray-300'
-                    }`}
-                    style={{ backgroundColor: color }}
-                  />
-                ))}
-              </div>
-              <input
-                type="color"
-                value={formData.color}
-                onChange={(e) => setFormData({ ...formData, color: e.target.value })}
-                className="mt-2 w-full h-10 border border-gray-300 rounded-md"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
-              <textarea
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                rows={3}
-                placeholder="Optional description"
-              />
-            </div>
-            
-            <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-3 pt-4">
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-4 py-2 text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-              >
-                Create Tag
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function EditTagModal({ tag, onSubmit, onClose }: { 
-  tag: Tag
-  onSubmit: (data: Partial<Tag>) => void
-  onClose: () => void 
-}) {
-  const [formData, setFormData] = useState({
-    name: tag.name,
-    color: tag.color,
-    description: tag.description || '',
-  })
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    onSubmit(formData)
-  }
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg w-full max-w-md max-h-screen overflow-y-auto">
-        <div className="p-4 sm:p-6">
-          <h2 className="text-xl font-bold mb-4 text-gray-900">Edit Tag</h2>
-          
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Name *</label>
-              <input
-                type="text"
-                required
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Color *</label>
-              <div className="grid grid-cols-5 gap-2">
-                {predefinedColors.map(color => (
-                  <button
-                    key={color}
-                    type="button"
-                    onClick={() => setFormData({ ...formData, color })}
-                    className={`w-10 h-10 rounded-full border-2 ${
-                      formData.color === color ? 'border-gray-800' : 'border-gray-300'
-                    }`}
-                    style={{ backgroundColor: color }}
-                  />
-                ))}
-              </div>
-              <input
-                type="color"
-                value={formData.color}
-                onChange={(e) => setFormData({ ...formData, color: e.target.value })}
-                className="mt-2 w-full h-10 border border-gray-300 rounded-md"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
-              <textarea
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                rows={3}
-              />
-            </div>
-            
-            <div className="bg-gray-50 p-3 rounded-md">
-              <h4 className="text-sm font-medium text-gray-700 mb-2">Usage Statistics</h4>
-              <div className="text-sm text-gray-600">
-                <div>Used in {tag._count.leads + tag._count.customers} total items</div>
-                <div>{tag._count.leads} leads • {tag._count.customers} customers</div>
-              </div>
-            </div>
-            
-            <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-3 pt-4">
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-4 py-2 text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-              >
-                Update Tag
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
   )
 }
