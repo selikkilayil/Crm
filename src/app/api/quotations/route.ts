@@ -91,10 +91,38 @@ export async function POST(request: NextRequest) {
       createdById,
     } = body
 
-    // Generate quotation number
+    // Fetch settings for quotation number format
+    let settings = await prisma.pDFSettings.findFirst()
+    if (!settings) {
+      // Create default settings if none exist
+      settings = await prisma.pDFSettings.create({
+        data: {}
+      })
+    }
+
+    // Generate unique quotation number using settings
     const year = new Date().getFullYear()
-    const count = await prisma.quotation.count()
-    const quotationNumber = `QT-${year}-${String(count + 1).padStart(4, '0')}`
+    const prefix = `${settings.quotationPrefix}-${year}-`
+    
+    // Find the highest existing number for this year and prefix
+    const lastQuotation = await prisma.quotation.findFirst({
+      where: {
+        quotationNumber: {
+          startsWith: prefix,
+        },
+      },
+      orderBy: {
+        quotationNumber: 'desc',
+      },
+    })
+    
+    let nextNumber = 1
+    if (lastQuotation) {
+      const lastNumber = parseInt(lastQuotation.quotationNumber.split('-').pop() || '0')
+      nextNumber = lastNumber + 1
+    }
+    
+    const quotationNumber = `${prefix}${String(nextNumber).padStart(4, '0')}`
 
     // Calculate totals
     let subtotal = 0
