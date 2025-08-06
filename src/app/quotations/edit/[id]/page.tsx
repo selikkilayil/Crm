@@ -6,7 +6,7 @@ import { useAuth } from '@/shared/hooks'
 import { AuthGuard } from '@/shared/components'
 import { NavBar } from '@/shared/components'
 import ProductSelector from '@/components/ProductSelector'
-import apiClient, { productApi } from '@/shared/services'
+import apiClient, { productApi } from '@/lib/api-client'
 import { Formik, Form, Field, FieldArray, FormikProps } from 'formik'
 import * as Yup from 'yup'
 

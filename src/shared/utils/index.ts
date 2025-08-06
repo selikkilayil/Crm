@@ -1,0 +1,1 @@
+export { hashPassword, comparePassword } from './auth'

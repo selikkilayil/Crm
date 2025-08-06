@@ -11,7 +11,7 @@ import {
   useQuotations,
   quotationStatuses,
   Quotation
-} from '@/modules/quotations'
+} from '@/domains/quotations'
 
 
 

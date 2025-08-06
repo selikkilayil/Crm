@@ -7,7 +7,7 @@ import { NavBar } from '@/shared/components'
 import ActivityTimeline from '@/components/ActivityTimeline'
 import TaskSection from '@/components/TaskSection'
 import TagComponent from '@/components/TagComponent'
-import apiClient from '@/shared/services'
+import apiClient from '@/lib/api-client'
 
 interface Customer {
   id: string

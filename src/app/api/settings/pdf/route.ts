@@ -63,6 +63,40 @@ export async function PUT(request: NextRequest) {
           defaultCurrency: data.defaultCurrency,
           currencySymbol: data.currencySymbol,
           footerText: data.footerText,
+          // Advanced Layout Settings
+          pageMarginTop: data.pageMarginTop,
+          pageMarginBottom: data.pageMarginBottom,
+          pageMarginLeft: data.pageMarginLeft,
+          pageMarginRight: data.pageMarginRight,
+          // Header Settings
+          headerHeight: data.headerHeight,
+          headerPadding: data.headerPadding,
+          headerShowLogo: data.headerShowLogo,
+          headerShowAddress: data.headerShowAddress,
+          headerAlignment: data.headerAlignment,
+          // Footer Settings
+          footerHeight: data.footerHeight,
+          footerPadding: data.footerPadding,
+          footerShowPageNumber: data.footerShowPageNumber,
+          footerShowDate: data.footerShowDate,
+          footerAlignment: data.footerAlignment,
+          // Content Settings
+          contentPadding: data.contentPadding,
+          lineHeight: data.lineHeight,
+          fontSize: data.fontSize,
+          headingFontSize: data.headingFontSize,
+          // Table Settings
+          tableHeaderBg: data.tableHeaderBg,
+          tableBorderColor: data.tableBorderColor,
+          tableRowPadding: data.tableRowPadding,
+          tableShowBorders: data.tableShowBorders,
+          // Logo Settings (Advanced)
+          logoWidth: data.logoWidth,
+          logoHeight: data.logoHeight,
+          logoPosition: data.logoPosition,
+          // Page Settings
+          pageSize: data.pageSize,
+          pageOrientation: data.pageOrientation,
         }
       })
     } else {
@@ -92,6 +126,40 @@ export async function PUT(request: NextRequest) {
           defaultCurrency: data.defaultCurrency,
           currencySymbol: data.currencySymbol,
           footerText: data.footerText,
+          // Advanced Layout Settings
+          pageMarginTop: data.pageMarginTop,
+          pageMarginBottom: data.pageMarginBottom,
+          pageMarginLeft: data.pageMarginLeft,
+          pageMarginRight: data.pageMarginRight,
+          // Header Settings
+          headerHeight: data.headerHeight,
+          headerPadding: data.headerPadding,
+          headerShowLogo: data.headerShowLogo,
+          headerShowAddress: data.headerShowAddress,
+          headerAlignment: data.headerAlignment,
+          // Footer Settings
+          footerHeight: data.footerHeight,
+          footerPadding: data.footerPadding,
+          footerShowPageNumber: data.footerShowPageNumber,
+          footerShowDate: data.footerShowDate,
+          footerAlignment: data.footerAlignment,
+          // Content Settings
+          contentPadding: data.contentPadding,
+          lineHeight: data.lineHeight,
+          fontSize: data.fontSize,
+          headingFontSize: data.headingFontSize,
+          // Table Settings
+          tableHeaderBg: data.tableHeaderBg,
+          tableBorderColor: data.tableBorderColor,
+          tableRowPadding: data.tableRowPadding,
+          tableShowBorders: data.tableShowBorders,
+          // Logo Settings (Advanced)
+          logoWidth: data.logoWidth,
+          logoHeight: data.logoHeight,
+          logoPosition: data.logoPosition,
+          // Page Settings
+          pageSize: data.pageSize,
+          pageOrientation: data.pageOrientation,
         }
       })
     }

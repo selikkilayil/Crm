@@ -16,7 +16,7 @@ import {
   TaskStatusFilter,
   TaskPriorityFilter,
   TaskViewMode
-} from '@/modules/tasks'
+} from '@/domains/tasks'
 
 export default function TasksPage() {
   const confirm = useConfirm()

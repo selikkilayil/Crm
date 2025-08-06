@@ -5,7 +5,7 @@ import { useAuth } from '@/shared/hooks'
 import { useRouter, useParams } from 'next/navigation'
 import { AuthGuard } from '@/shared/components'
 import { NavBar } from '@/shared/components'
-import apiClient from '@/shared/services'
+import apiClient from '@/lib/api-client'
 
 interface Permission {
   id: string

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { AuthGuard } from '@/shared/components'
 import { NavBar } from '@/shared/components'
-import apiClient from '@/shared/services'
+import apiClient from '@/lib/api-client'
 
 interface Stats {
   totalLeads: number

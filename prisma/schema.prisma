@@ -473,6 +473,47 @@ model PDFSettings {
   // Footer Text
   footerText            String    @default("Thank you for your business!")
   
+  // Advanced Layout Settings
+  pageMarginTop         Int       @default(20)   // Top margin in mm
+  pageMarginBottom      Int       @default(20)   // Bottom margin in mm  
+  pageMarginLeft        Int       @default(15)   // Left margin in mm
+  pageMarginRight       Int       @default(15)   // Right margin in mm
+  
+  // Header Settings
+  headerHeight          Int       @default(80)   // Header height in px
+  headerPadding         Int       @default(20)   // Header internal padding in px
+  headerShowLogo        Boolean   @default(true) // Show logo in header
+  headerShowAddress     Boolean   @default(true) // Show company address in header
+  headerAlignment       String    @default("left") // left, center, right
+  
+  // Footer Settings  
+  footerHeight          Int       @default(60)   // Footer height in px
+  footerPadding         Int       @default(15)   // Footer internal padding in px
+  footerShowPageNumber  Boolean   @default(true) // Show page numbers
+  footerShowDate        Boolean   @default(true) // Show generation date
+  footerAlignment       String    @default("center") // left, center, right
+  
+  // Content Settings
+  contentPadding        Int       @default(20)   // Content area padding in px
+  lineHeight            Decimal   @default(1.4)  @db.Decimal(3, 2) // Line height multiplier
+  fontSize              Int       @default(12)   // Base font size in pt
+  headingFontSize       Int       @default(16)   // Heading font size in pt
+  
+  // Table Settings
+  tableHeaderBg         String    @default("#f8fafc") // Table header background
+  tableBorderColor      String    @default("#e5e7eb") // Table border color
+  tableRowPadding       Int       @default(10)   // Table row padding in px
+  tableShowBorders      Boolean   @default(true) // Show table borders
+  
+  // Logo Settings (Advanced)
+  logoWidth             Int       @default(100)  // Logo width in px
+  logoHeight            Int       @default(60)   // Logo height in px
+  logoPosition          String    @default("header-left") // header-left, header-center, header-right
+  
+  // Page Settings
+  pageSize              String    @default("A4")  // A4, Letter, Legal, A3
+  pageOrientation       String    @default("portrait") // portrait, landscape
+  
   // Timestamps
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt

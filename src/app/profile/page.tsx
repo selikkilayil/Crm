@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { AuthGuard } from '@/shared/components'
 import { NavBar } from '@/shared/components'
 import { useAuth } from '@/shared/hooks'
-import apiClient from '@/shared/services'
+import apiClient from '@/lib/api-client'
 
 interface ProfileData {
   name: string

@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { LeadStatus } from '@prisma/client'
 import { AuthGuard } from '@/shared/components'
 import { NavBar } from '@/shared/components'
-import apiClient from '@/shared/services'
+import apiClient from '@/lib/api-client'
 
 interface Lead {
   id: string

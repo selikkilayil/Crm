@@ -8,7 +8,7 @@ import { AuthGuard, NavBar } from '@/shared/components'
 import TaskSection from '@/components/TaskSection'
 import TagComponent from '@/components/TagComponent'
 import { FormWrapper, FormField, FormButton, FormErrorMessage } from '@/shared/components'
-import { apiClient } from '@/shared/services'
+import { apiClient } from '@/lib/api-client'
 
 interface Lead {
   id: string

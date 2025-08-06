@@ -30,6 +30,40 @@ interface PDFSettings {
   defaultCurrency: string
   currencySymbol: string
   footerText: string
+  // Advanced Layout Settings
+  pageMarginTop: number
+  pageMarginBottom: number
+  pageMarginLeft: number
+  pageMarginRight: number
+  // Header Settings
+  headerHeight: number
+  headerPadding: number
+  headerShowLogo: boolean
+  headerShowAddress: boolean
+  headerAlignment: string
+  // Footer Settings
+  footerHeight: number
+  footerPadding: number
+  footerShowPageNumber: boolean
+  footerShowDate: boolean
+  footerAlignment: string
+  // Content Settings
+  contentPadding: number
+  lineHeight: number
+  fontSize: number
+  headingFontSize: number
+  // Table Settings
+  tableHeaderBg: string
+  tableBorderColor: string
+  tableRowPadding: number
+  tableShowBorders: boolean
+  // Logo Settings (Advanced)
+  logoWidth: number
+  logoHeight: number
+  logoPosition: string
+  // Page Settings
+  pageSize: string
+  pageOrientation: string
 }
 
 export default function SettingsPage() {
@@ -38,6 +72,7 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [activeTab, setActiveTab] = useState('company')
+  const [uploadingLogo, setUploadingLogo] = useState(false)
 
   useEffect(() => {
     fetchSettings()
@@ -76,7 +111,41 @@ export default function SettingsPage() {
           showTaxBreakdown: data.showTaxBreakdown !== undefined ? data.showTaxBreakdown : true,
           defaultCurrency: data.defaultCurrency || 'INR',
           currencySymbol: data.currencySymbol || '₹',
-          footerText: data.footerText || 'Thank you for your business!'
+          footerText: data.footerText || 'Thank you for your business!',
+          // Advanced Layout Settings
+          pageMarginTop: data.pageMarginTop || 20,
+          pageMarginBottom: data.pageMarginBottom || 20,
+          pageMarginLeft: data.pageMarginLeft || 15,
+          pageMarginRight: data.pageMarginRight || 15,
+          // Header Settings
+          headerHeight: data.headerHeight || 80,
+          headerPadding: data.headerPadding || 20,
+          headerShowLogo: data.headerShowLogo !== undefined ? data.headerShowLogo : true,
+          headerShowAddress: data.headerShowAddress !== undefined ? data.headerShowAddress : true,
+          headerAlignment: data.headerAlignment || 'left',
+          // Footer Settings
+          footerHeight: data.footerHeight || 60,
+          footerPadding: data.footerPadding || 15,
+          footerShowPageNumber: data.footerShowPageNumber !== undefined ? data.footerShowPageNumber : true,
+          footerShowDate: data.footerShowDate !== undefined ? data.footerShowDate : true,
+          footerAlignment: data.footerAlignment || 'center',
+          // Content Settings
+          contentPadding: data.contentPadding || 20,
+          lineHeight: typeof data.lineHeight === 'string' ? parseFloat(data.lineHeight) : (data.lineHeight || 1.4),
+          fontSize: data.fontSize || 12,
+          headingFontSize: data.headingFontSize || 16,
+          // Table Settings
+          tableHeaderBg: data.tableHeaderBg || '#f8fafc',
+          tableBorderColor: data.tableBorderColor || '#e5e7eb',
+          tableRowPadding: data.tableRowPadding || 10,
+          tableShowBorders: data.tableShowBorders !== undefined ? data.tableShowBorders : true,
+          // Logo Settings (Advanced)
+          logoWidth: data.logoWidth || 100,
+          logoHeight: data.logoHeight || 60,
+          logoPosition: data.logoPosition || 'header-left',
+          // Page Settings
+          pageSize: data.pageSize || 'A4',
+          pageOrientation: data.pageOrientation || 'portrait'
         }
         setSettings(processedData)
       } else {
@@ -118,6 +187,61 @@ export default function SettingsPage() {
   const updateSetting = (field: string, value: string | number | boolean) => {
     if (!settings) return
     setSettings({ ...settings, [field]: value })
+  }
+
+  const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file || !settings) return
+
+    setUploadingLogo(true)
+    try {
+      const formData = new FormData()
+      formData.append('logo', file)
+
+      const response = await fetch('/api/upload/logo', {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        updateSetting('logoUrl', data.logoUrl)
+        alert('Logo uploaded successfully!')
+      } else {
+        const error = await response.json()
+        alert(`Failed to upload logo: ${error.error}`)
+      }
+    } catch (error) {
+      console.error('Error uploading logo:', error)
+      alert('Failed to upload logo')
+    } finally {
+      setUploadingLogo(false)
+      // Reset the input
+      event.target.value = ''
+    }
+  }
+
+  const handleLogoRemove = async () => {
+    if (!settings?.logoUrl || !settings) return
+
+    if (!confirm('Are you sure you want to remove the logo?')) return
+
+    try {
+      // Extract filename from URL
+      const filename = settings.logoUrl.split('/').pop()
+      
+      if (filename) {
+        await fetch(`/api/upload/logo?filename=${filename}`, {
+          method: 'DELETE',
+        })
+      }
+
+      updateSetting('logoUrl', '')
+      alert('Logo removed successfully!')
+    } catch (error) {
+      console.error('Error removing logo:', error)
+      alert('Failed to remove logo')
+    }
   }
 
   if (loading) {
@@ -177,8 +301,10 @@ export default function SettingsPage() {
                 {[
                   { id: 'company', name: 'Company Info', icon: '🏢' },
                   { id: 'colors', name: 'Colors & Branding', icon: '🎨' },
+                  { id: 'layout', name: 'Layout & Margins', icon: '📐' },
                   { id: 'quotation', name: 'Quotation Format', icon: '📄' },
                   { id: 'defaults', name: 'Quotation Defaults', icon: '⚙️' },
+                  { id: 'advanced', name: 'Advanced', icon: '⚡' },
                 ].map((tab) => (
                   <button
                     key={tab.id}
@@ -211,16 +337,6 @@ export default function SettingsPage() {
                       />
                     </div>
 
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Logo Text (fallback)</label>
-                      <input
-                        type="text"
-                        value={settings.logoText}
-                        onChange={(e) => updateSetting('logoText', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                        placeholder="e.g., Logo text when no image"
-                      />
-                    </div>
 
                     <div className="md:col-span-2">
                       <label className="block text-sm font-medium text-gray-700 mb-2">Company Address</label>
@@ -288,6 +404,89 @@ export default function SettingsPage() {
               {/* Colors Tab */}
               {activeTab === 'colors' && (
                 <div className="space-y-6">
+                  {/* Logo Upload Section */}
+                  <div className="bg-gray-50 rounded-lg p-6 border border-gray-200">
+                    <h3 className="text-lg font-medium text-gray-900 mb-4">Company Logo</h3>
+                    
+                    <div className="flex flex-col space-y-4">
+                      {/* Current Logo Preview */}
+                      {settings.logoUrl ? (
+                        <div className="flex items-center space-x-4">
+                          <div className="w-20 h-20 border border-gray-300 rounded-lg overflow-hidden bg-white flex items-center justify-center">
+                            <img
+                              src={settings.logoUrl}
+                              alt="Company Logo"
+                              className="max-w-full max-h-full object-contain"
+                            />
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-sm text-gray-600">Current logo</p>
+                            <button
+                              onClick={handleLogoRemove}
+                              className="mt-2 text-sm text-red-600 hover:text-red-700 font-medium"
+                            >
+                              Remove Logo
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="w-20 h-20 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center">
+                          <div
+                            className="w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold text-white"
+                            style={{ backgroundColor: settings.primaryColor }}
+                          >
+                            {settings.logoText}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Upload Controls */}
+                      <div className="flex items-center space-x-4">
+                        <label className="relative cursor-pointer bg-white rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+                          <input
+                            type="file"
+                            className="sr-only"
+                            accept="image/*"
+                            onChange={handleLogoUpload}
+                            disabled={uploadingLogo}
+                          />
+                          {uploadingLogo ? (
+                            <>
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600 inline-block mr-2"></div>
+                              Uploading...
+                            </>
+                          ) : (
+                            <>
+                              📁 Choose Logo
+                            </>
+                          )}
+                        </label>
+                        
+                        <p className="text-sm text-gray-500">
+                          PNG, JPEG, GIF, WebP up to 5MB
+                        </p>
+                      </div>
+
+                      {/* Logo Text Fallback */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Logo Text (fallback when no image)
+                        </label>
+                        <input
+                          type="text"
+                          value={settings.logoText}
+                          onChange={(e) => updateSetting('logoText', e.target.value)}
+                          className="w-32 px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                          placeholder="e.g., L"
+                          maxLength={3}
+                        />
+                        <p className="mt-1 text-xs text-gray-500">
+                          Used when logo image is not available (max 3 characters)
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">Primary Color (Header)</label>
@@ -372,10 +571,18 @@ export default function SettingsPage() {
                       >
                         <div className="flex items-center space-x-3">
                           <div 
-                            className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold"
+                            className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold overflow-hidden"
                             style={{ backgroundColor: 'white', color: settings.primaryColor }}
                           >
-                            {settings.logoText}
+                            {settings.logoUrl ? (
+                              <img
+                                src={settings.logoUrl}
+                                alt="Logo"
+                                className="w-full h-full object-contain"
+                              />
+                            ) : (
+                              settings.logoText
+                            )}
                           </div>
                           <div>
                             <div className="font-bold">{settings.companyName}</div>
@@ -395,6 +602,238 @@ export default function SettingsPage() {
                           Accent Color
                         </div>
                       </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Layout & Margins Tab */}
+              {activeTab === 'layout' && (
+                <div className="space-y-6">
+                  {/* Page Settings */}
+                  <div className="bg-gray-50 rounded-lg p-6 border border-gray-200">
+                    <h3 className="text-lg font-medium text-gray-900 mb-4">Page Settings</h3>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Page Size</label>
+                        <select
+                          value={settings.pageSize}
+                          onChange={(e) => updateSetting('pageSize', e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                        >
+                          <option value="A4">A4 (210 × 297 mm)</option>
+                          <option value="Letter">Letter (8.5 × 11 in)</option>
+                          <option value="Legal">Legal (8.5 × 14 in)</option>
+                          <option value="A3">A3 (297 × 420 mm)</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Orientation</label>
+                        <select
+                          value={settings.pageOrientation}
+                          onChange={(e) => updateSetting('pageOrientation', e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                        >
+                          <option value="portrait">Portrait</option>
+                          <option value="landscape">Landscape</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Page Margins */}
+                  <div className="bg-gray-50 rounded-lg p-6 border border-gray-200">
+                    <h3 className="text-lg font-medium text-gray-900 mb-4">Page Margins (mm)</h3>
+                    
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Top</label>
+                        <input
+                          type="number"
+                          value={settings.pageMarginTop}
+                          onChange={(e) => updateSetting('pageMarginTop', parseInt(e.target.value) || 20)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                          min="0"
+                          max="50"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Bottom</label>
+                        <input
+                          type="number"
+                          value={settings.pageMarginBottom}
+                          onChange={(e) => updateSetting('pageMarginBottom', parseInt(e.target.value) || 20)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                          min="0"
+                          max="50"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Left</label>
+                        <input
+                          type="number"
+                          value={settings.pageMarginLeft}
+                          onChange={(e) => updateSetting('pageMarginLeft', parseInt(e.target.value) || 15)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                          min="0"
+                          max="50"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Right</label>
+                        <input
+                          type="number"
+                          value={settings.pageMarginRight}
+                          onChange={(e) => updateSetting('pageMarginRight', parseInt(e.target.value) || 15)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                          min="0"
+                          max="50"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                      <p className="text-sm text-blue-800">
+                        💡 <strong>Tip:</strong> Standard margins are 20mm (top/bottom) and 15mm (left/right). 
+                        Increase margins for more whitespace, decrease for more content per page.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Header Settings */}
+                  <div className="bg-gray-50 rounded-lg p-6 border border-gray-200">
+                    <h3 className="text-lg font-medium text-gray-900 mb-4">Header Settings</h3>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Header Height (px)</label>
+                        <input
+                          type="number"
+                          value={settings.headerHeight}
+                          onChange={(e) => updateSetting('headerHeight', parseInt(e.target.value) || 80)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                          min="40"
+                          max="200"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Header Padding (px)</label>
+                        <input
+                          type="number"
+                          value={settings.headerPadding}
+                          onChange={(e) => updateSetting('headerPadding', parseInt(e.target.value) || 20)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                          min="0"
+                          max="50"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Header Alignment</label>
+                        <select
+                          value={settings.headerAlignment}
+                          onChange={(e) => updateSetting('headerAlignment', e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                        >
+                          <option value="left">Left</option>
+                          <option value="center">Center</option>
+                          <option value="right">Right</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 space-y-3">
+                      <label className="flex items-center">
+                        <input
+                          type="checkbox"
+                          checked={settings.headerShowLogo}
+                          onChange={(e) => updateSetting('headerShowLogo', e.target.checked)}
+                          className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                        />
+                        <span className="ml-2 text-sm font-medium text-gray-700">Show Logo in Header</span>
+                      </label>
+
+                      <label className="flex items-center">
+                        <input
+                          type="checkbox"
+                          checked={settings.headerShowAddress}
+                          onChange={(e) => updateSetting('headerShowAddress', e.target.checked)}
+                          className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                        />
+                        <span className="ml-2 text-sm font-medium text-gray-700">Show Company Address in Header</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Footer Settings */}
+                  <div className="bg-gray-50 rounded-lg p-6 border border-gray-200">
+                    <h3 className="text-lg font-medium text-gray-900 mb-4">Footer Settings</h3>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Footer Height (px)</label>
+                        <input
+                          type="number"
+                          value={settings.footerHeight}
+                          onChange={(e) => updateSetting('footerHeight', parseInt(e.target.value) || 60)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                          min="30"
+                          max="150"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Footer Padding (px)</label>
+                        <input
+                          type="number"
+                          value={settings.footerPadding}
+                          onChange={(e) => updateSetting('footerPadding', parseInt(e.target.value) || 15)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                          min="0"
+                          max="40"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Footer Alignment</label>
+                        <select
+                          value={settings.footerAlignment}
+                          onChange={(e) => updateSetting('footerAlignment', e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                        >
+                          <option value="left">Left</option>
+                          <option value="center">Center</option>
+                          <option value="right">Right</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 space-y-3">
+                      <label className="flex items-center">
+                        <input
+                          type="checkbox"
+                          checked={settings.footerShowPageNumber}
+                          onChange={(e) => updateSetting('footerShowPageNumber', e.target.checked)}
+                          className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                        />
+                        <span className="ml-2 text-sm font-medium text-gray-700">Show Page Numbers</span>
+                      </label>
+
+                      <label className="flex items-center">
+                        <input
+                          type="checkbox"
+                          checked={settings.footerShowDate}
+                          onChange={(e) => updateSetting('footerShowDate', e.target.checked)}
+                          className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                        />
+                        <span className="ml-2 text-sm font-medium text-gray-700">Show Generation Date</span>
+                      </label>
                     </div>
                   </div>
                 </div>
@@ -558,6 +997,361 @@ export default function SettingsPage() {
                       <li>• Include clear delivery timelines to set proper expectations</li>
                       <li>• Add warranty/guarantee information in terms & conditions</li>
                       <li>• Consider adding cancellation and refund policies</li>
+                    </ul>
+                  </div>
+                </div>
+              )}
+
+              {/* Advanced Tab */}
+              {activeTab === 'advanced' && (
+                <div className="space-y-6">
+                  {/* Typography Settings */}
+                  <div className="bg-gray-50 rounded-lg p-6 border border-gray-200">
+                    <h3 className="text-lg font-medium text-gray-900 mb-4">Typography & Content</h3>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Base Font Size (pt)</label>
+                        <input
+                          type="number"
+                          value={settings.fontSize}
+                          onChange={(e) => updateSetting('fontSize', parseInt(e.target.value) || 12)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                          min="8"
+                          max="20"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Heading Font Size (pt)</label>
+                        <input
+                          type="number"
+                          value={settings.headingFontSize}
+                          onChange={(e) => updateSetting('headingFontSize', parseInt(e.target.value) || 16)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                          min="10"
+                          max="30"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Line Height</label>
+                        <input
+                          type="number"
+                          step="0.1"
+                          value={settings.lineHeight}
+                          onChange={(e) => updateSetting('lineHeight', parseFloat(e.target.value) || 1.4)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                          min="1.0"
+                          max="3.0"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Content Padding (px)</label>
+                        <input
+                          type="number"
+                          value={settings.contentPadding}
+                          onChange={(e) => updateSetting('contentPadding', parseInt(e.target.value) || 20)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                          min="0"
+                          max="50"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Logo Advanced Settings */}
+                  <div className="bg-gray-50 rounded-lg p-6 border border-gray-200">
+                    <h3 className="text-lg font-medium text-gray-900 mb-4">Advanced Logo Settings</h3>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Logo Width (px)</label>
+                        <input
+                          type="number"
+                          value={settings.logoWidth}
+                          onChange={(e) => updateSetting('logoWidth', parseInt(e.target.value) || 100)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                          min="50"
+                          max="300"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Logo Height (px)</label>
+                        <input
+                          type="number"
+                          value={settings.logoHeight}
+                          onChange={(e) => updateSetting('logoHeight', parseInt(e.target.value) || 60)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                          min="30"
+                          max="200"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Logo Position</label>
+                        <select
+                          value={settings.logoPosition}
+                          onChange={(e) => updateSetting('logoPosition', e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                        >
+                          <option value="header-left">Header Left</option>
+                          <option value="header-center">Header Center</option>
+                          <option value="header-right">Header Right</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Table Settings */}
+                  <div className="bg-gray-50 rounded-lg p-6 border border-gray-200">
+                    <h3 className="text-lg font-medium text-gray-900 mb-4">Table Styling</h3>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Table Header Background</label>
+                        <div className="flex space-x-3">
+                          <input
+                            type="color"
+                            value={settings.tableHeaderBg}
+                            onChange={(e) => updateSetting('tableHeaderBg', e.target.value)}
+                            className="w-16 h-10 border border-gray-300 rounded cursor-pointer"
+                          />
+                          <input
+                            type="text"
+                            value={settings.tableHeaderBg}
+                            onChange={(e) => updateSetting('tableHeaderBg', e.target.value)}
+                            className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Table Border Color</label>
+                        <div className="flex space-x-3">
+                          <input
+                            type="color"
+                            value={settings.tableBorderColor}
+                            onChange={(e) => updateSetting('tableBorderColor', e.target.value)}
+                            className="w-16 h-10 border border-gray-300 rounded cursor-pointer"
+                          />
+                          <input
+                            type="text"
+                            value={settings.tableBorderColor}
+                            onChange={(e) => updateSetting('tableBorderColor', e.target.value)}
+                            className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Row Padding (px)</label>
+                        <input
+                          type="number"
+                          value={settings.tableRowPadding}
+                          onChange={(e) => updateSetting('tableRowPadding', parseInt(e.target.value) || 10)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                          min="5"
+                          max="30"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="mt-4">
+                      <label className="flex items-center">
+                        <input
+                          type="checkbox"
+                          checked={settings.tableShowBorders}
+                          onChange={(e) => updateSetting('tableShowBorders', e.target.checked)}
+                          className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                        />
+                        <span className="ml-2 text-sm font-medium text-gray-700">Show Table Borders</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Live Preview */}
+                  <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+                    <h3 className="text-lg font-medium text-gray-900 p-4 border-b border-gray-200">Live Preview</h3>
+                    
+                    <div className="p-4">
+                      {/* Header Preview */}
+                      <div 
+                        className="flex items-center justify-between mb-4 p-4 rounded"
+                        style={{ 
+                          backgroundColor: settings.primaryColor,
+                          color: 'white',
+                          height: `${Math.min(settings.headerHeight, 120)}px`,
+                          padding: `${settings.headerPadding}px`,
+                          textAlign: settings.headerAlignment as any
+                        }}
+                      >
+                        {settings.headerAlignment === 'left' && (
+                          <>
+                            <div className="flex items-center space-x-3">
+                              {settings.headerShowLogo && (
+                                <div 
+                                  className="bg-white rounded overflow-hidden"
+                                  style={{ 
+                                    width: `${Math.min(settings.logoWidth, 80)}px`, 
+                                    height: `${Math.min(settings.logoHeight, 50)}px` 
+                                  }}
+                                >
+                                  {settings.logoUrl ? (
+                                    <img src={settings.logoUrl} alt="Logo" className="w-full h-full object-contain" />
+                                  ) : (
+                                    <div 
+                                      className="w-full h-full flex items-center justify-center text-sm font-bold"
+                                      style={{ color: settings.primaryColor }}
+                                    >
+                                      {settings.logoText}
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                              <div>
+                                <div 
+                                  className="font-bold"
+                                  style={{ fontSize: `${Math.min(settings.headingFontSize, 18)}px` }}
+                                >
+                                  {settings.companyName}
+                                </div>
+                                {settings.headerShowAddress && (
+                                  <div 
+                                    className="text-sm opacity-90 mt-1"
+                                    style={{ 
+                                      fontSize: `${Math.min(settings.fontSize, 14)}px`,
+                                      lineHeight: settings.lineHeight 
+                                    }}
+                                  >
+                                    Sample Address Line
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </>
+                        )}
+                      </div>
+
+                      {/* Content Preview */}
+                      <div 
+                        className="mb-4"
+                        style={{ 
+                          padding: `${settings.contentPadding}px`,
+                          fontSize: `${settings.fontSize}px`,
+                          lineHeight: settings.lineHeight,
+                          color: settings.textColor 
+                        }}
+                      >
+                        <h4 
+                          className="font-medium mb-2"
+                          style={{ fontSize: `${settings.headingFontSize}px` }}
+                        >
+                          Sample Content Section
+                        </h4>
+                        <p>This is how your PDF content will appear with the current typography settings.</p>
+                      </div>
+
+                      {/* Table Preview */}
+                      <div className="mb-4">
+                        <table 
+                          className="w-full"
+                          style={{ 
+                            borderCollapse: 'collapse',
+                            fontSize: `${settings.fontSize}px` 
+                          }}
+                        >
+                          <thead>
+                            <tr>
+                              <th 
+                                className="text-left font-medium"
+                                style={{ 
+                                  backgroundColor: settings.tableHeaderBg,
+                                  color: settings.textColor,
+                                  padding: `${settings.tableRowPadding}px`,
+                                  ...(settings.tableShowBorders && {
+                                    border: `1px solid ${settings.tableBorderColor}`
+                                  })
+                                }}
+                              >
+                                Item
+                              </th>
+                              <th 
+                                className="text-right font-medium"
+                                style={{ 
+                                  backgroundColor: settings.tableHeaderBg,
+                                  color: settings.textColor,
+                                  padding: `${settings.tableRowPadding}px`,
+                                  ...(settings.tableShowBorders && {
+                                    border: `1px solid ${settings.tableBorderColor}`
+                                  })
+                                }}
+                              >
+                                Amount
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr>
+                              <td 
+                                style={{ 
+                                  padding: `${settings.tableRowPadding}px`,
+                                  color: settings.textColor,
+                                  ...(settings.tableShowBorders && {
+                                    border: `1px solid ${settings.tableBorderColor}`
+                                  })
+                                }}
+                              >
+                                Sample Item
+                              </td>
+                              <td 
+                                className="text-right"
+                                style={{ 
+                                  padding: `${settings.tableRowPadding}px`,
+                                  color: settings.textColor,
+                                  ...(settings.tableShowBorders && {
+                                    border: `1px solid ${settings.tableBorderColor}`
+                                  })
+                                }}
+                              >
+                                {settings.currencySymbol}1,000
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+
+                      {/* Footer Preview */}
+                      <div 
+                        className="flex items-center justify-center text-sm"
+                        style={{ 
+                          backgroundColor: settings.lightBackground,
+                          color: settings.textColor,
+                          height: `${Math.min(settings.footerHeight, 80)}px`,
+                          padding: `${settings.footerPadding}px`,
+                          textAlign: settings.footerAlignment as any,
+                          fontSize: `${Math.min(settings.fontSize, 12)}px`
+                        }}
+                      >
+                        <div>
+                          {settings.footerText}
+                          {settings.footerShowPageNumber && <span className="ml-4">Page 1</span>}
+                          {settings.footerShowDate && <span className="ml-4">{new Date().toLocaleDateString()}</span>}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                    <h4 className="font-medium text-amber-900 mb-2">🔧 Advanced Settings Tips:</h4>
+                    <ul className="text-sm text-amber-800 space-y-1">
+                      <li>• Adjust font sizes carefully - too large may cause content overflow</li>
+                      <li>• Line height affects readability - 1.4-1.6 is recommended for body text</li>
+                      <li>• Logo dimensions will maintain aspect ratio when rendered</li>
+                      <li>• Test your settings by generating a sample PDF</li>
+                      <li>• Keep table padding consistent with content padding for visual harmony</li>
                     </ul>
                   </div>
                 </div>
