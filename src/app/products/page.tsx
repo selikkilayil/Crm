@@ -7,7 +7,7 @@ import PermissionGuard from '@/components/PermissionGuard'
 import NavBar from '@/components/NavBar'
 import { productApi } from '@/lib/api-client'
 import { PERMISSIONS } from '@/lib/permissions'
-import { useConfirmationDialog } from '@/components/ConfirmationDialog'
+import { useConfirm } from '@/lib/confirmation-context'
 
 interface Product {
   id: string
@@ -75,7 +75,7 @@ export default function ProductsPage() {
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [categories, setCategories] = useState<string[]>([])
   const router = useRouter()
-  const { showConfirmation, ConfirmationComponent } = useConfirmationDialog()
+  const confirm = useConfirm()
 
   useEffect(() => {
     fetchProducts()
@@ -110,7 +110,16 @@ export default function ProductsPage() {
   }
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this product?')) return
+    const result = await confirm({
+      title: 'Delete Product',
+      message: 'Are you sure you want to delete this product? This action cannot be undone.',
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      type: 'danger',
+      icon: 'delete'
+    })
+    
+    if (!result) return
 
     try {
       await productApi.delete(id)

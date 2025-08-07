@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useConfirm } from '@/lib/confirmation-context'
 import AuthGuard from '@/components/AuthGuard'
 import NavBar from '@/components/NavBar'
 import apiClient from '@/lib/api-client'
@@ -32,6 +33,7 @@ const predefinedColors = [
 ]
 
 export default function TagsPage() {
+  const confirm = useConfirm()
   const [tags, setTags] = useState<Tag[]>([])
   const [loading, setLoading] = useState(true)
   const [showCreateForm, setShowCreateForm] = useState(false)
@@ -81,9 +83,16 @@ export default function TagsPage() {
   }
 
   const deleteTag = async (tagId: string) => {
-    if (!confirm('Are you sure you want to delete this tag? It will be removed from all leads and customers.')) {
-      return
-    }
+    const result = await confirm({
+      title: 'Delete Tag',
+      message: 'Are you sure you want to delete this tag? It will be removed from all leads and customers.',
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      type: 'danger',
+      icon: 'delete'
+    })
+    
+    if (!result) return
 
     try {
       await apiClient.delete(`/api/tags/${tagId}`)

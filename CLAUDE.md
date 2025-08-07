@@ -20,6 +20,7 @@ This is a comprehensive CRM (Customer Relationship Management) application built
 - **Styling**: Tailwind CSS v4 with mobile-first approach
 - **Authentication**: Custom lightweight auth system with localStorage
 - **PDF Generation**: @react-pdf/renderer and jsPDF
+- **Forms**: Formik with Yup validation for all form handling
 
 ## Common Development Commands
 
@@ -135,12 +136,80 @@ API routes expect `x-auth-user` header with JSON stringified user object for aut
 - **TagComponent**: Reusable tag display with edit/remove functionality
 - **ActivityTimeline**: Timeline view for activities
 - **TaskSection**: Task management component
+- **Form Components**: Reusable Formik-based form components in `/components/forms/`
+
+### Form Development Standards
+**IMPORTANT**: All forms in the application MUST use Formik with Yup validation.
+
+#### Form Components Available:
+- `FormWrapper`: Main Formik wrapper with validation
+- `FormField`: Reusable input/textarea/select field with error handling
+- `FormButton`: Consistent button styling with loading states
+- `FormErrorMessage`: Error display component
+
+#### Form Implementation Pattern:
+```typescript
+import * as Yup from 'yup'
+import { FormWrapper, FormField, FormButton, FormErrorMessage } from '@/components/forms'
+
+const validationSchema = Yup.object({
+  name: Yup.string().required('Name is required'),
+  email: Yup.string().email('Invalid email').required('Email is required')
+})
+
+interface FormValues {
+  name: string
+  email: string
+}
+
+const MyForm = () => {
+  const [error, setError] = useState('')
+  
+  const initialValues: FormValues = {
+    name: '',
+    email: ''
+  }
+
+  const handleSubmit = async (values: FormValues) => {
+    try {
+      await apiCall(values)
+    } catch (err) {
+      setError('Operation failed')
+    }
+  }
+
+  return (
+    <FormWrapper
+      initialValues={initialValues}
+      validationSchema={validationSchema}
+      onSubmit={handleSubmit}
+    >
+      {({ isSubmitting }) => (
+        <>
+          <FormErrorMessage message={error} />
+          <FormField name="name" label="Name" required />
+          <FormField name="email" label="Email" type="email" required />
+          <FormButton type="submit" loading={isSubmitting}>Submit</FormButton>
+        </>
+      )}
+    </FormWrapper>
+  )
+}
+```
+
+#### Validation Guidelines:
+- Use Yup for all validation schemas
+- Required fields: `.required('Field name is required')`
+- Email validation: `.email('Invalid email address')`
+- Minimum length: `.min(n, 'Must be at least n characters')`
+- For nullable fields: `.nullable()` instead of optional
 
 ### State Management Patterns
 - Use `useState` and `useEffect` for local state
 - Custom hooks for shared logic (useAuth, usePermissions)
 - API calls centralized in `lib/api-client.ts`
 - Real-time updates using localStorage events
+- Form state managed by Formik - avoid manual state management for forms
 
 ## Testing & Quality
 

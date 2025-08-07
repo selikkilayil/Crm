@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { ConfirmationProvider } from "@/lib/confirmation-context";
 // import "../styles/unified.css";
 
 const geistSans = Geist({
@@ -28,7 +29,9 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {children}
+        <ConfirmationProvider>
+          {children}
+        </ConfirmationProvider>
       </body>
     </html>
   );

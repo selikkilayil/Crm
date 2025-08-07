@@ -12,6 +12,21 @@ class ApiClient {
       'Content-Type': 'application/json',
     }
 
+    // Add authentication header for API routes
+    if (typeof window !== 'undefined') {
+      const authUser = localStorage.getItem('auth_user')
+      if (authUser) {
+        try {
+          const user = JSON.parse(authUser)
+          if (user) {
+            headers['x-auth-user'] = JSON.stringify(user)
+          }
+        } catch (error) {
+          console.error('Failed to parse auth user data:', error)
+        }
+      }
+    }
+
     return headers
   }
 
