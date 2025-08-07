@@ -5,7 +5,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { useRouter } from 'next/navigation'
 import { useConfirm } from '@/lib/confirmation-context'
 import AuthGuard from '@/components/AuthGuard'
-import NavBar from '@/components/NavBar'
+import LayoutWithVerticalNav from '@/components/LayoutWithVerticalNav'
 import apiClient from '@/lib/api-client'
 
 interface Permission {
@@ -92,20 +92,18 @@ export default function RolesPage() {
   if (loading) {
     return (
       <AuthGuard>
-        <div className="min-h-screen bg-gray-50">
-          <NavBar currentPage="roles" />
+        <LayoutWithVerticalNav currentPage="roles">
           <div className="flex justify-center items-center min-h-screen">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
           </div>
-        </div>
+        </LayoutWithVerticalNav>
       </AuthGuard>
     )
   }
 
   return (
     <AuthGuard>
-      <div className="min-h-screen bg-gray-50">
-        <NavBar currentPage="roles" />
+      <LayoutWithVerticalNav currentPage="roles">
         
         <div className="p-4 sm:p-6 lg:p-8">
           {/* Header */}
@@ -220,7 +218,7 @@ export default function RolesPage() {
 
         </div>
 
-      </div>
+      </LayoutWithVerticalNav>
     </AuthGuard>
   )
 }

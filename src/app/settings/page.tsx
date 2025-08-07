@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import AuthGuard from '@/components/AuthGuard'
-import NavBar from '@/components/NavBar'
+import LayoutWithVerticalNav from '@/components/LayoutWithVerticalNav'
 
 interface PDFSettings {
   id: string
@@ -123,15 +123,14 @@ export default function SettingsPage() {
   if (loading) {
     return (
       <AuthGuard>
-        <div className="min-h-screen bg-gray-50">
-          <NavBar currentPage="settings" />
+        <LayoutWithVerticalNav currentPage="settings">
           <div className="flex justify-center items-center min-h-96">
             <div className="text-center">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto"></div>
               <p className="mt-2 text-gray-700">Loading settings...</p>
             </div>
           </div>
-        </div>
+        </LayoutWithVerticalNav>
       </AuthGuard>
     )
   }
@@ -139,20 +138,18 @@ export default function SettingsPage() {
   if (!settings) {
     return (
       <AuthGuard>
-        <div className="min-h-screen bg-gray-50">
-          <NavBar currentPage="settings" />
+        <LayoutWithVerticalNav currentPage="settings">
           <div className="text-center mt-20">
             <p className="text-gray-700">Failed to load settings</p>
           </div>
-        </div>
+        </LayoutWithVerticalNav>
       </AuthGuard>
     )
   }
 
   return (
     <AuthGuard>
-      <div className="min-h-screen bg-gray-50">
-        <NavBar currentPage="settings" />
+      <LayoutWithVerticalNav currentPage="settings">
         
         <main className="max-w-6xl mx-auto py-4 sm:py-6 px-4 sm:px-6 lg:px-8">
           {/* Header */}
@@ -588,7 +585,7 @@ export default function SettingsPage() {
             </div>
           </div>
         </main>
-      </div>
+      </LayoutWithVerticalNav>
     </AuthGuard>
   )
 }

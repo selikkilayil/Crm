@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import AuthGuard from '@/components/AuthGuard'
-import NavBar from '@/components/NavBar'
+import LayoutWithVerticalNav from '@/components/LayoutWithVerticalNav'
 import ActivityTimeline from '@/components/ActivityTimeline'
 import TaskSection from '@/components/TaskSection'
 import TagComponent from '@/components/TagComponent'
@@ -209,8 +209,7 @@ export default function EnhancedCustomersPage() {
 
   return (
     <AuthGuard>
-      <div className="min-h-screen bg-gray-50">
-        <NavBar currentPage="customers" />
+      <LayoutWithVerticalNav currentPage="customers">
 
         <main className="max-w-7xl mx-auto py-4 sm:py-6 px-4 sm:px-6 lg:px-8">
           {/* Mobile-first Header */}
@@ -382,7 +381,7 @@ export default function EnhancedCustomersPage() {
         )}
 
 
-      </div>
+      </LayoutWithVerticalNav>
     </AuthGuard>
   )
 }

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { ActivityType } from '@prisma/client'
 import { useConfirm } from '@/lib/confirmation-context'
 import AuthGuard from '@/components/AuthGuard'
-import NavBar from '@/components/NavBar'
+import LayoutWithVerticalNav from '@/components/LayoutWithVerticalNav'
 import apiClient from '@/lib/api-client'
 
 interface Activity {
@@ -163,8 +163,7 @@ export default function ActivitiesPage() {
 
   return (
     <AuthGuard>
-      <div className="min-h-screen bg-gray-50">
-        <NavBar />
+      <LayoutWithVerticalNav currentPage="activities">
 
         <main className="max-w-7xl mx-auto py-4 sm:py-6 px-4 sm:px-6 lg:px-8">
           {/* Mobile-first Header */}
@@ -349,7 +348,7 @@ export default function ActivitiesPage() {
             activityTypes={activityTypes}
           />
         )}
-      </div>
+      </LayoutWithVerticalNav>
     </AuthGuard>
   )
 }

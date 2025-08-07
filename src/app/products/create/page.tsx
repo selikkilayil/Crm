@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import AuthGuard from '@/components/AuthGuard'
 import PermissionGuard from '@/components/PermissionGuard'
-import NavBar from '@/components/NavBar'
+import LayoutWithVerticalNav from '@/components/LayoutWithVerticalNav'
 import { productApi } from '@/lib/api-client'
 import { PERMISSIONS } from '@/lib/permissions'
 
@@ -154,9 +154,8 @@ export default function CreateProductPage() {
 
   return (
     <AuthGuard>
-      <PermissionGuard permission={PERMISSIONS.PRODUCTS_CREATE}>
-        <div className="min-h-screen bg-gray-50">
-          <NavBar currentPage="products" />
+      <LayoutWithVerticalNav currentPage="products">
+        <PermissionGuard permission={PERMISSIONS.PRODUCTS_CREATE}>
           
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <div className="mb-8">
@@ -692,8 +691,8 @@ export default function CreateProductPage() {
               </div>
             </form>
           </div>
-        </div>
-      </PermissionGuard>
+        </PermissionGuard>
+      </LayoutWithVerticalNav>
     </AuthGuard>
   )
 }

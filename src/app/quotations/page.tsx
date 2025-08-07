@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useAuth } from '@/hooks/useAuth'
 import { useConfirm } from '@/lib/confirmation-context'
 import AuthGuard from '@/components/AuthGuard'
-import NavBar from '@/components/NavBar'
+import LayoutWithVerticalNav from '@/components/LayoutWithVerticalNav'
 
 interface Customer {
   id: string
@@ -176,8 +176,7 @@ export default function QuotationsPage() {
 
   return (
     <AuthGuard>
-      <div className="min-h-screen bg-gray-50">
-        <NavBar currentPage="quotations" />
+      <LayoutWithVerticalNav currentPage="quotations">
         <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
         {/* 🎯 PROFESSIONAL HEADER - NOW UPDATED! */}
         <div className="mb-8">
@@ -427,7 +426,7 @@ export default function QuotationsPage() {
         )}
 
         </div>
-      </div>
+      </LayoutWithVerticalNav>
     </AuthGuard>
   )
 }

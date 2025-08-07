@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import AuthGuard from '@/components/AuthGuard'
 import PermissionGuard from '@/components/PermissionGuard'
-import NavBar from '@/components/NavBar'
+import LayoutWithVerticalNav from '@/components/LayoutWithVerticalNav'
 import { productApi } from '@/lib/api-client'
 import { PERMISSIONS } from '@/lib/permissions'
 import { useConfirm } from '@/lib/confirmation-context'
@@ -145,12 +145,11 @@ export default function ProductsPage() {
   if (loading) {
     return (
       <AuthGuard>
-        <div className="min-h-screen bg-gray-50">
-          <NavBar />
+        <LayoutWithVerticalNav currentPage="products">
           <div className="flex items-center justify-center h-64">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
           </div>
-        </div>
+        </LayoutWithVerticalNav>
       </AuthGuard>
     )
   }
@@ -158,8 +157,7 @@ export default function ProductsPage() {
   return (
     <AuthGuard>
       <PermissionGuard permission={PERMISSIONS.PRODUCTS_VIEW}>
-        <div className="min-h-screen bg-gray-50">
-          <NavBar />
+        <LayoutWithVerticalNav currentPage="products">
           
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             {/* Header */}
@@ -289,7 +287,7 @@ export default function ProductsPage() {
               </div>
             )}
           </div>
-        </div>
+        </LayoutWithVerticalNav>
       </PermissionGuard>
     </AuthGuard>
   )

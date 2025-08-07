@@ -5,7 +5,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { useRouter } from 'next/navigation'
 import { useConfirm } from '@/lib/confirmation-context'
 import AuthGuard from '@/components/AuthGuard'
-import NavBar from '@/components/NavBar'
+import LayoutWithVerticalNav from '@/components/LayoutWithVerticalNav'
 
 interface User {
   id: string
@@ -141,8 +141,7 @@ export default function SuperAdminPage() {
 
   return (
     <AuthGuard>
-      <div className="min-h-screen bg-gray-50">
-        <NavBar />
+      <LayoutWithVerticalNav>
         <div className="p-4 sm:p-6 lg:p-8">
       {/* Header */}
       <div className="mb-6">
@@ -273,7 +272,7 @@ export default function SuperAdminPage() {
         />
       )}
         </div>
-      </div>
+      </LayoutWithVerticalNav>
     </AuthGuard>
   )
 }

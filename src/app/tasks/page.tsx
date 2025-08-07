@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { TaskStatus, TaskPriority } from '@prisma/client'
 import { useConfirm } from '@/lib/confirmation-context'
 import AuthGuard from '@/components/AuthGuard'
-import NavBar from '@/components/NavBar'
+import LayoutWithVerticalNav from '@/components/LayoutWithVerticalNav'
 import { FormWrapper, FormField, FormButton, FormErrorMessage } from '@/components/forms'
 import * as Yup from 'yup'
 import { useAuth } from '@/hooks/useAuth'
@@ -216,8 +216,7 @@ export default function TasksPage() {
 
   return (
     <AuthGuard>
-      <div className="min-h-screen bg-gray-50">
-        <NavBar currentPage="tasks" />
+      <LayoutWithVerticalNav currentPage="tasks">
 
         <main className="max-w-7xl mx-auto py-4 sm:py-6 px-4 sm:px-6 lg:px-8">
           {/* Mobile-first Header */}
@@ -482,7 +481,7 @@ export default function TasksPage() {
             currentUser={user}
           />
         )}
-      </div>
+      </LayoutWithVerticalNav>
     </AuthGuard>
   )
 }

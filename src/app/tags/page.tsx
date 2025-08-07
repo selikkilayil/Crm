@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useConfirm } from '@/lib/confirmation-context'
 import AuthGuard from '@/components/AuthGuard'
-import NavBar from '@/components/NavBar'
+import LayoutWithVerticalNav from '@/components/LayoutWithVerticalNav'
 import apiClient from '@/lib/api-client'
 
 interface Tag {
@@ -120,8 +120,7 @@ export default function TagsPage() {
 
   return (
     <AuthGuard>
-      <div className="min-h-screen bg-gray-50">
-        <NavBar currentPage="tags" />
+      <LayoutWithVerticalNav currentPage="tags">
 
         <main className="max-w-7xl mx-auto py-4 sm:py-6 px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col space-y-4 mb-6">
@@ -201,7 +200,7 @@ export default function TagsPage() {
             onClose={() => setSelectedTag(null)}
           />
         )}
-      </div>
+      </LayoutWithVerticalNav>
     </AuthGuard>
   )
 }

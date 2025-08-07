@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { LeadStatus } from '@prisma/client'
 import * as Yup from 'yup'
 import AuthGuard from '@/components/AuthGuard'
-import NavBar from '@/components/NavBar'
+import LayoutWithVerticalNav from '@/components/LayoutWithVerticalNav'
 import TaskSection from '@/components/TaskSection'
 import TagComponent from '@/components/TagComponent'
 import { FormWrapper, FormField, FormButton, FormErrorMessage } from '@/components/forms'
@@ -199,9 +199,7 @@ export default function EnhancedLeadsPage() {
 
   return (
     <AuthGuard>
-      <div className="min-h-screen bg-gray-50">
-        <NavBar currentPage="leads" />
-
+      <LayoutWithVerticalNav currentPage="leads">
         <main className="max-w-7xl mx-auto py-4 sm:py-6 px-4 sm:px-6 lg:px-8">
           <div className="py-4 sm:py-6">
             {/* Mobile-first Header */}
@@ -481,19 +479,19 @@ export default function EnhancedLeadsPage() {
               </>
             )}
           </div>
-        </main>
 
-        {/* Modals */}
-        {showAddForm && (
-          <AddLeadModal 
-            onAdd={(data) => {
-              fetchLeads()
-              setShowAddForm(false)
-            }} 
-            onClose={() => setShowAddForm(false)} 
-          />
-        )}
-      </div>
+          {/* Modals */}
+          {showAddForm && (
+            <AddLeadModal 
+              onAdd={(data) => {
+                fetchLeads()
+                setShowAddForm(false)
+              }} 
+              onClose={() => setShowAddForm(false)} 
+            />
+          )}
+        </main>
+      </LayoutWithVerticalNav>
     </AuthGuard>
   )
 }

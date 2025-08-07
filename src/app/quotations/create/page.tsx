@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/hooks/useAuth'
 import AuthGuard from '@/components/AuthGuard'
-import NavBar from '@/components/NavBar'
+import LayoutWithVerticalNav from '@/components/LayoutWithVerticalNav'
 import ProductSelector from '@/components/ProductSelector'
 import apiClient, { productApi } from '@/lib/api-client'
 import { Formik, Form, Field, FieldArray, FormikProps } from 'formik'
@@ -469,20 +469,18 @@ export default function CreateQuotationPage() {
   if (loading) {
     return (
       <AuthGuard>
-        <div className="min-h-screen bg-gray-50">
-          <NavBar />
+        <LayoutWithVerticalNav>
           <div className="flex items-center justify-center h-64">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
           </div>
-        </div>
+        </LayoutWithVerticalNav>
       </AuthGuard>
     )
   }
 
   return (
     <AuthGuard>
-      <div className="min-h-screen bg-gray-50">
-        <NavBar />
+      <LayoutWithVerticalNav>
         
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="mb-8">
@@ -706,7 +704,7 @@ export default function CreateQuotationPage() {
             }}
           </Formik>
         </div>
-      </div>
+      </LayoutWithVerticalNav>
     </AuthGuard>
   )
 }
