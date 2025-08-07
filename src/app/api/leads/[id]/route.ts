@@ -35,26 +35,56 @@ export async function PUT(
     const body = await request.json()
     const { name, email, phone, company, status, source, notes } = body
     
-    const lead = await prisma.lead.update({
-      where: { id },
-      data: {
-        name,
-        email,
-        phone,
-        company,
-        status: status as LeadStatus,
-        source,
-        notes,
-        ...(status === 'CONVERTED' && { convertedAt: new Date() }),
-      },
-      include: {
-        activities: true,
-        customer: true,
-      },
+    // Use a transaction to ensure both lead update and customer creation happen atomically
+    const result = await prisma.$transaction(async (tx) => {
+      // Update the lead
+      const updatedLead = await tx.lead.update({
+        where: { id },
+        data: {
+          name,
+          email,
+          phone,
+          company,
+          status: status as LeadStatus,
+          source,
+          notes,
+          ...(status === 'CONVERTED' && { convertedAt: new Date() }),
+        },
+      })
+
+      // If converting to customer and no customer exists yet, create one
+      if (status === 'CONVERTED') {
+        const existingCustomer = await tx.customer.findUnique({
+          where: { leadId: id },
+        })
+
+        if (!existingCustomer) {
+          await tx.customer.create({
+            data: {
+              name: updatedLead.name,
+              email: updatedLead.email || `lead-${id}@converted.local`, // Email is required for customer
+              phone: updatedLead.phone,
+              company: updatedLead.company,
+              notes: updatedLead.notes,
+              leadId: id,
+            },
+          })
+        }
+      }
+
+      // Return the updated lead with relationships
+      return await tx.lead.findUnique({
+        where: { id },
+        include: {
+          activities: true,
+          customer: true,
+        },
+      })
     })
     
-    return NextResponse.json(lead)
+    return NextResponse.json(result)
   } catch (error) {
+    console.error('Failed to update lead:', error)
     return NextResponse.json({ error: 'Failed to update lead' }, { status: 500 })
   }
 }

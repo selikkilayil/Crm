@@ -141,24 +141,13 @@ export default function EnhancedLeadsPage() {
 
   const convertToCustomer = async (leadId: string) => {
     try {
-      const lead = leads.find(l => l.id === leadId)
-      if (!lead) return
-
-      // Create customer from lead data
-      await apiClient.post('/api/customers', {
-        name: lead.name,
-        email: lead.email,
-        phone: lead.phone,
-        company: lead.company,
-        notes: lead.notes,
-        leadId: lead.id,
-      })
-
-      // Update lead status to converted
+      // Just update the lead status - the API will handle customer creation
       await updateLeadStatus(leadId, 'CONVERTED')
       alert('Lead successfully converted to customer!')
+      fetchLeads() // Refresh the leads to show updated status
     } catch (error) {
       console.error('Failed to convert lead:', error)
+      alert('Failed to convert lead. Please try again.')
     }
   }
 
