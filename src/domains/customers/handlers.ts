@@ -75,8 +75,6 @@ export class CustomerHandlers {
       const customer = await customerService.createCustomer(customerData)
       return NextResponse.json(customer, { status: 201 })
     } catch (error: any) {
-      console.error('Customer creation error:', error)
-      
       if (error.message === 'Authentication required') {
         return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
       }
@@ -87,6 +85,8 @@ export class CustomerHandlers {
         return NextResponse.json({ error: 'Customer with this email already exists' }, { status: 400 })
       }
       
+      // Only log unexpected errors
+      console.error('Customer creation error:', error)
       return NextResponse.json({ error: 'Failed to create customer' }, { status: 500 })
     }
   }

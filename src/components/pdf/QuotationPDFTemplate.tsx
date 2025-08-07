@@ -1,5 +1,5 @@
 import React from 'react'
-import { Document, Page, Text, View, StyleSheet, Font } from '@react-pdf/renderer'
+import { Document, Page, Text, View, StyleSheet, Font, Image } from '@react-pdf/renderer'
 
 // Define interfaces for the quotation data
 interface Customer {
@@ -62,29 +62,81 @@ interface Quotation {
 
 interface PDFSettings {
   id: string
+  // Company Information
   companyName: string
   companyAddress: string
   companyPhone: string
   companyEmail: string
   companyWebsite: string
   companyGST: string
+  
+  // Logo Settings
   logoUrl?: string | null
   logoText: string
+  logoWidth: number
+  logoHeight: number
+  logoPosition: string
+  
+  // Color Scheme
   primaryColor: string
   secondaryColor: string
   textColor: string
   lightBackground: string
+  tableHeaderBg: string
+  tableBorderColor: string
+  
+  // Quotation Settings
   quotationPrefix: string
   quotationNumberFormat: string
   defaultValidityDays: number
+  
+  // Default Terms
   defaultTermsConditions: string
   defaultPaymentTerms: string
   defaultDeliveryTerms: string
+  
+  // Tax Settings
   defaultTaxRate: number
   showTaxBreakdown: boolean
+  
+  // Currency Settings
   defaultCurrency: string
   currencySymbol: string
+  
+  // Footer Text
   footerText: string
+  
+  // Page Layout Settings
+  pageMarginTop: number
+  pageMarginBottom: number
+  pageMarginLeft: number
+  pageMarginRight: number
+  pageSize: string
+  pageOrientation: string
+  
+  // Header Settings
+  headerHeight: number
+  headerPadding: number
+  headerShowLogo: boolean
+  headerShowAddress: boolean
+  headerAlignment: string
+  
+  // Footer Settings
+  footerHeight: number
+  footerPadding: number
+  footerShowPageNumber: boolean
+  footerShowDate: boolean
+  footerAlignment: string
+  
+  // Content Settings
+  contentPadding: number
+  lineHeight: number
+  fontSize: number
+  headingFontSize: number
+  
+  // Table Settings
+  tableRowPadding: number
+  tableShowBorders: boolean
 }
 
 interface QuotationPDFTemplateProps {
@@ -98,53 +150,66 @@ const createStyles = (settings: PDFSettings) => StyleSheet.create({
     flexDirection: 'column',
     backgroundColor: '#ffffff',
     padding: 0,
+    paddingTop: 0,
+    paddingBottom: 0,
+    paddingLeft: settings.pageMarginLeft || 15,
+    paddingRight: settings.pageMarginRight || 15,
+    fontSize: settings.fontSize || 12,
+    lineHeight: settings.lineHeight || 1.4,
+    color: settings.textColor || '#1f2937',
   },
   
   // Header Section
   header: {
-    backgroundColor: settings.primaryColor,
-    padding: 20,
+    backgroundColor: settings.primaryColor || '#2d3748',
+    padding: settings.headerPadding || 20,
+    height: settings.headerHeight || 80,
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: settings.headerAlignment === 'center' ? 'center' : 'flex-start',
+    justifyContent: settings.headerAlignment === 'center' ? 'center' : 
+                    settings.headerAlignment === 'right' ? 'flex-end' : 'flex-start',
+    marginLeft: -(settings.pageMarginLeft || 15),
+    marginRight: -(settings.pageMarginRight || 15),
   },
   headerLogo: {
-    width: 40,
-    height: 40,
-    backgroundColor: '#ffffff',
-    borderRadius: 20,
+    width: settings.logoWidth ?? 100,
+    height: settings.logoHeight ?? 60,
     marginRight: 15,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: (settings.logoUrl && settings.logoUrl.length > 0) ? 'transparent' : '#ffffff',
+    borderRadius: 5,
   },
   headerLogoText: {
-    color: settings.primaryColor,
-    fontSize: 16,
+    color: settings.primaryColor || '#2d3748',
+    fontSize: 20,
     fontWeight: 'bold',
   },
   headerInfo: {
     flex: 1,
+    display: settings.headerShowAddress ? 'flex' : 'none',
   },
   companyName: {
     color: '#ffffff',
-    fontSize: 18,
+    fontSize: settings.headingFontSize || 16,
     fontWeight: 'bold',
     marginBottom: 5,
   },
   companyDetails: {
     color: '#ffffff',
-    fontSize: 9,
-    lineHeight: 1.4,
+    fontSize: 10,
+    lineHeight: settings.lineHeight || 1.4,
   },
   
   // Content Section
   content: {
-    padding: 20,
+    padding: settings.contentPadding || 20,
     flex: 1,
   },
   
   // Quotation Title
   quotationHeader: {
-    backgroundColor: settings.lightBackground,
+    backgroundColor: settings.lightBackground || '#f8fafc',
     borderColor: '#e2e8f0',
     borderWidth: 1,
     borderRadius: 5,
@@ -157,12 +222,12 @@ const createStyles = (settings: PDFSettings) => StyleSheet.create({
   quotationTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: settings.textColor,
+    color: settings.textColor || '#1f2937',
   },
   quotationNumber: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: settings.secondaryColor,
+    color: settings.secondaryColor || '#6366f1',
   },
   quotationDate: {
     fontSize: 10,
@@ -177,7 +242,7 @@ const createStyles = (settings: PDFSettings) => StyleSheet.create({
   },
   customerBox: {
     flex: 1,
-    backgroundColor: settings.lightBackground,
+    backgroundColor: settings.lightBackground || '#f8fafc',
     borderColor: '#e2e8f0',
     borderWidth: 1,
     borderRadius: 5,
@@ -186,7 +251,7 @@ const createStyles = (settings: PDFSettings) => StyleSheet.create({
   },
   detailsBox: {
     flex: 1,
-    backgroundColor: settings.lightBackground,
+    backgroundColor: settings.lightBackground || '#f8fafc',
     borderColor: '#e2e8f0',
     borderWidth: 1,
     borderRadius: 5,
@@ -196,7 +261,7 @@ const createStyles = (settings: PDFSettings) => StyleSheet.create({
   sectionTitle: {
     fontSize: 12,
     fontWeight: 'bold',
-    color: settings.textColor,
+    color: settings.textColor || '#1f2937',
     marginBottom: 8,
   },
   customerName: {
@@ -216,31 +281,37 @@ const createStyles = (settings: PDFSettings) => StyleSheet.create({
     marginBottom: 20,
   },
   itemsTitle: {
-    fontSize: 14,
+    fontSize: settings.headingFontSize || 16,
     fontWeight: 'bold',
-    color: '#2d3748',
+    color: settings.textColor || '#1f2937',
     marginBottom: 10,
   },
   tableHeader: {
-    backgroundColor: settings.primaryColor,
+    backgroundColor: settings.tableHeaderBg || '#f8fafc',
     flexDirection: 'row',
-    padding: 8,
+    padding: settings.tableRowPadding || 10,
     borderTopLeftRadius: 5,
     borderTopRightRadius: 5,
+    borderColor: settings.tableShowBorders ? (settings.tableBorderColor || '#e5e7eb') : 'transparent',
+    borderWidth: settings.tableShowBorders ? 1 : 0,
   },
   tableHeaderText: {
-    color: '#ffffff',
+    color: settings.textColor || '#1f2937',
     fontSize: 10,
     fontWeight: 'bold',
   },
   tableRow: {
     flexDirection: 'row',
-    padding: 8,
-    borderBottomColor: '#e2e8f0',
-    borderBottomWidth: 1,
+    padding: settings.tableRowPadding || 10,
+    borderBottomColor: settings.tableShowBorders ? (settings.tableBorderColor || '#e5e7eb') : 'transparent',
+    borderBottomWidth: settings.tableShowBorders ? 1 : 0,
+    borderLeftColor: settings.tableShowBorders ? (settings.tableBorderColor || '#e5e7eb') : 'transparent',
+    borderRightColor: settings.tableShowBorders ? (settings.tableBorderColor || '#e5e7eb') : 'transparent',
+    borderLeftWidth: settings.tableShowBorders ? 1 : 0,
+    borderRightWidth: settings.tableShowBorders ? 1 : 0,
   },
   tableRowAlt: {
-    backgroundColor: '#fafbfc',
+    backgroundColor: settings.lightBackground || '#f8fafc',
   },
   tableCell: {
     fontSize: 10,
@@ -289,7 +360,6 @@ const createStyles = (settings: PDFSettings) => StyleSheet.create({
     backgroundColor: '#dbeafe',
     padding: 2,
     marginTop: 2,
-    borderRadius: 2,
     textAlign: 'center',
   },
   itemNotes: {
@@ -328,7 +398,7 @@ const createStyles = (settings: PDFSettings) => StyleSheet.create({
   },
   summaryBox: {
     width: 200,
-    backgroundColor: settings.lightBackground,
+    backgroundColor: settings.lightBackground || '#f8fafc',
     borderColor: '#e2e8f0',
     borderWidth: 1,
     borderRadius: 5,
@@ -356,7 +426,6 @@ const createStyles = (settings: PDFSettings) => StyleSheet.create({
   },
   totalRow: {
     backgroundColor: settings.primaryColor,
-    borderRadius: 5,
     padding: 8,
     marginTop: 10,
     flexDirection: 'row',
@@ -375,7 +444,7 @@ const createStyles = (settings: PDFSettings) => StyleSheet.create({
   
   // Notes Section
   notesSection: {
-    backgroundColor: settings.lightBackground,
+    backgroundColor: settings.lightBackground || '#f8fafc',
     borderColor: '#e2e8f0',
     borderWidth: 1,
     borderRadius: 5,
@@ -385,7 +454,7 @@ const createStyles = (settings: PDFSettings) => StyleSheet.create({
   notesTitle: {
     fontSize: 12,
     fontWeight: 'bold',
-    color: settings.textColor,
+    color: settings.textColor || '#1f2937',
     marginBottom: 8,
   },
   notesText: {
@@ -396,26 +465,42 @@ const createStyles = (settings: PDFSettings) => StyleSheet.create({
   
   // Footer
   footer: {
-    backgroundColor: settings.primaryColor,
-    padding: 15,
+    backgroundColor: settings.primaryColor || '#2d3748',
+    padding: settings.footerPadding || 15,
+    height: settings.footerHeight || 60,
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: settings.footerAlignment === 'center' ? 'center' : 
+                    settings.footerAlignment === 'right' ? 'flex-end' : 'space-between',
     alignItems: 'center',
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
+    marginLeft: -(settings.pageMarginLeft || 15),
+    marginRight: -(settings.pageMarginRight || 15),
   },
   footerLeft: {
     flex: 1,
+    display: settings.footerShowDate ? 'flex' : 'none',
+  },
+  footerCenter: {
+    flex: 1,
+    alignItems: 'center',
   },
   footerRight: {
     alignItems: 'flex-end',
+    display: settings.footerShowPageNumber ? 'flex' : 'none',
   },
   footerText: {
     color: '#ffffff',
     fontSize: 9,
     marginBottom: 2,
+  },
+  footerMainText: {
+    color: '#ffffff',
+    fontSize: 11,
+    fontWeight: 'bold',
+    textAlign: settings.footerAlignment as any,
   },
 })
 
@@ -448,20 +533,39 @@ const QuotationPDFTemplate: React.FC<QuotationPDFTemplateProps> = ({ quotation, 
 
   return (
     <Document>
-      <Page size="A4" style={styles.page}>
+      <Page 
+        size={settings.pageSize as any} 
+        orientation={settings.pageOrientation as any} 
+        style={styles.page}
+      >
         {/* Header */}
         <View style={styles.header}>
-          <View style={styles.headerLogo}>
-            <Text style={styles.headerLogoText}>{settings.logoText}</Text>
-          </View>
-          <View style={styles.headerInfo}>
-            <Text style={styles.companyName}>{settings.companyName}</Text>
-            <Text style={styles.companyDetails}>
-              {settings.companyAddress}{'\n'}
-              Phone: {settings.companyPhone} | Email: {settings.companyEmail}{'\n'}
-              Website: {settings.companyWebsite} | GST: {settings.companyGST}
-            </Text>
-          </View>
+          {settings.headerShowLogo && (
+            <View style={styles.headerLogo}>
+              {(settings.logoUrl && settings.logoUrl.length > 0) ? (
+                <Image 
+                  src={settings.logoUrl} 
+                  style={{
+                    width: settings.logoWidth || 100,
+                    height: settings.logoHeight || 60,
+                    objectFit: 'contain',
+                  }}
+                />
+              ) : (
+                <Text style={styles.headerLogoText}>{settings.logoText}</Text>
+              )}
+            </View>
+          )}
+          {settings.headerShowAddress && (
+            <View style={styles.headerInfo}>
+              <Text style={styles.companyName}>{settings.companyName}</Text>
+              <Text style={styles.companyDetails}>
+                {settings.companyAddress}{'\n'}
+                Phone: {settings.companyPhone} | Email: {settings.companyEmail}{'\n'}
+                Website: {settings.companyWebsite} | GST: {settings.companyGST}
+              </Text>
+            </View>
+          )}
         </View>
 
         {/* Content */}
@@ -650,16 +754,25 @@ const QuotationPDFTemplate: React.FC<QuotationPDFTemplateProps> = ({ quotation, 
 
         {/* Footer */}
         <View style={styles.footer}>
-          <View style={styles.footerLeft}>
-            <Text style={styles.footerText}>{settings.footerText}</Text>
-            <Text style={styles.footerText}>
-              Generated on {new Date().toLocaleDateString('en-IN')} | Created by {quotation.createdBy.name}
-            </Text>
+          {settings.footerShowDate && (
+            <View style={styles.footerLeft}>
+              <Text style={styles.footerText}>
+                Generated on {new Date().toLocaleDateString('en-IN')}
+              </Text>
+              <Text style={styles.footerText}>Created by {quotation.createdBy.name}</Text>
+            </View>
+          )}
+          
+          <View style={styles.footerCenter}>
+            <Text style={styles.footerMainText}>{settings.footerText}</Text>
           </View>
-          <View style={styles.footerRight}>
-            <Text style={styles.footerText}>Page 1 of 1</Text>
-            <Text style={styles.footerText}>Quotation #{quotation.quotationNumber}</Text>
-          </View>
+          
+          {settings.footerShowPageNumber && (
+            <View style={styles.footerRight}>
+              <Text style={styles.footerText}>Page 1 of 1</Text>
+              <Text style={styles.footerText}>#{quotation.quotationNumber}</Text>
+            </View>
+          )}
         </View>
       </Page>
     </Document>

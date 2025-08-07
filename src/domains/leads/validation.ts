@@ -21,6 +21,7 @@ export const updateLeadSchema = z.object({
   source: z.string().optional(),
   notes: z.string().optional(),
   assignedToId: z.string().optional(),
+  isArchived: z.boolean().optional(),
 })
 
 export function validateLead(data: any) {

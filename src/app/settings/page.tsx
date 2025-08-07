@@ -305,6 +305,7 @@ export default function SettingsPage() {
                   { id: 'quotation', name: 'Quotation Format', icon: '📄' },
                   { id: 'defaults', name: 'Quotation Defaults', icon: '⚙️' },
                   { id: 'advanced', name: 'Advanced', icon: '⚡' },
+                  { id: 'preview', name: 'Preview & Download', icon: '👁️' },
                 ].map((tab) => (
                   <button
                     key={tab.id}
@@ -1352,6 +1353,255 @@ export default function SettingsPage() {
                       <li>• Logo dimensions will maintain aspect ratio when rendered</li>
                       <li>• Test your settings by generating a sample PDF</li>
                       <li>• Keep table padding consistent with content padding for visual harmony</li>
+                    </ul>
+                  </div>
+                </div>
+              )}
+
+              {/* Preview & Download Tab */}
+              {activeTab === 'preview' && (
+                <div className="space-y-6">
+                  {/* PDF Preview Section */}
+                  <div className="bg-gray-50 rounded-lg p-6 border border-gray-200">
+                    <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+                      <span className="mr-2">👁️</span>
+                      PDF Preview
+                    </h3>
+                    <p className="text-gray-600 mb-4">
+                      See how your quotation PDFs will look with the current settings.
+                    </p>
+
+                    {/* Sample PDF Download */}
+                    <div className="flex flex-col sm:flex-row gap-4">
+                      <button
+                        onClick={async () => {
+                          try {
+                            const response = await fetch('/api/settings/pdf/preview')
+                            if (response.ok) {
+                              const blob = await response.blob()
+                              const url = window.URL.createObjectURL(blob)
+                              const a = document.createElement('a')
+                              a.href = url
+                              a.download = 'sample-quotation-preview.pdf'
+                              document.body.appendChild(a)
+                              a.click()
+                              window.URL.revokeObjectURL(url)
+                              document.body.removeChild(a)
+                            } else {
+                              alert('Failed to generate sample PDF. Please try again.')
+                            }
+                          } catch (error) {
+                            console.error('Error downloading sample PDF:', error)
+                            alert('Failed to download sample PDF. Please try again.')
+                          }
+                        }}
+                        className="inline-flex items-center px-6 py-3 border border-transparent rounded-md shadow-sm text-base font-medium text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors"
+                      >
+                        <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        Download Sample PDF
+                      </button>
+
+                      <div className="text-sm text-gray-500 flex items-center">
+                        <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        This will generate a sample quotation PDF with your current settings
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Live Preview */}
+                  <div className="bg-gray-50 rounded-lg p-6 border border-gray-200">
+                    <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+                      <span className="mr-2">🔍</span>
+                      Live Preview
+                    </h3>
+                    <p className="text-gray-600 mb-4">
+                      Preview how your settings will appear in the PDF.
+                    </p>
+
+                    {/* Mock PDF Preview */}
+                    <div className="bg-white rounded-lg border-2 border-gray-300 p-6 max-w-2xl mx-auto shadow-lg">
+                      {/* Header Preview */}
+                      <div 
+                        className="flex items-center mb-6 rounded-lg"
+                        style={{ 
+                          backgroundColor: settings.primaryColor,
+                          padding: `${Math.min(settings.headerPadding, 20)}px`,
+                          minHeight: `${Math.min(settings.headerHeight, 80)}px`
+                        }}
+                      >
+                        {settings.headerShowLogo && (
+                          <div 
+                            className="flex items-center justify-center text-white font-bold rounded-full mr-4 flex-shrink-0"
+                            style={{ 
+                              width: `${Math.min(settings.logoWidth, 60)}px`,
+                              height: `${Math.min(settings.logoHeight, 40)}px`,
+                              backgroundColor: settings.logoUrl ? 'transparent' : '#ffffff',
+                              color: settings.logoUrl ? '#ffffff' : settings.primaryColor,
+                            }}
+                          >
+                            {settings.logoUrl ? (
+                              <img 
+                                src={settings.logoUrl} 
+                                alt="Company Logo" 
+                                className="max-w-full max-h-full object-contain"
+                                style={{ 
+                                  width: `${Math.min(settings.logoWidth, 60)}px`,
+                                  height: `${Math.min(settings.logoHeight, 40)}px`
+                                }}
+                              />
+                            ) : (
+                              <span style={{ fontSize: `${Math.min(settings.logoWidth, settings.logoHeight) / 3}px` }}>
+                                {settings.logoText}
+                              </span>
+                            )}
+                          </div>
+                        )}
+                        {settings.headerShowAddress && (
+                          <div className="text-white">
+                            <h3 className="font-bold text-lg" style={{ fontSize: `${Math.min(settings.headingFontSize, 18)}px` }}>
+                              {settings.companyName}
+                            </h3>
+                            <p className="text-sm opacity-90" style={{ fontSize: `${Math.min(settings.fontSize - 2, 12)}px` }}>
+                              {settings.companyAddress.split('\n')[0]}
+                            </p>
+                            <p className="text-sm opacity-90" style={{ fontSize: `${Math.min(settings.fontSize - 2, 12)}px` }}>
+                              {settings.companyPhone} | {settings.companyEmail}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Content Preview */}
+                      <div style={{ padding: `${Math.min(settings.contentPadding, 20)}px 0` }}>
+                        <div 
+                          className="flex items-center justify-between p-4 rounded-lg mb-4"
+                          style={{ 
+                            backgroundColor: settings.lightBackground,
+                            color: settings.textColor,
+                            fontSize: `${Math.min(settings.fontSize, 14)}px`
+                          }}
+                        >
+                          <div>
+                            <h4 className="font-bold" style={{ fontSize: `${Math.min(settings.headingFontSize, 20)}px` }}>
+                              QUOTATION
+                            </h4>
+                            <p>Date: {new Date().toLocaleDateString()}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="font-bold" style={{ color: settings.secondaryColor }}>
+                              QT-2025-0001
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Table Preview */}
+                        <div className="mb-4">
+                          <table className="w-full text-sm">
+                            <thead>
+                              <tr>
+                                <th 
+                                  className="text-left font-medium"
+                                  style={{ 
+                                    backgroundColor: settings.tableHeaderBg,
+                                    color: settings.textColor,
+                                    padding: `${Math.min(settings.tableRowPadding, 12)}px`,
+                                    ...(settings.tableShowBorders && {
+                                      border: `1px solid ${settings.tableBorderColor}`
+                                    }),
+                                    fontSize: `${Math.min(settings.fontSize - 2, 12)}px`
+                                  }}
+                                >
+                                  Item
+                                </th>
+                                <th 
+                                  className="text-right font-medium"
+                                  style={{ 
+                                    backgroundColor: settings.tableHeaderBg,
+                                    color: settings.textColor,
+                                    padding: `${Math.min(settings.tableRowPadding, 12)}px`,
+                                    ...(settings.tableShowBorders && {
+                                      border: `1px solid ${settings.tableBorderColor}`
+                                    }),
+                                    fontSize: `${Math.min(settings.fontSize - 2, 12)}px`
+                                  }}
+                                >
+                                  Amount
+                                </th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              <tr>
+                                <td 
+                                  style={{ 
+                                    padding: `${Math.min(settings.tableRowPadding, 12)}px`,
+                                    color: settings.textColor,
+                                    ...(settings.tableShowBorders && {
+                                      border: `1px solid ${settings.tableBorderColor}`
+                                    }),
+                                    fontSize: `${Math.min(settings.fontSize, 14)}px`
+                                  }}
+                                >
+                                  Sample Product
+                                </td>
+                                <td 
+                                  className="text-right"
+                                  style={{ 
+                                    padding: `${Math.min(settings.tableRowPadding, 12)}px`,
+                                    color: settings.textColor,
+                                    ...(settings.tableShowBorders && {
+                                      border: `1px solid ${settings.tableBorderColor}`
+                                    }),
+                                    fontSize: `${Math.min(settings.fontSize, 14)}px`
+                                  }}
+                                >
+                                  {settings.currencySymbol}5,000
+                                </td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+
+                      {/* Footer Preview */}
+                      <div 
+                        className="flex items-center justify-between text-sm rounded-lg"
+                        style={{ 
+                          backgroundColor: settings.primaryColor,
+                          color: '#ffffff',
+                          minHeight: `${Math.min(settings.footerHeight, 60)}px`,
+                          padding: `${Math.min(settings.footerPadding, 15)}px`,
+                          fontSize: `${Math.min(settings.fontSize - 1, 13)}px`
+                        }}
+                      >
+                        {settings.footerShowDate && (
+                          <div>Generated: {new Date().toLocaleDateString()}</div>
+                        )}
+                        <div className="font-medium">{settings.footerText}</div>
+                        {settings.footerShowPageNumber && (
+                          <div>Page 1 of 1</div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Tips Section */}
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <h4 className="font-medium text-blue-900 mb-2 flex items-center">
+                      <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      Preview Tips:
+                    </h4>
+                    <ul className="text-sm text-blue-800 space-y-1">
+                      <li>• The preview shows a simplified version - actual PDFs may have more content</li>
+                      <li>• Download a sample PDF to see the exact formatting and layout</li>
+                      <li>• Changes made to settings will be reflected in the next generated PDF</li>
+                      <li>• Logo images will appear in the actual PDF if uploaded</li>
+                      <li>• Color and spacing might appear slightly different due to PDF rendering</li>
                     </ul>
                   </div>
                 </div>

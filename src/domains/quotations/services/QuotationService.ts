@@ -474,11 +474,52 @@ export class QuotationService {
     }
   }
 
-  // Convert settings Decimal objects to numbers
+  // Convert settings Decimal objects to numbers and ensure all fields are properly formatted
   processPDFSettings(settings: any) {
     return {
       ...settings,
-      defaultTaxRate: Number(settings.defaultTaxRate)
+      // Convert Decimal fields to numbers with defaults
+      defaultTaxRate: Number(settings.defaultTaxRate) || 18,
+      lineHeight: Number(settings.lineHeight) || 1.4,
+      
+      // Ensure number fields are properly typed with defaults
+      pageMarginTop: Number(settings.pageMarginTop) || 20,
+      pageMarginBottom: Number(settings.pageMarginBottom) || 20,
+      pageMarginLeft: Number(settings.pageMarginLeft) || 15,
+      pageMarginRight: Number(settings.pageMarginRight) || 15,
+      headerHeight: Number(settings.headerHeight) || 80,
+      headerPadding: Number(settings.headerPadding) || 20,
+      footerHeight: Number(settings.footerHeight) || 60,
+      footerPadding: Number(settings.footerPadding) || 15,
+      contentPadding: Number(settings.contentPadding) || 20,
+      fontSize: Number(settings.fontSize) || 12,
+      headingFontSize: Number(settings.headingFontSize) || 16,
+      tableRowPadding: Number(settings.tableRowPadding) || 10,
+      logoWidth: Number(settings.logoWidth) || 100,
+      logoHeight: Number(settings.logoHeight) || 60,
+      defaultValidityDays: Number(settings.defaultValidityDays) || 30,
+      
+      // Ensure boolean fields are properly typed
+      showTaxBreakdown: Boolean(settings.showTaxBreakdown),
+      headerShowLogo: Boolean(settings.headerShowLogo),
+      headerShowAddress: Boolean(settings.headerShowAddress),
+      footerShowPageNumber: Boolean(settings.footerShowPageNumber),
+      footerShowDate: Boolean(settings.footerShowDate),
+      tableShowBorders: Boolean(settings.tableShowBorders),
+      
+      // Ensure string fields have defaults
+      primaryColor: settings.primaryColor || '#2d3748',
+      secondaryColor: settings.secondaryColor || '#6366f1',
+      textColor: settings.textColor || '#1f2937',
+      lightBackground: settings.lightBackground || '#f8fafc',
+      tableHeaderBg: settings.tableHeaderBg || '#f8fafc',
+      tableBorderColor: settings.tableBorderColor || '#e5e7eb',
+      currencySymbol: settings.currencySymbol || '₹',
+      headerAlignment: settings.headerAlignment || 'left',
+      footerAlignment: settings.footerAlignment || 'center',
+      logoPosition: settings.logoPosition || 'header-left',
+      pageSize: settings.pageSize || 'A4',
+      pageOrientation: settings.pageOrientation || 'portrait'
     }
   }
 }
